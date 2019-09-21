@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<!-- saved from url=(0063)chrome-extension://eemcgdkfndhakfknompkggombfjjjeno/main.html#1 -->
+<html i18n-values="dir:textdirection;lang:language" dir="ltr" lang="zh" i18n-processed="" class=""><!--
+
+Copyright (c) 2012 The Chromium Authors. All rights reserved.
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+
+--><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="google" value="notranslate">
+
+<title i18n-content="title">书签管理器</title>
+
+<link rel="stylesheet" href="chrome://resources/css/text_defaults.css">
+<link rel="stylesheet" href="chrome://resources/css/i18n_process.css">
+<link rel="stylesheet" href="chrome://resources/css/list.css">
+<link rel="stylesheet" href="chrome://resources/css/tree.css">
+<link rel="stylesheet" href="chrome://resources/css/menu.css">
+<link rel="stylesheet" href="chrome://resources/css/menu_button.css">
+<link rel="stylesheet" href="chrome://resources/css/widgets.css">
+<style>/* Copyright (c) 2012 The Chromium Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file. */
+
+/* Copyright 2014 The Chromium Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file. */
+
+/* This is a common file for pages that have a title and search box as their
+ * header. This visually looks like:
+ * _____________________________________________________________________________
+ * |                                                                           |
+ * |  I Am So Great!                                  [ Search greatness... ]  |
+ * |___________________________________________________________________________|
+ * | Summary (90235 things currently great)                      _Great links_ |
+ *
+ * The title expands to fill any space it needs and the search bar is locked to
+ * the end of the header (e.g., right in LTR, left in RTL).
+ */
+
+header,
+.summary {
+  min-width: 400px;
+}
+
+header {
+  align-items: center;
+  display: flex;
+  padding: 0 12px;
+}
+
+header h1 {
+  flex: 1;
+  /* TODO(dbeam): reconcile font/line-height/margin with chrome_shared.css */
+  font-size: 1.5em;
+  font-weight: normal;
+  line-height: 1;
+  margin: 15px 0;
+}
+
+header > :-webkit-any(form, input[type='search']) {
+  flex: none;
+}
+
+.summary {
+  background-color: rgb(235, 239, 249);
+  border-top: 1px solid rgb(156, 194, 239);
+  display: flex;
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+
+.summary > * {
+  flex: none;
+}
+
+.summary > :first-child {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+html,
+body {
+  cursor: default;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+list {
+  display: block;
+  overflow-x: hidden;
+  overflow-y: visible; /* let the container do the scrolling */
+}
+
+list > * {
+  -webkit-padding-end: 20px;
+  -webkit-padding-start: 3px;
+  color: hsl(0, 0%, 70%);
+  display: flex;
+  line-height: 20px;
+  margin: 0;
+  overflow: visible;
+  padding-bottom: 0;
+  padding-top: 0;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+list > * > * {
+  -webkit-padding-start: 20px;
+  background: 0 50% no-repeat;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre; /* Don't collapse whitespace */
+}
+
+list > * > .label {
+  -webkit-transition: all 150ms;
+  color: black;
+  display: inline-block; /* We need to use inline-block here due to RTL. */
+}
+
+list > * > .url {
+  direction: ltr; /* URLs always read LTR */
+  display: none;
+  flex: 1;
+}
+
+list > :hover > .url,
+list > [selected] > .url {
+  display: block;
+}
+
+/* Handle proper padding for URL field in an RTL context, where field order is
+ * |div.url||div.label| - so we need padding at the right of URL, not at the
+ * left. And since url is always LTR, that is padding at the end, not the start.
+ */
+html[dir=rtl] .url {
+  -webkit-padding-end: 20px;
+  -webkit-padding-start: 0;
+}
+
+html[dir=rtl] list .label {
+  background-position: 100% 50%;
+}
+
+list > .folder > .label {
+  background-image: -webkit-image-set(
+      url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABMAAAASCAYAAAC5DOVpAAABLElEQVR4Xs2Ur0oEURhHz10UwQkmg6DNZvQFDAafYsHiGgwGg8lg1S5jEcEiNvEBLPZFQbC5yWCSdZf5ez/5wQUHlpW7sqAHPhi+4R4OA3ecmTEtWkyRGYDj7Y0dIGWUztHF/flEMon2DvcRSZIgXl+euL66TYF4maoWV1bpPT4gnPOIls9YXlpQtSEiqlWW7h60wQAMMwQYrG0Gj4V9eFm89zg9uVS1xjVlmBnOV4DhzIPG+/Bc43wddjUif3v+4Zt5QLKGCEmqofZhJKwZT7OsLiVSBTQlEoQy8s8IWS1ZARKVA7AgUiGqNMj6ABEyHaoKKPvfNRJoMMgHBOLKUFmVAUESkOjvrtNH9475uVliGeblWFnn7KabMiHrW21GMDPs99AclQn37/5nX4eJ9e7eNnr7AAAAAElFTkSuQmCC) 1x);
+}
+
+/* We need to ensure that even empty labels take up space */
+list > * > .label:empty::after,
+list > * > .url:empty::after {
+  content: ' ';
+  white-space: pre;
+}
+
+list > .folder > .url:empty::after {
+  content: '';
+}
+
+list > * > button {
+  -webkit-transition: opacity 150ms;
+  background: #fff no-repeat center center;
+  border: 1px solid hsl(214, 91%, 85%);
+  border-radius: 3px;
+  bottom: 1px;
+  display: none;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  right: 3px;
+  top: 1px;
+  width: 15px;
+}
+
+list > [selected]:hover > button,
+list > * > button[menu-shown] {
+  border-color: hsl(214, 91%, 65%);
+}
+
+list > :hover > button {
+  display: block;
+}
+
+list > * > button:hover,
+list > * > button[menu-shown] {
+  display: block;
+}
+
+html[dir=rtl] list > * > button {
+  left: 3px;
+  right: auto;
+}
+
+/* Edit mode */
+
+list [editing] .label input,
+list [editing] .url input {
+  -webkit-margin-end: 4px;
+  -webkit-margin-start: -4px;
+  -webkit-padding-end: 3px;
+  -webkit-padding-start: 3px;
+  box-sizing: content-box;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  /* Do not inherit the line-height. */
+  line-height: normal;
+  margin-bottom: 0;
+  margin-top: 0;
+  min-height: 0;
+  text-decoration: none;
+  vertical-align: baseline;
+}
+
+.tree-item [editing] input {
+  line-height: normal;
+  margin: 0;
+  min-height: 0;
+  padding: 1px 0;
+}
+
+
+
+list > [editing] {
+  overflow: visible;
+}
+
+list [editing] .label,
+list [editing] .url,
+list [editing] > * {
+  overflow: visible;
+}
+
+list [editing] .url {
+  -webkit-padding-start: 5px;
+}
+
+list [editing] input {
+  padding: 1px 0;
+}
+
+/* end editing */
+
+html[dir=rtl] list > .folder > .label {
+  background-image: -webkit-image-set(
+      url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABMAAAASCAYAAAC5DOVpAAABRUlEQVR4Xs2UPUvEQBCG39mLnvhZXSEoWghWguAfsNPK1kYUG6+00fYKbSwtBLlrBFv/hKWVpVaWYiESReJdNNlxdhIRwkLIcYhDhmcHss/skuwSM2NQYTDACKoIjnZX9wRtj6fZurjuVJI50ebWBuYXl7SIokh5dnLqGnSCCt0xMz2F+OUB9zePWjMbZWN2QecVZexwcLiD4cYcNIjco4RCqEOBkrC8Bhzvt9rebfLTHYLJUWiYGkAGrMzGMEapCQKboOQDxKFCBCokN0GSA2liawVhmaz7lrE+DlgDmETFlH6pFCLln1VTvURm01/pyATArnbSXCZSGhrTVTNxhZ+2957JbaISJD3JLhC/Cj/B1lY8AXEkYIBtLs6lqchS/qPj9BFL1+fQIwjhf//WL1tZ38b51SX6iCaYuZB9h3eb9C/us28Uf7F5VS9BsgAAAABJRU5ErkJggg==) 1x);
+}
+
+
+
+.main {
+  border-top: 1px solid rgb(156, 194, 239);
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.pane,
+.splitter {
+  display: flex;
+  flex-direction: column;
+}
+
+.pane > :first-child,
+.splitter > :first-child {
+  background-color: rgb(235, 239, 249);
+  flex: none;
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+
+.splitter > :first-child {
+  overflow: hidden;
+  padding-left: 0;
+  padding-right: 0;
+  width: 15px;
+}
+
+.splitter button {
+  visibility: hidden;  /* This button is only used for height matching. */
+}
+
+#tree-pane {
+  /* min-width and max-width are used by the split pane. */
+  max-width: 50%;
+  min-width: 150px;
+  width: 200px;
+}
+
+#list-pane {
+  flex: 1;
+  min-width: 0;
+}
+
+#list-pane > :first-child {
+  -webkit-padding-start: 0;  /* Accounts for extra splitter resize width. */
+}
+
+#tree-container {
+  overflow: auto;
+}
+
+#list,
+#tree-container {
+  flex: 1;
+}
+
+#tree,
+#list {
+  -webkit-padding-end: 5px;
+  box-sizing: border-box;
+  display: inline-block;
+  min-width: 100%;
+  padding-bottom: 5px;
+  padding-top: 5px;
+}
+
+#tree {
+  /* Only pad the tree as the splitter adds a lot of whitespace for the list. */
+  -webkit-padding-start: 10px;
+}
+
+.tree-item > .tree-row {
+  line-height: 20px;
+}
+
+.tree-row .expand-icon {
+  top: 2px;
+}
+
+.splitter {
+  border-left: 5px solid rgb(235, 239, 249);
+  cursor: e-resize;
+
+  overflow-x: hidden;
+}
+
+.tree-row.drag-on,
+.drag-on {
+  background-color: hsla(214, 91%, 85%, .5);
+  border: 1px solid hsl(214, 91%, 85%);
+  border-radius: 3px;
+  box-sizing: border-box;
+}
+
+.drag-above::before,
+.drag-below::after {
+  background-clip: padding-box;
+  background-color: black;
+  border: 3px solid black;
+  border-bottom-color: transparent;
+  border-radius: 0;
+  border-top-color: transparent;
+  box-sizing: border-box;
+  content: '';
+  display: block;
+  height: 8px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  z-index: 10;
+}
+
+.drag-above::before {
+  top: calc((8px/2 + 1px) * -1)
+}
+
+.drag-below::after {
+  bottom: calc((8px/2 + 1px) * -1)
+}
+
+list.drag-above::before {
+  top: 0
+}
+
+list > .drag-below,
+list > .drag-above {
+  overflow: visible;
+}
+
+.summary > * {
+  font-size: 100%;
+  margin: 0;
+}
+
+#folders-button,
+#organize-button,
+.splitter button {
+  -webkit-appearance: none;
+  -webkit-padding-end: 11px;
+  -webkit-padding-start: 0;
+  background: transparent no-repeat right center;
+  border: 0;
+  font: inherit;
+  font-weight: bold;
+  padding-bottom: 0;
+  padding-top: 0;
+}
+
+list > * > button,
+[i18n-processed] #folders-button,
+[i18n-processed] #organize-button,
+[i18n-processed] .splitter button {
+  background-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9IiMwMDAiIHdpZHRoPSI2IiBoZWlnaHQ9IjMiIHZpZXdib3g9IjAgMCA2IDMiPgogIDxwYXRoIGQ9Ik0wIDAgTDYgMCBMMyAzIiB3aWR0aD0iNiIgaGVpZ2h0PSIzIi8+Cjwvc3ZnPgo=);
+  background-size: 9px 4px;
+}
+
+#folders-button {
+  -webkit-margin-start: 16px;
+}
+
+#organize-button {
+  -webkit-margin-start: 4px;
+}
+
+html[dir=rtl] #folders-button,
+html[dir=rtl] #organize-button {
+  background-position: left center;
+}
+
+@media (pointer:coarse) {
+  list > *,
+  cr-menu > button,
+  .tree-item > .tree-row {
+    line-height: 28px;
+  }
+
+  list [editing] input,
+  .tree-item [editing] input {
+    padding: 3px 0;
+  }
+
+  .tree-row .expand-icon {
+    top: 6px;
+  }
+}
+</style>
+
+<script src="chrome://resources/js/event_tracker.js"></script>
+
+<script src="chrome://resources/js/cr.js"></script>
+<script src="chrome://resources/js/cr/event_target.js"></script>
+<script src="chrome://resources/js/cr/link_controller.js"></script>
+<script src="chrome://resources/js/cr/ui.js"></script>
+<script src="chrome://resources/js/cr/ui/touch_handler.js"></script>
+<script src="chrome://resources/js/cr/ui/array_data_model.js"></script>
+<script src="chrome://resources/js/cr/ui/command.js"></script>
+<script src="chrome://resources/js/cr/ui/focus_outline_manager.js"></script>
+<script src="chrome://resources/js/cr/ui/menu_item.js"></script>
+<script src="chrome://resources/js/cr/ui/menu.js"></script>
+<script src="chrome://resources/js/cr/ui/position_util.js"></script>
+<script src="chrome://resources/js/cr/ui/menu_button.js"></script>
+<script src="chrome://resources/js/cr/ui/context_menu_button.js"></script>
+<script src="chrome://resources/js/cr/ui/context_menu_handler.js"></script>
+<script src="chrome://resources/js/cr/ui/list_selection_model.js"></script>
+<script src="chrome://resources/js/cr/ui/list_selection_controller.js"></script>
+<script src="chrome://resources/js/cr/ui/list_item.js"></script>
+<script src="chrome://resources/js/cr/ui/list.js"></script>
+<script src="chrome://resources/js/cr/ui/tree.js"></script>
+<script src="chrome://resources/js/cr/ui/splitter.js"></script>
+
+<script src="chrome://resources/js/i18n_template_no_process.js"></script>
+<script src="chrome://resources/js/icon.js"></script>
+<script src="chrome://resources/js/load_time_data.js"></script>
+<script src="chrome://resources/js/util.js"></script>
+
+<script src="chrome-extension://eemcgdkfndhakfknompkggombfjjjeno/js/bmm.js"></script>
+<script src="chrome-extension://eemcgdkfndhakfknompkggombfjjjeno/js/bmm/bookmark_list.js"></script>
+<script src="chrome-extension://eemcgdkfndhakfknompkggombfjjjeno/js/bmm/bookmark_tree.js"></script>
+<script src="chrome-extension://eemcgdkfndhakfknompkggombfjjjeno/js/dnd.js"></script>
+</head>
+<body>
+
+<header>
+  <h1 i18n-content="title">书签管理器</h1>
+  <form>
+    <input type="search" id="term" i18n-values="placeholder:search_button" autofocus="" incremental="" placeholder="搜索书签">
+  </form>
+</header>
+
+<div class="main">
+  <div id="tree-pane" class="pane">
+    <div>
+      <button menu="#folders-menu" i18n-content="folders_menu" id="folders-button" class="custom-appearance menu-button">文件夹</button>
+    </div>
+    <div id="tree-container">
+      <tree id="tree" role="tree" tabindex="0" contextmenu="#context-menu" aria-activedescendant="tree-item-autogen-id-1"><div class="tree-item" role="treeitem" id="tree-item-autogen-id-1" draggable="false" has-children="true" may-have-children="" expanded="" selected=""><div class="tree-row" has-children="true" may-have-children="" selected="" style="-webkit-padding-start: 0px;"><span class="expand-icon"></span><span class="tree-label">书签栏</span></div><div class="tree-children" expanded=""><div class="tree-item" role="treeitem" id="tree-item-autogen-id-2" draggable="true"><div class="tree-row" style="-webkit-padding-start: 20px;"><span class="expand-icon"></span><span class="tree-label">矩阵变换</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-3" draggable="true"><div class="tree-row" style="-webkit-padding-start: 20px;"><span class="expand-icon"></span><span class="tree-label">虚幻</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-4" draggable="true"><div class="tree-row" style="-webkit-padding-start: 20px;"><span class="expand-icon"></span><span class="tree-label">cocos2d</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-5" draggable="true" has-children="true" may-have-children=""><div class="tree-row" has-children="true" may-have-children="" style="-webkit-padding-start: 20px;"><span class="expand-icon"></span><span class="tree-label">OpenGL</span></div><div class="tree-children"><div class="tree-item" role="treeitem" id="tree-item-autogen-id-6" draggable="true"><div class="tree-row" style="-webkit-padding-start: 40px;"><span class="expand-icon"></span><span class="tree-label">OpenGL学习材料</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-7" draggable="true"><div class="tree-row" style="-webkit-padding-start: 40px;"><span class="expand-icon"></span><span class="tree-label">光照与阴影</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-8" draggable="true"><div class="tree-row" style="-webkit-padding-start: 40px;"><span class="expand-icon"></span><span class="tree-label">纹理</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-9" draggable="true"><div class="tree-row" style="-webkit-padding-start: 40px;"><span class="expand-icon"></span><span class="tree-label">法线贴图与切线</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-10" draggable="true"><div class="tree-row" style="-webkit-padding-start: 40px;"><span class="expand-icon"></span><span class="tree-label">光线跟踪</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-11" draggable="true"><div class="tree-row" style="-webkit-padding-start: 40px;"><span class="expand-icon"></span><span class="tree-label">库函数</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-12" draggable="true"><div class="tree-row" style="-webkit-padding-start: 40px;"><span class="expand-icon"></span><span class="tree-label">帧缓冲区</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-13" draggable="true"><div class="tree-row" style="-webkit-padding-start: 40px;"><span class="expand-icon"></span><span class="tree-label">shader</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-14" draggable="true"><div class="tree-row" style="-webkit-padding-start: 40px;"><span class="expand-icon"></span><span class="tree-label">几何着色器</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-15" draggable="true"><div class="tree-row" style="-webkit-padding-start: 40px;"><span class="expand-icon"></span><span class="tree-label">噪声</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-16" draggable="true"><div class="tree-row" style="-webkit-padding-start: 40px;"><span class="expand-icon"></span><span class="tree-label">海平面</span></div><div class="tree-children"></div></div></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-17" draggable="true"><div class="tree-row" style="-webkit-padding-start: 20px;"><span class="expand-icon"></span><span class="tree-label">algorithm</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-18" draggable="true"><div class="tree-row" style="-webkit-padding-start: 20px;"><span class="expand-icon"></span><span class="tree-label">公开课</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-19" draggable="true"><div class="tree-row" style="-webkit-padding-start: 20px;"><span class="expand-icon"></span><span class="tree-label">OpenGL纹理</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-20" draggable="true"><div class="tree-row" style="-webkit-padding-start: 20px;"><span class="expand-icon"></span><span class="tree-label">音乐</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-21" draggable="true"><div class="tree-row" style="-webkit-padding-start: 20px;"><span class="expand-icon"></span><span class="tree-label">自然界现象模拟</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-22" draggable="true"><div class="tree-row" style="-webkit-padding-start: 20px;"><span class="expand-icon"></span><span class="tree-label">Xcode</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-23" draggable="true"><div class="tree-row" style="-webkit-padding-start: 20px;"><span class="expand-icon"></span><span class="tree-label">安卓</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-24" draggable="true"><div class="tree-row" style="-webkit-padding-start: 20px;"><span class="expand-icon"></span><span class="tree-label">影视评论</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-25" draggable="true"><div class="tree-row" style="-webkit-padding-start: 20px;"><span class="expand-icon"></span><span class="tree-label">数学公式</span></div><div class="tree-children"></div></div></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-26" draggable="false" has-children="true" may-have-children="" expanded=""><div class="tree-row" has-children="true" may-have-children="" style="-webkit-padding-start: 0px;"><span class="expand-icon"></span><span class="tree-label">其他书签</span></div><div class="tree-children" expanded=""><div class="tree-item" role="treeitem" id="tree-item-autogen-id-27" draggable="true"><div class="tree-row" style="-webkit-padding-start: 20px;"><span class="expand-icon"></span><span class="tree-label">程序员</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-28" draggable="true"><div class="tree-row" style="-webkit-padding-start: 20px;"><span class="expand-icon"></span><span class="tree-label">git</span></div><div class="tree-children"></div></div><div class="tree-item" role="treeitem" id="tree-item-autogen-id-29" draggable="true"><div class="tree-row" style="-webkit-padding-start: 20px;"><span class="expand-icon"></span><span class="tree-label">VR</span></div><div class="tree-children"></div></div></div></div></tree>
+    </div>
+  </div>
+  <div class="splitter">
+    <div>
+      <!-- Used to occupy the correct amount of vertical space. -->
+      <button menu="#no-menu" i18n-content="folders_menu" class="custom-appearance menu-button">文件夹</button>
+    </div>
+  </div>
+  <div id="list-pane" class="pane">
+    <div>
+      <button menu="#organize-menu" i18n-content="organize_menu" id="organize-button" class="custom-appearance menu-button">整理</button>
+    </div>
+    <!-- The list doesn't use a scroll container as it truncates horizontally
+         and handles its own vertical overflow. -->
+    <list id="list" role="list" tabindex="0" contextmenu="#context-menu" aria-activedescendant=""><div class="spacer" style="height: 0px;"></div><div role="listitem" draggable="true"><div class="label" style="background-image: -webkit-image-set(url(&quot;chrome://favicon/size/16@1x/http://ucenter.playcrab.com/index.php&quot;) 1x, url(&quot;chrome://favicon/size/16@2x/http://ucenter.playcrab.com/index.php&quot;) 2x); background-size: 16px;">UCENTER-首页</div><div class="url">http://ucenter.playcrab.com/index.php</div></div><div role="listitem" draggable="true"><div class="label" style="background-image: -webkit-image-set(url(&quot;chrome://favicon/size/16@1x/https://outlook.office.com/owa/&quot;) 1x, url(&quot;chrome://favicon/size/16@2x/https://outlook.office.com/owa/&quot;) 2x); background-size: 16px;">邮件 - 狄建彬 - Outlook</div><div class="url">https://outlook.office.com/owa/</div></div><div role="listitem" draggable="true" class="folder"><div class="label">矩阵变换</div><div class="url"></div></div><div role="listitem" draggable="true" class="folder"><div class="label">虚幻</div><div class="url"></div></div><div role="listitem" draggable="true" class="folder"><div class="label">cocos2d</div><div class="url"></div></div><div role="listitem" draggable="true" class="folder"><div class="label">OpenGL</div><div class="url"></div></div><div role="listitem" draggable="true" class="folder" lead="lead" selected="selected" aria-posinset="7" aria-setsize="15"><div class="label">algorithm</div><div class="url"></div><button tabindex="-1" class="custom-appearance menu-button"></button></div><div role="listitem" draggable="true" class="folder"><div class="label">公开课</div><div class="url"></div><button tabindex="-1" class="custom-appearance menu-button"></button></div><div role="listitem" draggable="true" class="folder"><div class="label">OpenGL纹理</div><div class="url"></div><button tabindex="-1" class="custom-appearance menu-button"></button></div><div role="listitem" draggable="true" class="folder"><div class="label">音乐</div><div class="url"></div><button tabindex="-1" class="custom-appearance menu-button"></button></div><div role="listitem" draggable="true" class="folder"><div class="label">自然界现象模拟</div><div class="url"></div><button tabindex="-1" class="custom-appearance menu-button"></button></div><div role="listitem" draggable="true" class="folder"><div class="label">Xcode</div><div class="url"></div><button tabindex="-1" class="custom-appearance menu-button"></button></div><div role="listitem" draggable="true" class="folder"><div class="label">安卓</div><div class="url"></div><button tabindex="-1" class="custom-appearance menu-button"></button></div><div role="listitem" draggable="true" class="folder"><div class="label">影视评论</div><div class="url"></div><button tabindex="-1" class="custom-appearance menu-button"></button></div><div role="listitem" draggable="true" class="folder"><div class="label">数学公式</div><div class="url"></div><button tabindex="-1" class="custom-appearance menu-button"></button></div><div class="spacer" style="height: 0px;"></div></list>
+  </div>
+</div>
+
+<!-- Organize menu -->
+<command i18n-values=".label:rename_folder" id="rename-folder-command"></command>
+
+<command i18n-values=".label:edit" id="edit-command" disabled="disabled" hidden=""></command>
+<command i18n-values=".label:show_in_folder" id="show-in-folder-command" disabled="disabled"></command>
+
+<command i18n-values=".label:cut" id="cut-command"></command>
+<command i18n-values=".label:copy" id="copy-command"></command>
+<command i18n-values=".label:paste" id="paste-from-organize-menu-command" disabled="disabled"></command>
+
+<command i18n-values=".label:delete" id="delete-command"></command>
+<command i18n-values=".label:undo_delete" id="undo-delete-command" disabled="disabled"></command>
+<command i18n-values=".label:sort" id="sort-command"></command>
+<command i18n-values=".label:add_new_bookmark" id="add-new-bookmark-command"></command>
+
+<command i18n-values=".label:new_folder" id="new-folder-command"></command>
+
+<!-- Folders menu -->
+<command i18n-values=".label:cut" id="cut-from-folders-menu-command" disabled="disabled"></command>
+<command i18n-values=".label:copy" id="copy-from-folders-menu-command" disabled="disabled"></command>
+
+<command i18n-values=".label:paste" id="paste-from-folders-menu-command" disabled="disabled"></command>
+
+<command i18n-values=".label:new_folder" id="new-folder-from-folders-menu-command"></command>
+<command i18n-values=".label:delete" id="delete-from-folders-menu-command" disabled="disabled"></command>
+
+<command i18n-values=".label:undo_delete" id="undo-delete-from-folders-menu-command" disabled="disabled"></command>
+
+<!-- Tools menu -->
+<command i18n-values=".label:import_menu" id="import-menu-command"></command>
+<command i18n-values=".label:export_menu" id="export-menu-command"></command>
+
+<!-- Context menu -->
+<command i18n-values=".label:paste" id="paste-from-context-menu-command" disabled="disabled"></command>
+
+
+<!-- open * are handled in canExecute handler -->
+<command id="open-in-new-tab-command" label="打开所有书签(O)"></command>
+<command id="open-in-background-tab-command"></command>
+<command id="open-in-new-window-command" label="在新窗口中打开所有书签(N)"></command>
+<command id="open-incognito-window-command" label="在隐身窗口中打开所有书签(I)"></command>
+<command id="open-in-same-window-command"></command>
+
+<command id="undo-command"></command>
+
+<command i18n-values=".label:rename_folder" id="rename-folder-from-folders-menu-command" disabled="disabled"></command>
+<command i18n-values=".label:paste" id="paste-from-folders-menu-command" disabled="disabled"></command>
+
+
+<!-- TODO(arv): I think the commands might be better created in code? -->
+
+<cr-menu id="folders-menu" class="decorated" role="menu" hidden="">
+  <button command="#new-folder-from-folders-menu-command" class="custom-appearance" role="menuitem">添加文件夹(F)...</button>
+  <hr class="custom-appearance">
+  <button command="#rename-folder-from-folders-menu-command" class="custom-appearance" role="menuitem" disabled="disabled">重命名(R)...</button>
+  <hr class="custom-appearance">
+  <button command="#cut-from-folders-menu-command" class="custom-appearance" role="menuitem" disabled="disabled">剪切(T)</button>
+  <button command="#copy-from-folders-menu-command" class="custom-appearance" role="menuitem" disabled="disabled">复制(C)</button>
+  <button command="#paste-from-folders-menu-command" class="custom-appearance" role="menuitem" disabled="disabled">粘贴(P)</button>
+  <hr class="custom-appearance">
+  <button command="#delete-from-folders-menu-command" class="custom-appearance" role="menuitem" disabled="disabled">删除(D)</button>
+  <button command="#undo-delete-from-folders-menu-command" class="custom-appearance" role="menuitem" disabled="disabled">撤消删除操作</button>
+</cr-menu>
+
+<cr-menu id="no-menu" class="decorated" role="menu" hidden=""></cr-menu>
+
+<cr-menu id="organize-menu" class="decorated" role="menu" hidden="">
+  <button command="#add-new-bookmark-command" class="custom-appearance" role="menuitem">添加网页(G)...</button>
+  <button command="#new-folder-command" class="custom-appearance" role="menuitem">添加文件夹(F)...</button>
+  <hr class="custom-appearance">
+  <button command="#rename-folder-command" class="custom-appearance" role="menuitem">重命名(R)...</button>
+  <button command="#edit-command" class="custom-appearance" role="menuitem" disabled="disabled">修改(E)...</button>
+  <button command="#show-in-folder-command" class="custom-appearance" role="menuitem" disabled="disabled">在文件夹中显示</button>
+  <hr class="custom-appearance">
+  <button command="#cut-command" class="custom-appearance" role="menuitem">剪切(T)</button>
+  <button command="#copy-command" class="custom-appearance" role="menuitem">复制(C)</button>
+  <button command="#paste-from-organize-menu-command" class="custom-appearance" role="menuitem" disabled="disabled">粘贴(P)</button>
+  <hr class="custom-appearance">
+  <button command="#delete-command" class="custom-appearance" role="menuitem">删除(D)</button>
+  <button command="#undo-delete-command" class="custom-appearance" role="menuitem" disabled="disabled">撤消删除操作</button>
+  <hr class="custom-appearance">
+  <button command="#sort-command" class="custom-appearance" role="menuitem">按标题重新排序</button>
+  <hr class="custom-appearance">
+  <button command="#import-menu-command" class="custom-appearance" role="menuitem">从 HTML 文件导入书签...</button>
+  <button command="#export-menu-command" class="custom-appearance" role="menuitem">将书签导出到 HTML 文件...</button>
+</cr-menu>
+
+<cr-menu id="context-menu" class="decorated" role="menu" hidden="" style="bottom: auto; top: 230px; right: auto; left: 478px;">
+  <button command="#open-in-new-tab-command" class="custom-appearance" role="menuitem">打开所有书签(O)</button>
+  <button command="#open-in-new-window-command" class="custom-appearance" role="menuitem">在新窗口中打开所有书签(N)</button>
+  <button command="#open-incognito-window-command" class="custom-appearance" role="menuitem">在隐身窗口中打开所有书签(I)</button>
+  <hr class="custom-appearance">
+  <button command="#rename-folder-command" class="custom-appearance" role="menuitem">重命名(R)...</button>
+  <button command="#edit-command" class="custom-appearance" role="menuitem" disabled="disabled">修改(E)...</button>
+  <button command="#show-in-folder-command" class="custom-appearance" role="menuitem" disabled="disabled">在文件夹中显示</button>
+  <hr class="custom-appearance">
+  <button command="#cut-command" class="custom-appearance" role="menuitem">剪切(T)</button>
+  <button command="#copy-command" class="custom-appearance" role="menuitem">复制(C)</button>
+  <button command="#paste-from-context-menu-command" class="custom-appearance" role="menuitem" disabled="disabled">粘贴(P)</button>
+  <hr class="custom-appearance">
+  <button command="#delete-command" class="custom-appearance" role="menuitem">删除(D)</button>
+  <button command="#undo-delete-command" class="custom-appearance" role="menuitem" disabled="disabled">撤消删除操作</button>
+  <hr class="custom-appearance">
+  <button command="#add-new-bookmark-command" class="custom-appearance" role="menuitem">添加网页(G)...</button>
+  <button command="#new-folder-command" class="custom-appearance" role="menuitem">添加文件夹(F)...</button>
+</cr-menu>
+
+<script src="chrome-extension://eemcgdkfndhakfknompkggombfjjjeno/js/main.js"></script>
+
+
+</body></html>

@@ -1,0 +1,3 @@
+//四元数旋转一个向量
+http://jgsj.iteye.com/blog/1968417
+https://www.zhihu.com/question/37710539/answer/82556215

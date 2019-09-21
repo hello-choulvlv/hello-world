@@ -1,0 +1,4 @@
+欧拉角与矩阵
+https://www.physicsforums.com/threads/decomposition-of-a-rotation-matrix.623740/
+//从矩阵中提取平面方程
+http://www.lighthouse3d.com/tutorials/view-frustum-culling/clip-space-approach-extracting-the-planes/

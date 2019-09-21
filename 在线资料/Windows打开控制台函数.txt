@@ -1,0 +1,18 @@
+        AllocConsole();
+        hwndConsole = GetConsoleWindow();
+        if (hwndConsole != NULL)
+        {
+            ShowWindow(hwndConsole, SW_SHOW);
+            BringWindowToTop(hwndConsole);
+            freopen("CONOUT$", "wt", stdout);
+            freopen("CONOUT$", "wt", stderr);
+
+            HMENU hmenu = GetSystemMenu(hwndConsole, FALSE);
+            if (hmenu != NULL) DeleteMenu(hmenu, SC_CLOSE, MF_BYCOMMAND);
+        }
+
+    if (!ret)
+    {
+        system("pause");
+    }
+    FreeConsole();
