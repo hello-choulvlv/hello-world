@@ -1,0 +1,124 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Framework">
+      <UniqueIdentifier>{bead7e9a-29f8-4f61-9c4b-9abe36d63bcf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D3D10">
+      <UniqueIdentifier>{563eaf7e-d37b-4ece-a45c-b795d9691d8f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{b3114575-6a6e-48af-9e2e-651314e80748}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Framework\Application.cpp">
+      <Filter>Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Camera.cpp">
+      <Filter>Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\DemoSetup.cpp">
+      <Filter>Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Light.cpp">
+      <Filter>Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\LWOFile.cpp">
+      <Filter>Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Mesh.cpp">
+      <Filter>Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\SceneObject.cpp">
+      <Filter>Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D10\Application_D3D10.cpp">
+      <Filter>D3D10</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D10\main.cpp">
+      <Filter>D3D10</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D10\main_DX10.cpp">
+      <Filter>D3D10</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D10\main_DX9.cpp">
+      <Filter>D3D10</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D10\main_MP.cpp">
+      <Filter>D3D10</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D10\Mesh_D3D10.cpp">
+      <Filter>D3D10</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D10\ShadowMap_D3D10.cpp">
+      <Filter>D3D10</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Framework\Application.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\BoundingBox.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Camera.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Common.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\DemoSetup.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Frustum.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\IntersectionTests.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Light.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\LWOFile.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Math.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Mesh.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Resources.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\SceneObject.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\ShadowMap.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D10\Application_D3D10.h">
+      <Filter>D3D10</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D10\HUD.h">
+      <Filter>D3D10</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D10\Mesh_D3D10.h">
+      <Filter>D3D10</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D10\ShadowMap_D3D10.h">
+      <Filter>D3D10</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Framework\Framework.rc">
+      <Filter>Framework</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Shaders\D3D10.fx">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+</Project>
