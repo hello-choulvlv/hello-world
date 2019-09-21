@@ -1,0 +1,375 @@
+MatrixTransform {
+  DataVariance STATIC
+  name "Scene Root"
+  nodeMask 0xff
+  cullingActive TRUE
+  StateSet {
+    UniqueID StateSet_0
+    DataVariance STATIC
+    rendering_hint DEFAULT_BIN
+    renderBinMode INHERIT
+    GL_LIGHTING ON
+    GL_LIGHT0 ON
+    GL_LIGHT1 ON
+  }
+  referenceFrame RELATIVE
+  Matrix {
+    1 0 0 0
+    0 1 0 0
+    0 0 1 0
+    0 0 0 1
+  }
+  num_children 8
+  MatrixTransform {
+    DataVariance STATIC
+    name "Direct01"
+    nodeMask 0xff
+    cullingActive TRUE
+    referenceFrame RELATIVE
+    Matrix {
+      2.61234e-008 -1 0 0
+      0.513001 1.34013e-008 0.858388 0
+      -0.858388 -2.2424e-008 0.513001 0
+      -17.7027 -5.43087e-007 12.4244 1
+    }
+    num_children 1
+    LightSource {
+      DataVariance STATIC
+      nodeMask 0xff
+      cullingActive FALSE
+      StateSet {
+        DataVariance STATIC
+        rendering_hint DEFAULT_BIN
+        renderBinMode INHERIT
+        GL_LIGHT0 ON
+      }
+      referenceFrame RELATIVE
+      Light {
+        DataVariance STATIC
+        light_num 0
+        ambient 0.05 0.05 0.05 1
+        diffuse 1 1 1 1
+        specular 1 1 1 1
+        position 0 0 1 0
+        direction 0 0 -1
+        constant_attenuation 1
+        linear_attenuation 0
+        quadratic_attenuation 0
+        spot_exponent 0
+        spot_cutoff 180
+      }
+      num_children 0
+    }
+  }
+  MatrixTransform {
+    DataVariance STATIC
+    name "Direct01.Target"
+    nodeMask 0xff
+    cullingActive TRUE
+    referenceFrame RELATIVE
+    Matrix {
+      1 0 0 0
+      0 -4.37114e-008 1 0
+      0 -1 -4.37114e-008 0
+      4.32282 3.22934e-008 -0.738788 1
+    }
+    num_children 1
+    Geode {
+      DataVariance STATIC
+      name "Direct01.Target-GEODE"
+      nodeMask 0xff
+      cullingActive TRUE
+      num_drawables 0
+    }
+  }
+  MatrixTransform {
+    DataVariance STATIC
+    name "Direct02"
+    nodeMask 0xff
+    cullingActive TRUE
+    referenceFrame RELATIVE
+    Matrix {
+      0.737475 0.675375 -0 0
+      -0.44045 0.480948 0.758085 0
+      0.511992 -0.559069 0.652156 0
+      15.4852 -11.6195 11.9682 1
+    }
+    num_children 1
+    LightSource {
+      DataVariance STATIC
+      nodeMask 0xff
+      cullingActive FALSE
+      StateSet {
+        DataVariance STATIC
+        rendering_hint DEFAULT_BIN
+        renderBinMode INHERIT
+        GL_LIGHT1 ON
+      }
+      referenceFrame RELATIVE
+      Light {
+        DataVariance STATIC
+        light_num 1
+        ambient 0.05 0.05 0.05 1
+        diffuse 1 1 1 1
+        specular 1 1 1 1
+        position 0 0 1 0
+        direction 0 0 -1
+        constant_attenuation 1
+        linear_attenuation 0
+        quadratic_attenuation 0
+        spot_exponent 0
+        spot_cutoff 180
+      }
+      num_children 0
+    }
+  }
+  MatrixTransform {
+    DataVariance STATIC
+    name "Direct02.Target"
+    nodeMask 0xff
+    cullingActive TRUE
+    referenceFrame RELATIVE
+    Matrix {
+      1 0 0 0
+      0 -4.37114e-008 1 0
+      0 -1 -4.37114e-008 0
+      4.84413 6.93229e-008 -1.58592 1
+    }
+    num_children 1
+    Geode {
+      DataVariance STATIC
+      name "Direct02.Target-GEODE"
+      nodeMask 0xff
+      cullingActive TRUE
+      num_drawables 0
+    }
+  }
+  MatrixTransform {
+    DataVariance STATIC
+    name "Box01"
+    nodeMask 0xff
+    cullingActive TRUE
+    referenceFrame RELATIVE
+    Matrix {
+      0.939693 0.34202 1.49012e-008 0
+      -0.336824 0.925417 0.173648 0
+      0.0593912 -0.163176 0.984808 0
+      -5.52432 2.47398 0 1
+    }
+
+    num_children 1
+    Geode {
+      UniqueID Geode_1
+      DataVariance STATIC
+      name "Box01-GEODE"
+      nodeMask 0xff
+      cullingActive TRUE
+      num_drawables 1
+      Geometry {
+        DataVariance DYNAMIC
+        name "01 - Default"
+        StateSet {
+          UniqueID StateSet_2
+          DataVariance STATIC
+          renderBinMode USE
+          binNumber 1
+          GL_CULL_FACE OFF
+          GL_LIGHTING OFF
+          0xba1 OVERRIDE|OFF
+          GL_BLEND OFF
+          Material {
+            DataVariance STATIC
+            ColorMode OFF
+            ambientColor 0.588235 0.588235 0.588235 0.38
+            diffuseColor 1 1 1 0.38
+            specularColor 0 0 0 1
+            emissionColor 0 0 0 0.38
+            shininess 0
+          }
+          BlendFunc {
+            DataVariance STATIC
+            source SRC_ALPHA
+            destination ONE_MINUS_SRC_ALPHA
+          }
+          textureUnit 0 {
+            GL_TEXTURE_2D ON
+            Texture2D {
+              DataVariance STATIC
+              file "images\w1-2-grey.tga"
+              wrap_s REPEAT
+              wrap_t REPEAT
+              wrap_r CLAMP_TO_EDGE
+              min_filter LINEAR
+              mag_filter LINEAR
+              maxAnisotropy 1
+              borderColor 0 0 0 0
+              borderWidth 0
+              useHardwareMipMapGeneration FALSE
+              unRefImageDataAfterApply FALSE
+              internalFormatMode USE_IMAGE_DATA_FORMAT
+              resizeNonPowerOfTwo TRUE
+            }
+            TexMat {
+              DataVariance STATIC
+              1 0 0 0
+              0 1 0 0
+              0 0 1 0
+              0 0 0 1
+            }
+          }
+          textureUnit 1 {
+            GL_TEXTURE_GEN_S ON
+            GL_TEXTURE_GEN_T ON
+            GL_TEXTURE_GEN_R ON
+            GL_TEXTURE_GEN_Q ON
+            GL_TEXTURE_CUBE_MAP ON
+            TextureCubeMap {
+              DataVariance STATIC
+              image POSITIVE_X "images\p_x_grijs.tga"
+              image NEGATIVE_X "images\n_x_grijs.tga"
+              image POSITIVE_Y "images\p_y_grijs.tga"
+              image NEGATIVE_Y "images\n_y_grijs.tga"
+              image POSITIVE_Z "images\p_z_grijs.tga"
+              image NEGATIVE_Z "images\n_z_grijs.tga"
+              wrap_s CLAMP_TO_EDGE
+              wrap_t CLAMP_TO_EDGE
+              wrap_r CLAMP_TO_EDGE
+              min_filter LINEAR
+              mag_filter LINEAR
+              maxAnisotropy 1
+              borderColor 0 0 0 0
+              borderWidth 0
+              useHardwareMipMapGeneration FALSE
+              unRefImageDataAfterApply FALSE
+              internalFormatMode USE_IMAGE_DATA_FORMAT
+              resizeNonPowerOfTwo TRUE
+            }
+            TexGen {
+              DataVariance STATIC
+              mode REFLECTION_MAP
+            }
+          }
+          textureUnit 2 {
+            GL_TEXTURE_2D ON
+            Texture2D {
+              DataVariance STATIC
+              file "images\hpcvwater.tga"
+              wrap_s CLAMP_TO_EDGE
+              wrap_t CLAMP_TO_EDGE
+              wrap_r CLAMP_TO_EDGE
+              min_filter LINEAR
+              mag_filter LINEAR
+              maxAnisotropy 0
+              borderColor 0 0 0 0
+              borderWidth 0
+              useHardwareMipMapGeneration FALSE
+              unRefImageDataAfterApply FALSE
+              internalFormatMode USE_IMAGE_DATA_FORMAT
+              resizeNonPowerOfTwo FALSE
+            }
+            TexMat {
+              DataVariance STATIC
+              1 0 0 0
+              0 1 0 0
+              0 0 1 0
+              0 0 0 1
+            }
+          }
+          textureUnit 3 {
+            GL_TEXTURE_2D ON
+            Texture2D {
+              DataVariance STATIC
+              file "images\hpcvrock.tga"
+              wrap_s REPEAT
+              wrap_t REPEAT
+              wrap_r CLAMP_TO_EDGE
+              min_filter LINEAR_MIPMAP_LINEAR
+              mag_filter LINEAR
+              maxAnisotropy 1
+              borderColor 0 0 0 0
+              borderWidth 0
+              useHardwareMipMapGeneration TRUE
+              unRefImageDataAfterApply FALSE
+              internalFormatMode USE_IMAGE_DATA_FORMAT
+              resizeNonPowerOfTwo TRUE
+            }
+            TexMat {
+              DataVariance STATIC
+              1 0 0 0
+              0 1 0 0
+              0 0 1 0
+              0 0 0 1
+            }
+          }
+     
+
+        }
+   useDisplayList TRUE
+        useVertexBufferObjects FALSE
+        PrimitiveSets 1
+        {
+          DrawArrays TRIANGLES 0 6
+        }
+        VertexArray Vec3Array 6
+        {
+          -500 500 0
+          -500 -500 0
+          500 500 0
+          500 -500 0
+          500 500 0
+          -500 -500 0
+        }
+        NormalBinding PER_VERTEX
+        NormalArray Vec3Array 6
+        {
+          0 0 1
+          0 0 1
+          0 0 1
+          0 0 1
+          0 0 1
+          0 0 1
+        }
+        TexCoordArray 0 Vec2Array 6
+        {
+          0 1
+          0 0
+          1 1
+          1 0
+          1 1
+          0 0
+        }
+           TexCoordArray 3 Vec2Array 6
+        {
+     
+          0 1
+          0 0
+          1 1
+          1 0
+          1 1
+          0 0
+             }
+        TexCoordArray 1 Vec2Array 6
+        {
+            0 1
+          0 0
+          1 1
+          1 0
+          1 1
+          0 0
+        }
+        TexCoordArray 2 Vec2Array 6
+        {
+          0 1
+          0 0
+          1 1
+          1 0
+          1 1
+          0 0
+        }
+      }
+      }
+    }
+  }
+}
+
+ 

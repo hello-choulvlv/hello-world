@@ -1,0 +1,78 @@
+
+float3 expand(float3 v)
+{
+	return (v-0.5) * 2;
+}
+
+void frag(float reflectionFactor : COLOR, 
+		  float3 R	: TEXCOORD0,
+		  float3 Tcolors :TEXCOORD1,
+		  float3 lightDir		:TEXCOORD2,//receive light direction vector
+		  float2 normalMapTexCoord : TEXCOORD3,//receive normal map tex coords
+		  float3 halfAngle			: TEXCOORD4,
+		  float3 postoeyevec		:	TEXCOORD5,
+		  float3 NNN				:	TEXCOORD6,
+
+		  out  float4 ocolor : COLOR,			
+
+		  uniform sampler2D normalMap,
+		  uniform samplerCUBE normalizeCube,
+		  uniform samplerCUBE normalizeCube2,
+		  uniform samplerCUBE bottomMap,
+		  uniform samplerCUBE environmentMap)	
+{
+	float ambient=.9;
+//	float4 LMd =float4(.5,.58,.81,0);
+	float4 LMd =float4(.7,.78,.91,1);
+//	float4 LMs =float4(.3,.38,.61,1);
+
+	//fetch the reflected environment color
+	float4 reflectedColor=texCUBE(environmentMap,R);
+//	reflectedColor.rgb *=1.8;//increases sun reflection but not enough. needs specular
+
+	//compute the refracted bottom
+	float4 refractedColor=texCUBE(bottomMap,Tcolors);
+
+//	refractedColor.rgb *=1.8;//lighten the bottom
+
+	//find texel from light direction
+	float3 lightTex=texCUBE(normalizeCube,lightDir).xyz;
+
+	float3 light = expand(lightTex);
+	float3 normalTex=tex2D(normalMap,normalMapTexCoord).xyz;
+	float3 normal=expand(normalTex);
+
+	float3 normHalfAngleTex = texCUBE(normalizeCube2,halfAngle).xyz;
+	float3 normHalfAngle = expand(normHalfAngleTex);
+
+	reflectedColor=.6*reflectedColor+(dot(normal,light))*.4;
+//	reflectedColor=.8*reflectedColor+(dot(normal,light))*.2;
+
+//	ocolor=float4(lightTex,1);
+
+	//compute the final color
+//	ocolor = .6*lerp(refractedColor,reflectedColor,reflectionFactor)+(dot(normal,light))*.4;
+//	ocolor=((.5)*(dot(normal,light))+reflectedColor*(.5))*1.6;
+ //	ocolor=lerp(refractedColor,ocolor,reflectionFactor);
+//		ocolor=lerp(refractedColor,reflectedColor,reflectionFactor);
+
+float	diffuse = max(dot(normal,light),0);
+//float	specular = saturate(dot(normal,normHalfAngle));
+//float	specular8= pow(specular,8);
+
+//float specular2=specular *specular;
+//float specular4=specular2 * specular2;
+//float specular8=specular4 * specular4;
+
+//		if(dot(NNN,normalize(postoeyevec))>=.1)
+//			ocolor=float4(8,8,8,1);
+//			else
+//		{
+//		ocolor = reflectedColor* (ambient);// + LMs * specular8;
+		ocolor = LMd*reflectedColor* (ambient + diffuse );// + LMs * specular8;
+//		ocolor =(1-(saturate(dot(normal,postoeyevec))))*ocolor;
+//		ocolor=lerp(refractedColor,ocolor,reflectionFactor);
+	ocolor=lerp(refractedColor,ocolor,reflectionFactor);
+//		}
+}
+

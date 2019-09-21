@@ -1,0 +1,41 @@
+
+ProxyNode {
+  StateSet {
+    DataVariance STATIC
+    Program {
+        DataVariance STATIC
+        num_shaders 2
+        Shader {
+          DataVariance STATIC
+          type VERTEX
+          file "shaders/hpcv-water-tile.vert"
+        }
+        Shader {
+          DataVariance STATIC
+          type FRAGMENT
+          file "shaders/hpcv-water-tile.frag"
+        }
+    }   
+    Uniform {
+        name "Normal0Map"
+        int 0
+    }
+    Uniform {
+        name "cubeMap"
+        int 1
+    }
+    Uniform {
+				name "colorMap"
+				int 3    
+    }
+    Uniform {
+				name "flowMap"
+			int 2
+    }   
+  }
+  FileNameList {
+    "geometry/hpcv-water-tile-test.osg"
+  }
+  num_children 1
+}
+

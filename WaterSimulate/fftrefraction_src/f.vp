@@ -1,0 +1,36 @@
+!!FP1.0
+# cgc version 3.1.0013, build date Apr 18 2012
+# command line args: -profile fp30
+# source file: D:\test\hello-world\WaterSimulate\fftrefraction_src\f.cg
+#vendor NVIDIA Corporation
+#version 3.1.0.13
+#profile fp30
+#program frag
+#semantic frag.normalMap
+#semantic frag.normalizeCube
+#semantic frag.bottomMap
+#semantic frag.environmentMap
+#var float reflectionFactor : $vin.COLOR : COL0 : 0 : 1
+#var float3 reflectVec : $vin.TEXCOORD0 : TEX0 : 1 : 1
+#var float3 refractVec : $vin.TEXCOORD1 : TEX1 : 2 : 1
+#var float3 lightDirection : $vin.TEXCOORD2 : TEX2 : 3 : 1
+#var float2 normalMapTexCoord : $vin.TEXCOORD3 : TEX3 : 4 : 1
+#var float4 ocolor : $vout.COLOR : COL : 5 : 1
+#var sampler2D normalMap :  : texunit 2 : 6 : 1
+#var samplerCUBE normalizeCube :  :  : 7 : 0
+#var samplerCUBE bottomMap :  : texunit 1 : 8 : 1
+#var samplerCUBE environmentMap :  : texunit 0 : 9 : 1
+TEX   R0, f[TEX3], TEX2, 2D;
+MADR  R0.xyz, R0, {2, -1}.x, {2, -1}.y;
+DP3R  R0.x, R0, f[TEX2];
+MAXR  R2.x, R0, {0};
+MULR  R1.x, R0, {0.40000001};
+TEX   R0, f[TEX0], TEX0, CUBE;
+MADR  R1, R0, {0.60000002}.x, R1.x;
+ADDR  R2.x, R2, {0.89999998};
+TEX   R0, f[TEX1], TEX1, CUBE;
+MULR  R1, R1, R2.x;
+MADR  R1, R1, {0.69999999, 0.77999997, 0.91000003, 1}, -R0;
+MADR  o[COLR], f[COL0].x, R1, R0;
+END
+# 12 instructions, 3 R-regs, 0 H-regs

@@ -1,0 +1,51 @@
+void vert (float4 position		:	POSITION,					
+		   float2 texCoord		:	TEXCOORD0,	
+				 float3 normal	:	NORMAL,
+
+				 out float4 oPosition		:	POSITION,		
+				 out float reflectionFactor :	COLOR,
+				 out float3 R				:	TEXCOORD0,
+				 out float3 Tcolors			:	TEXCOORD1,
+				 out float3 lightDirection	:	TEXCOORD2,
+				 out float2 oTexCoord		:	TEXCOORD3,
+				 out float3 halfAngle		:	TEXCOORD4,
+				 out float3 postoeyevec		:	TEXCOORD5,
+				 out float3 NNN				:	TEXCOORD6,
+
+				 uniform float fresnelBias,
+				 uniform float fresnelScale,
+				 uniform float fresnelPower,
+				 uniform float etaRatio,
+				 uniform float3 lightPosition,//receive light position
+				 uniform float3 eyePositionW,
+				 uniform float4x4 ModelViewProj,
+				 uniform float4x4 modelToWorld)
+{
+	oTexCoord=texCoord;//send the normal map texture coordinates to frag
+
+	oPosition= mul(ModelViewProj, position);
+
+	// Compute position and normal in world space
+	
+	float3 positionW = mul(modelToWorld,position).xyz; //find world position
+	float3 N = mul((float3x3)modelToWorld,normal);		//find world normals	
+	N=normalize(N);//normalization
+	NNN=N;
+
+	// specular bumpmapping stuff
+	lightDirection=lightPosition-position.xyz;
+	float3 eyeDirection=eyePositionW-position.xyz;
+	halfAngle=normalize(normalize(lightDirection)+normalize(eyeDirection));
+	postoeyevec= normalize(positionW.xyz-eyePositionW);
+
+	// compute the incident, reflected and refracted vectors
+	float3 I = (positionW-eyePositionW);	//Incident vector from eye to surface	
+	R = reflect(I,N);						//reflection vector
+	I = normalize(I);
+	Tcolors = refract(I,N,etaRatio);		//refracted vector
+
+	// Compute the reflection factor
+	reflectionFactor= fresnelBias + fresnelScale * pow(1 + dot(I,N), fresnelPower);
+//	RF = max(dot(float3(55,55,-160),N),0);
+}
+
