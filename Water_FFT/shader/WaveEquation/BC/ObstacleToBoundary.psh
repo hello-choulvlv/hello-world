@@ -1,0 +1,115 @@
+/**************Convert ObstacleMap To BoundaryMap PixelShader*******************/
+;// Tex0	当前要处理的Obstacle图，可通过为1，阻挡为0，r=g=b
+;// t0		顶点内插后的纹理坐标，同时也表示当前处理像素在图像中的坐标，因为纹理和RT的分辨率完全相同
+;// t1		顶点内插后的纹理坐标（已乘过贴图分辨率转换为整数，for Bilinear Filtering）
+
+#include "..\\commonps.h"
+
+#define cSampCoreUp c5
+#define cSampCoreDown c6
+#define cSampCoreLeft c7
+#define cSampCoreRight c8
+#define cSampCoreUpLeft c9
+#define cSampCoreDownLeft c10
+#define cSampCoreUpRight c11
+#define cSampCoreDownRight c12
+
+#define cEpsilon c13
+#define FOUR c14
+
+#define TexObstacle s0
+
+
+#define rTexCoord r0		;// 当前处理像素在纹理中的坐标
+#define rType r0				;// 当前点的类型（边界处0、边界内2、无障碍1）
+
+#define rObstacle_Right r1				;// 通过偏移后的坐标，寻址到的Obstacle值
+#define rObstacle_Left r2
+#define rObstacle_Down r3
+#define rObstacle_Up r4
+
+#define rObstacle_UpRight r5
+#define rObstacle_UpLeft r6
+#define rObstacle_DownLeft r7
+#define rObstacle_DownRight r8
+
+#define rObstacle_Centre r9
+
+#define Temp1 r10
+#define Temp2 r11
+
+
+
+ps.2.0
+dcl_2d s0
+dcl t0
+
+;// 采样核
+def cSampCoreRight, 1, 0, 0, 0
+def cSampCoreLeft, -1, 0, 0, 0
+def cSampCoreDown, 0, 1, 0, 0
+def cSampCoreUp, 0, -1, 0, 0
+
+def cSampCoreUpLeft, -1, -1, 0, 0
+def cSampCoreUpRight, 1, -1, 0, 0
+def cSampCoreDownLeft, -1, 1, 0, 0
+def cSampCoreDownRight, 1, 1, 0, 0
+
+def cEpsilon, 0.0000001f, 0.0000001f, 0.0000001f, 0.0000001f
+def FOUR, 4, 4, 4, 4
+
+;// 将内插后的纹理坐标修正1/2 tap
+add rTexCoord, t0, cHalfTap
+
+;// 寻址9个点
+texld rObstacle_Centre, rTexCoord, TexObstacle
+
+mov Temp2, cOneTap
+
+mad Temp1, cSampCoreUp, Temp2, rTexCoord
+texld rObstacle_Up, Temp1, TexObstacle
+
+mad Temp1, cSampCoreDown, Temp2, rTexCoord
+texld rObstacle_Down, Temp1, TexObstacle
+
+mad Temp1, cSampCoreLeft, Temp2, rTexCoord
+texld rObstacle_Left, Temp1, TexObstacle
+
+mad Temp1, cSampCoreRight, Temp2, rTexCoord
+texld rObstacle_Right, Temp1, TexObstacle
+
+mad Temp1, cSampCoreUpLeft, Temp2, rTexCoord
+texld rObstacle_UpLeft, Temp1, TexObstacle
+
+mad Temp1, cSampCoreUpRight, Temp2, rTexCoord
+texld rObstacle_UpRight, Temp1, TexObstacle
+
+mad Temp1, cSampCoreDownLeft, Temp2, rTexCoord
+texld rObstacle_DownLeft, Temp1, TexObstacle
+
+mad Temp1, cSampCoreDownRight, Temp2, rTexCoord
+texld rObstacle_DownRight, Temp1, TexObstacle
+
+;// 如果当前点为可通过（1），则在封闭障碍区域中，必为无障碍型（值1），否则必为边界内或边界点（先临时标为边界点，即值0）
+sub Temp1, rObstacle_Centre, HALF
+cmp rType, Temp1.x, ONE, ZERO
+
+;// 现在判断是否是边界内，即四周8个点全部为障碍（求和等于0），如果是边界内就置为值2
+	;// 求和
+add Temp2, rObstacle_Up, rObstacle_Down
+add Temp2, Temp2, rObstacle_Left
+add Temp2, Temp2, rObstacle_Right
+add Temp2, Temp2, rObstacle_UpLeft
+add Temp2, Temp2, rObstacle_UpRight
+add Temp2, Temp2, rObstacle_DownLeft
+add Temp2, Temp2, rObstacle_DownRight
+
+IF_EQUALZERO(Temp2.x, rType, TWO, cEpsilon, Temp1)
+/*
+if_eq Temp2.x, ZERO
+	mov rType, TWO
+endif
+*/
+
+;// 写入
+mov oC0, rType

@@ -1,0 +1,438 @@
+//给定三个顶点，指定一个面，求面的切向量、副法线和法线（UVW空间）
+void gettangent(UINT n1, UINT n2, UINT n3, float *x, float *y, float *z, float *vx, float *vy, float *vz)
+{
+	D3DXVECTOR3 P1, P2, T1, T2, U, V;
+					P1=D3DXVECTOR3(spherevertex[n2].x-spherevertex[n1].x,spherevertex[n2].y-spherevertex[n1].y,spherevertex[n2].z-spherevertex[n1].z);
+					P2=D3DXVECTOR3(spherevertex[n3].x-spherevertex[n1].x,spherevertex[n3].y-spherevertex[n1].y,spherevertex[n3].z-spherevertex[n1].z);
+					T1=D3DXVECTOR3(spherevertex[n2].tu1-spherevertex[n1].tu1,spherevertex[n2].tv1-spherevertex[n1].tv1,0);
+					T2=D3DXVECTOR3(spherevertex[n3].tu1-spherevertex[n1].tu1,spherevertex[n3].tv1-spherevertex[n1].tv1,0);
+					U.x=T2.y*P1.x-T1.y*P2.x;
+					U.y=T2.y*P1.y-T1.y*P2.y;
+					U.z=T2.y*P1.z-T1.y*P2.z;
+					V.x=T2.x*P1.x-T1.x*P2.x;
+					V.y=T2.x*P1.y-T1.x*P2.y;
+					V.z=T2.x*P1.z-T1.x*P2.z;
+
+					D3DXVec3Normalize(&V, &V);
+					//D3DXVECTOR3 Normal=D3DXVECTOR3(spherevertex[n1].nx,spherevertex[n1].ny,spherevertex[n1].nz);
+					//D3DXVec3Cross(&U,&V,&Normal);
+					D3DXVec3Normalize(&U, &U);
+					*x=U.x;*y=U.y;*z=U.z;
+					*vx=V.x;*vy=V.y;*vz=V.z;					
+}
+
+
+
+//这个才是正确的算法，上面那个有问题，注意这个只算U的，V只是随便给一个值
+void gettangent(UINT n1, UINT n2, UINT n3, float *x, float *y, float *z, float *vx, float *vy, float *vz)
+{
+	//判断若INDEX大于最大顶点数（最上顶点的上面或求最下顶点的下面时）
+	if(n1>RINGNUM*(SEGNUM+1)*2||n2>RINGNUM*(SEGNUM+1)*2||n3>RINGNUM*(SEGNUM+1)*2) 
+	{*x=0; *y=0; *z=0; *vx=0; *vy=0; *vz=0; return;}
+
+	D3DXVECTOR3 P1, P2, T1, U, V;
+					P1=D3DXVECTOR3(spherevertex[n2].x-spherevertex[n1].x,spherevertex[n2].tu1-spherevertex[n1].tu1,spherevertex[n2].tv1-spherevertex[n1].tv1);
+					P2=D3DXVECTOR3(spherevertex[n3].x-spherevertex[n1].x,spherevertex[n3].tu1-spherevertex[n1].tu1,spherevertex[n3].tv1-spherevertex[n1].tv1);
+
+					T1.x=P1.y*P2.z-P1.z*P2.y;
+					T1.y=P1.z*P2.x-P1.x*P2.z;
+					U.x=-T1.y/T1.x;
+
+					P1.x=spherevertex[n2].y-spherevertex[n1].y;
+					P2.x=spherevertex[n3].y-spherevertex[n1].y;
+					T1.x=P1.y*P2.z-P1.z*P2.y;
+					T1.y=P1.z*P2.x-P1.x*P2.z;
+					U.y=-T1.y/T1.x;
+
+					P1.x=spherevertex[n2].z-spherevertex[n1].z;
+					P2.x=spherevertex[n3].z-spherevertex[n3].z;
+					T1.x=P1.y*P2.z-P1.z*P2.y;
+					T1.y=P1.z*P2.x-P1.x*P2.z;
+					U.z=-T1.y/T1.x;
+
+					*x=U.x;*y=U.y;*z=U.z;
+					*vx=V.x;*vy=V.y;*vz=V.z;
+}
+
+
+
+
+//返回上或下底面圆的顶点数，三个部分都是三角带TRIANGLESTRIP，无索引缓冲
+//圆柱体分为三部分：1、侧边，共SegmentNum*2+2个点，从0开始，渲染SegmentNum*2个图元
+//                  2、上圆：从SegmentNum*2+2个点开始，渲染return-2个图元
+//                  3、下圆：从return+SegmentNum*2+2个点开始，渲染return-2个图元
+UINT InitCylinder()
+{
+	float r=2,h=2;  //底面半径和高
+	UINT SegmentNum=36;  //圆周的点数量，点数量要比三角带图元数量多2
+
+	//建模侧面的三角带
+	for(UINT i=0;i<(SegmentNum*2+2);i++)
+	{
+		spherevertex[i].nx=spherevertex[i].x=r*cosf(D3DX_PI*i/SegmentNum);
+		spherevertex[i].nz=spherevertex[i].z=r*sinf(D3DX_PI*i/SegmentNum);
+		spherevertex[i].ny=0;
+		if(i%2) //上面的点
+		{
+			spherevertex[i].tu1=(float)i/(SegmentNum*2+2);
+			spherevertex[i].tv1=0;
+			spherevertex[i].y=h;
+		}
+		else
+		{
+			spherevertex[i].tu1=(float)i/(SegmentNum*2+2);
+			spherevertex[i].tv1=1;
+			spherevertex[i].y=0;
+		}
+	}
+
+	//建模上下面的圆
+	for(UINT j=0;j<=SegmentNum;)
+	{
+		spherevertex[i].nx=0;
+		spherevertex[i].nz=0;
+		spherevertex[i].ny=1;
+		spherevertex[i].y=h;
+		if((i-SegmentNum*2-2)%3==2)  //该到圆心了，I增加，但J不增加，因为角度不改变
+		{
+			spherevertex[i].x=0;
+			spherevertex[i].z=0;
+		}
+		else         //圆上的点，每过一个J就增加一次
+		{
+			spherevertex[i].x=r*cosf(D3DX_PI*2*j/SegmentNum);
+			spherevertex[i].z=r*sinf(D3DX_PI*2*j/SegmentNum);
+			j++;
+		}
+		i++;
+	}
+	//建模下面的圆
+	for(j=0;j<=SegmentNum;)
+	{
+		spherevertex[i].nx=0;
+		spherevertex[i].nz=0;
+		spherevertex[i].ny=-1;
+		spherevertex[i].y=0;
+		if((i-SegmentNum*2-2)%3==2)  //该到圆心了，I增加，但J不增加，因为角度不改变
+		{
+			spherevertex[i].x=0;
+			spherevertex[i].z=0;
+		}
+		else         //圆上的点，每过一个J就增加一次
+		{
+			spherevertex[i].x=r*cosf(D3DX_PI*2*j/SegmentNum);
+			spherevertex[i].z=r*sinf(D3DX_PI*2*j/SegmentNum);
+			j++;
+		}
+		i++;
+	}
+		return (i/2-SegmentNum-1);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//球体：半径R，有RINGNUM条纬线等分，SEGNUM条经线等分，无索引
+//只有一个部分，共有(SEGNUM+1)*RINGNUM*2个点，TRIANGLESTRIP渲染共(SEGNUM+1)*RINGNUM*2-2个图元
+//一般RINGNUM是SEGNUM的1/2
+void InitSphere()
+{
+	float R=2,r;
+	
+	int n=0;//  vertex index no
+	D3DXVECTOR3 vT;
+	UINT ring,seg;
+
+	for(ring=0; ring<RINGNUM; ring++)
+		for(seg=0; seg<=SEGNUM; seg++)
+		{
+			//Point
+			r=R*sinf(D3DX_PI*ring/RINGNUM);
+			spherevertex[n].ny=spherevertex[n].y=R*cosf(D3DX_PI*ring/RINGNUM);
+			spherevertex[n].nx=spherevertex[n].x=r*cosf(D3DX_PI*seg*2/SEGNUM);
+			spherevertex[n].nz=spherevertex[n].z=r*sinf(D3DX_PI*seg*2/SEGNUM);
+
+			vT=D3DXVECTOR3(spherevertex[n].nx,spherevertex[n].ny,spherevertex[n].nz);
+			D3DXVec3Normalize(&vT,&vT);
+			spherevertex[n].nx=vT.x;spherevertex[n].ny=vT.y;spherevertex[n].nz=vT.z;
+
+			spherevertex[n].tu1=(float)seg/SEGNUM;
+			spherevertex[n].tv1=(float)ring/RINGNUM;
+
+			//Up Point
+			n++;
+			r=R*sinf(D3DX_PI*(ring+1)/RINGNUM);
+			spherevertex[n].ny=spherevertex[n].y=R*cosf(D3DX_PI*(ring+1)/RINGNUM);
+			spherevertex[n].nx=spherevertex[n].x=r*cosf(D3DX_PI*seg*2/SEGNUM);
+			spherevertex[n].nz=spherevertex[n].z=r*sinf(D3DX_PI*seg*2/SEGNUM);
+
+			vT=D3DXVECTOR3(spherevertex[n].nx,spherevertex[n].ny,spherevertex[n].nz);
+			D3DXVec3Normalize(&vT,&vT);
+			spherevertex[n].nx=vT.x;spherevertex[n].ny=vT.y;spherevertex[n].nz=vT.z;
+
+			spherevertex[n].tu1=(float)seg/SEGNUM;
+			spherevertex[n].tv1=(float)(ring+1)/RINGNUM;
+			n++;
+		}
+
+		UINT index=0, nowritesign;
+		//每个点有8个三角面共享，但每两个三角面组成一个矩形面，切线等都相同，所以可以只选其中4个三角面来算
+		D3DXVECTOR3 U[4], V[4], W[4];
+		
+		for(ring=0; ring<RINGNUM; ring++)
+			for(seg=0; seg<(SEGNUM+1)*2; seg++,index++)
+			{
+				//有些点只需要复制数据或指定数据，不需要计算，就要用这个SIGN来控制
+				nowritesign=0;				
+				if(seg%2==0)
+				{
+					//最上顶点
+					if(ring==0) {U[0].x=0;U[0].y=0;U[0].z=1;V[0].x=1;V[0].y=0;V[0].z=0;W[0].x=0;W[0].y=1;W[0].z=0;nowritesign=1;}
+					else
+					{
+						//每一圏最后两个顶点（和第一个的上下顶点重合）
+						if(seg/2==SEGNUM) 
+						{
+							U[0].x=spherevertex[index-SEGNUM*2].Ux;U[0].y=spherevertex[index-SEGNUM*2].Uy;U[0].z=spherevertex[index-SEGNUM*2].Uz;
+							V[0].x=spherevertex[index-SEGNUM*2].Vx;V[0].y=spherevertex[index-SEGNUM*2].Vy;V[0].z=spherevertex[index-SEGNUM*2].Vz;
+							W[0].x=spherevertex[index-SEGNUM*2].Wx;W[0].y=spherevertex[index-SEGNUM*2].Wy;W[0].z=spherevertex[index-SEGNUM*2].Wz;
+							nowritesign=1;
+						}
+						else{
+							//分别计算左上、右上、左下、右下四个面的切向量
+							gettangent(index, index-(SEGNUM+1)*2-2, index-(SEGNUM+1)*2, &U[0].x, &U[0].y, &U[0].z, &V[0].x, &V[0].y, &V[0].z);
+							gettangent(index, index-(SEGNUM+1)*2+2, index-(SEGNUM+1)*2, &U[1].x, &U[1].y, &U[1].z, &V[1].x, &V[1].y, &V[1].z);
+							gettangent(index, index-1, index+1, &U[2].x, &U[2].y, &U[2].z, &V[2].x, &V[2].y, &V[2].z);
+							gettangent(index, index+3, index+1, &U[3].x, &U[3].y, &U[3].z, &V[3].x, &V[3].y, &V[3].z);
+							}
+					}
+				}
+				
+				else 
+				{
+					//最下顶点
+					if(ring==(RINGNUM-1)) {U[0].x=0;U[0].y=0;U[0].z=1;V[0].x=1;V[0].y=0;V[0].z=0;W[0].x=0;W[0].y=-1;W[0].z=0;nowritesign=1;}
+					else {
+							if(seg/2==SEGNUM) 
+							{
+								U[0].x=spherevertex[index-SEGNUM*2].Ux;U[0].y=spherevertex[index-SEGNUM*2].Uy;U[0].z=spherevertex[index-SEGNUM*2].Uz;
+								V[0].x=spherevertex[index-SEGNUM*2].Vx;V[0].y=spherevertex[index-SEGNUM*2].Vy;V[0].z=spherevertex[index-SEGNUM*2].Vz;
+								W[0].x=spherevertex[index-SEGNUM*2].Wx;W[0].y=spherevertex[index-SEGNUM*2].Wy;W[0].z=spherevertex[index-SEGNUM*2].Wz;
+								nowritesign=1;
+							}
+
+						//分别计算左上、右上、左下、右下四个面的切向量
+						else {
+								gettangent(index, index-3, index-1, &U[0].x, &U[0].y, &U[0].z, &V[0].x, &V[0].y, &V[0].z);
+								gettangent(index, index+1, index-1, &U[1].x, &U[1].y, &U[1].z, &V[1].x, &V[1].y, &V[1].z);
+								gettangent(index, index+(SEGNUM+1)*2-2, index+(SEGNUM+1)*2, &U[2].x, &U[2].y, &U[2].z, &V[2].x, &V[2].y, &V[2].z);
+								gettangent(index, index+(SEGNUM+1)*2+2, index+(SEGNUM+1)*2, &U[3].x, &U[3].y, &U[3].z, &V[3].x, &V[3].y, &V[3].z);
+							}
+						}
+				}//end index%2
+
+						//求和的均值，并写入
+				if(nowritesign==0)
+				{
+						U[0]+=U[1];U[0]+=U[2];U[0]+=U[3];
+						D3DXVec3Normalize(&U[0], &U[0]);
+
+						D3DXVECTOR3 N=D3DXVECTOR3(spherevertex[index].nx,spherevertex[index].ny,spherevertex[index].nz);
+						D3DXVec3Cross(&V[0], &U[0], &N);
+						D3DXVec3Normalize(&V[0], &V[0]);
+						D3DXVec3Cross(&W[0], &U[0], &V[0]);
+						D3DXVec3Normalize(&W[0], &W[0]);
+				}
+						spherevertex[index].Ux=U[0].x;
+						spherevertex[index].Uy=U[0].y;
+						spherevertex[index].Uz=U[0].z;
+						spherevertex[index].Vx=V[0].x;
+						spherevertex[index].Vy=V[0].y;
+						spherevertex[index].Vz=V[0].z;
+						spherevertex[index].Wx=W[0].x;
+						spherevertex[index].Wy=W[0].y;
+						spherevertex[index].Wz=W[0].z;
+		}//end for
+}//end function
+
+//这个是每次刷新场景都要运行的，改变环境纹理的坐标值
+void ApplyEnvironment()
+{	float R=2,r;
+	UINT RINGNUM=15, SEGNUM=30;
+
+	SPHEREVERTEXTYPE *p;
+	Sphere.GetVertexBuffer((BYTE **)&p, 37*18*2);
+
+	D3DXMATRIX matWorldView,world;  //变换VT的矩阵，临时使用
+	d3ddevice->GetTransform(D3DTS_WORLD, &world);
+	D3DXMatrixMultiply(&matWorldView, &world, &myview);
+    D3DXVECTOR3 vT;   //临时使用
+	D3DXVECTOR3 nn;   //法线，临时使用
+    FLOAT fScale;     //临时使用
+
+
+	for(UINT ring=0; ring<RINGNUM; ring++)
+		for(UINT seg=0; seg<=SEGNUM; seg++)
+		{
+			//Point
+			r=R*sinf(D3DX_PI*ring/RINGNUM);
+			nn.y=R*cosf(D3DX_PI*ring/RINGNUM);
+			nn.x=r*cosf(D3DX_PI*seg*2/SEGNUM);
+			nn.z=r*sinf(D3DX_PI*seg*2/SEGNUM);
+
+            D3DXVec3TransformCoord( &vT, &nn, &matWorldView );
+			D3DXVec3Normalize(&vT, &vT);
+            p->tu2 = 0.5+1.37f*vT.x;//0.5f + fScale*vT.x;
+            p->tv2 = 0.5-1.37f*vT.y;//0.5f - fScale*vT.y;
+
+			//Up Point
+			p++;
+			r=R*sinf(D3DX_PI*(ring+1)/RINGNUM);
+			nn.y=R*cosf(D3DX_PI*(ring+1)/RINGNUM);
+			nn.x=r*cosf(D3DX_PI*seg*2/SEGNUM);
+			nn.z=r*sinf(D3DX_PI*seg*2/SEGNUM);
+
+            D3DXVec3TransformCoord( &vT, &nn, &matWorldView );
+			D3DXVec3Normalize(&vT, &vT);
+            p->tu2 = 0.5+1.37f*vT.x;//0.5f + fScale*vT.x;
+            p->tv2 = 0.5-1.37f*vT.y;//0.5f - fScale*vT.y;
+			p++;
+		}	
+}
+
+
+
+
+
+
+
+
+
+
+// 创建一个XZ平面，用多个小格代替，并分别指定两个方向上的格子数（X和Z）
+// 传入空指针即可，它会自动创建新的顶点/索引缓冲
+// FVF默认为XYZ+Tex1+NORMAL，顶点是默认以原点为平面左上角，分别向XZ正向延伸，所以需要将摄像机设高或低一点，才能看得出来该平面
+// 用TriangleList画，Primitive数是2 * nXSplitNum * nZSplitNum，顶点数是(nXSplitNum+1) * (nZSplitNum+1)
+HRESULT InitPlane(UINT nXSplitNum, float fWidth, UINT nZSplitNum, float fDepth, LPDIRECT3DVERTEXBUFFER9 &pVB, LPDIRECT3DINDEXBUFFER9 &pIB)
+{
+	if(nXSplitNum < 1 || nZSplitNum < 1 || fWidth <= 0 || fDepth <= 0)
+		return D3DERR_INVALIDCALL;
+
+	SAFE_RELEASE(pVB);
+	SAFE_RELEASE(pIB);
+
+	// 顶点数量
+	UINT nX = nXSplitNum + 1;
+	UINT nZ = nZSplitNum + 1;
+	UINT nPointNum = nX * nZ;
+
+	float fEachX = fWidth / (float)nXSplitNum;
+	float fEachZ = fDepth / (float)nZSplitNum;
+
+	DWORD dwFVF = D3DFVF_XYZ | D3DFVF_TEX1 | D3DFVF_NORMAL;
+	UINT nEachPointSize = D3DXGetFVFVertexSize(dwFVF);
+
+	UINT nIndexNum = nXSplitNum * nZSplitNum * 6;	// 每个格子需要两个三角形，即6个索引
+	UINT nEachIndexSize = nIndexNum>65535 ? sizeof(DWORD) : sizeof(WORD);
+
+	// 创建缓冲区
+	float * pVertexData = NULL;
+    if(FAILED(d3ddevice->CreateVertexBuffer(nPointNum * nEachPointSize, D3DUSAGE_WRITEONLY, dwFVF, D3DPOOL_DEFAULT, &pVB, NULL)))
+		return E_FAIL;
+	
+	if(pVB->Lock(0, nPointNum * nEachPointSize, (void **)&pVertexData, 0))
+		return E_FAIL;
+	
+	void* pIndexData = NULL;
+	if(FAILED(d3ddevice->CreateIndexBuffer(nIndexNum * nEachIndexSize, D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &pIB, NULL)))
+		return E_FAIL;
+	
+	if(FAILED(pIB->Lock(0, nIndexNum * nEachIndexSize, &pIndexData, 0)))
+		return E_FAIL;
+
+	// 填充数据
+	UINT i = 0, j = 0;
+	for(j = 0; j < nZ; j++)
+	{
+		for(i = 0; i < nX; i++)
+		{
+			// FVF有指定顺序，下面的数据顺序不能弄反
+			// x y z
+			*pVertexData++ = (float)i * fEachX;
+			*pVertexData++ = 0.0f;
+			*pVertexData++ = (float)j * fEachZ;
+			// normal，一律为0,1,0
+			*pVertexData++ = 0.0f;
+			*pVertexData++ = 1.0f;
+			*pVertexData++ = 0.0f;
+			// texcoord
+			*pVertexData++ = (float)i / (float)nXSplitNum;
+			*pVertexData++ = (float)j / (float)nZSplitNum;
+		}
+	}
+
+	// DWORD型的
+	if(nIndexNum > 65535)
+	{
+		DWORD* pCurIndex = (DWORD *)pIndexData;
+		// 每个方块的4个点，左上、右上、右下、左下
+		DWORD dwIndex1 = 0, dwIndex2 = 0, dwIndex3 = 0, dwIndex4 = 0;
+
+		for(j = 0; j < nZSplitNum; j++)
+		{
+			for(i = 0; i < nXSplitNum; i++)
+			{
+				dwIndex1 = j * nX + i;
+				dwIndex2 = dwIndex1 + 1;
+				dwIndex3 = dwIndex2 + nX;
+				dwIndex4 = dwIndex1 + nX;
+				
+				*pCurIndex++ = dwIndex1;
+				*pCurIndex++ = dwIndex2;
+				*pCurIndex++ = dwIndex4;
+				*pCurIndex++ = dwIndex2;
+				*pCurIndex++ = dwIndex3;
+				*pCurIndex++ = dwIndex4;
+			}
+		}
+	}
+	else
+	{
+		WORD* pCurIndex = (WORD *)pIndexData;
+		// 每个方块的4个点，左上、右上、右下、左下
+		WORD dwIndex1 = 0, dwIndex2 = 0, dwIndex3 = 0, dwIndex4 = 0;
+		
+		for(j = 0; j < nZSplitNum; j++)
+		{
+			for(i = 0; i < nXSplitNum; i++)
+			{
+				dwIndex1 = j * nX + i;
+				dwIndex2 = dwIndex1 + 1;
+				dwIndex3 = dwIndex2 + nX;
+				dwIndex4 = dwIndex1 + nX;
+				
+				*pCurIndex++ = dwIndex1;
+				*pCurIndex++ = dwIndex2;
+				*pCurIndex++ = dwIndex4;
+				*pCurIndex++ = dwIndex2;
+				*pCurIndex++ = dwIndex3;
+				*pCurIndex++ = dwIndex4;
+			}
+		}
+	}
+	
+	pVB->Unlock();
+	pIB->Unlock();
+	return S_OK;
+}

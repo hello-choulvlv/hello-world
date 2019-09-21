@@ -1,0 +1,222 @@
+/**************FFT Ocean Water Generate Normal PixelShader 2.a*******************/
+;Tex0	HeightMap
+;c0		Half Tap偏移量，格式：0.5/Width, 0.5/Height
+;c1		One Tap偏移量，格式：1.0/Width, 1.0/Height
+;c2		海面的长宽（世界坐标），格式：Width, Height
+;c3		海浪高度Scale
+;t0		顶点内插后的纹理坐标
+
+#define HalfTap c0
+#define OneTapConstant c1
+
+#define Square c2
+#define HeightScale c3
+
+#define ZERO c5.x
+#define HALF c5.y
+#define ONE c5.z
+#define TWO c5.w
+
+#define ONEBYSIX c6
+
+#define SampleCore1 c11			;采样点分布核
+#define SampleCore2 c12
+#define SampleCore3 c13
+#define SampleCore4 c14
+#define SampleCore5 c15
+#define SampleCore6 c16
+#define SampleCore7 c17
+#define SampleCore8 c18
+
+
+#define BaseTexCoord r0				;当前处理像素在纹理中的坐标
+
+#define TexCoord r1						;不同采样点对应的纹理坐标，临时使用
+
+#define VertexPosition r2				;GET_VERTEX_POSITION的输出
+
+#define FaceVertexPosition1 r3					;GET_VERTEX_NORMAL的输入
+#define FaceVertexPosition2 r4
+#define FaceVertexPosition3 r5
+
+#define Normal r6								;最终的Normal
+#define Tangent r7							;最终的Tangent
+#define BiNormal r8							;最终的BiNormal
+
+#define OneTap r9
+
+#define BaseVertex	r10						;9个像素，0为当前像素
+#define Vertex1	r11						;后8个依次从左到右，从上到下的顺序
+#define Vertex2	r12
+#define Vertex3	r13
+#define Vertex4	r14
+#define Vertex5	r15
+#define Vertex6	r16
+#define Vertex7	r17
+#define Vertex8	r18
+
+
+
+
+;临时使用
+#define TempVertex r20
+#define TempVertex_Value_re r20.x
+#define TempVertex_Value_im r20.y
+#define TempVertex_Sign_re r20.z
+#define TempVertex_Sign_im r20.w
+
+#define TempLine1 r21
+#define TempLine2 r22
+
+#define Temp1 r23
+#define Temp2 r24
+
+
+
+
+;子函数
+;通过纹理坐标得到顶点坐标，输入TexCoord，输出VertexPosition
+;流程注释：先寻址高度图，得到cos（影响顶点Y）和sin部分（影响顶点X）
+;再根据符号得到真值
+;置VertexPosition数据，这里以TexCoord作为基准坐标，因为前面加过半个tap，这里先将其减去半个tap对其格子坐标
+;计算顶点的XYZ，海浪起点是原点，非常方便了计算
+;z = Z, Z = -TexCoord.y * 海面总长度，这个就是网格上的初始坐标，不受波动影响，注意Z值是向Z轴负方向延伸的，所以要加一个负号
+;x = X + sin * Scale, X为波动前的初始坐标，X = TexCoord * 海面总宽度
+;y = 0 + cos * Scale
+#define GET_VERTEX_POSITION 	texld TempVertex, TexCoord, s0\
+								\
+								sub TempVertex_Sign_re, TempVertex_Sign_re, ONE\
+								sub TempVertex_Sign_im, TempVertex_Sign_im, ONE\
+								mul TempVertex_Value_re, TempVertex_Sign_re, TempVertex_Value_re\
+								mul TempVertex_Value_im, TempVertex_Sign_im, TempVertex_Value_im\
+								\
+								sub TexCoord, TexCoord, HalfTap\
+								mov VertexPosition.w, ONE\
+								\
+								mul VertexPosition.z, TexCoord.y, -Square.y\
+								\
+								mul Temp2, TempVertex_Value_im, HeightScale\
+								mad VertexPosition.x, TexCoord.x, Square.x, Temp2\
+								\
+								mul VertexPosition.y, TempVertex_Value_re, HeightScale\
+
+
+
+;通过面的三个顶点数据得到面法线并规格化后累加到总Normal上，输入FaceVertexPosition123，Add To Normal
+;FaceVertex是有顺序的，绘制顺序为1->2->3，顺时针
+#define GET_VERTEX_NORMAL	\
+							sub TempLine1, FaceVertexPosition2, FaceVertexPosition1\
+							sub TempLine2, FaceVertexPosition3, FaceVertexPosition1\
+							crs Temp1.xyz, TempLine1, TempLine2\
+							nrm Temp2, Temp1\
+							add Normal, Normal, Temp2\
+
+
+
+ps.2.x
+dcl_2d s0
+dcl t0
+
+def c5, 0, 0.5, 1, 2
+def c6, 0.1666666666666667f, 0.1666666666666667f, 0.1666666666666667f, 0.1666666666666667f
+
+;采样核
+def SampleCore1, -1, -1, 0, 0
+def SampleCore2, 0, -1, 0, 0
+def SampleCore3, 1, -1, 0, 0
+def SampleCore4, -1, 0, 0, 0
+def SampleCore5, 1, 0, 0, 0
+def SampleCore6, -1, 1, 0, 0
+def SampleCore7, 0, 1, 0, 0
+def SampleCore8, 1, 1, 0, 0
+
+
+
+
+;将内插后的纹理坐标修正1/2 tap
+add BaseTexCoord, t0, HalfTap
+
+;寻址9个采样点，其实点1和8是用不到的
+mov OneTap, OneTapConstant
+
+mov TexCoord, BaseTexCoord
+GET_VERTEX_POSITION
+mov BaseVertex, VertexPosition
+
+mad TexCoord, SampleCore1, OneTap, BaseTexCoord
+GET_VERTEX_POSITION
+mov Vertex1, VertexPosition
+
+mad TexCoord, SampleCore2, OneTap, BaseTexCoord
+GET_VERTEX_POSITION
+mov Vertex2, VertexPosition
+
+mad TexCoord, SampleCore3, OneTap, BaseTexCoord
+GET_VERTEX_POSITION
+mov Vertex3, VertexPosition
+
+mad TexCoord, SampleCore4, OneTap, BaseTexCoord
+GET_VERTEX_POSITION
+mov Vertex4, VertexPosition
+
+mad TexCoord, SampleCore5, OneTap, BaseTexCoord
+GET_VERTEX_POSITION
+mov Vertex5, VertexPosition
+
+mad TexCoord, SampleCore6, OneTap, BaseTexCoord
+GET_VERTEX_POSITION
+mov Vertex6, VertexPosition
+
+mad TexCoord, SampleCore7, OneTap, BaseTexCoord
+GET_VERTEX_POSITION
+mov Vertex7, VertexPosition
+
+mad TexCoord, SampleCore8, OneTap, BaseTexCoord
+GET_VERTEX_POSITION
+mov Vertex8, VertexPosition
+
+
+;得到6个面的法线并累加
+mov Normal, ZERO
+
+	;左上面204（现在为右上面052）
+mov FaceVertexPosition1, Vertex2
+mov FaceVertexPosition2, BaseVertex
+mov FaceVertexPosition3, Vertex4
+GET_VERTEX_NORMAL
+
+	;右下面057（现在为左下面704）
+mov FaceVertexPosition1, BaseVertex
+mov FaceVertexPosition2, Vertex5
+mov FaceVertexPosition3, Vertex7
+GET_VERTEX_NORMAL
+
+	;右上的两个面230和350（现在为左上面401 021）
+mov FaceVertexPosition1, Vertex2
+mov FaceVertexPosition2, Vertex3
+mov FaceVertexPosition3, BaseVertex
+GET_VERTEX_NORMAL
+
+mov FaceVertexPosition1, Vertex3
+mov FaceVertexPosition2, Vertex5
+mov FaceVertexPosition3, BaseVertex
+GET_VERTEX_NORMAL
+
+	;左下的两个面406和076（现在为右下面780 850）
+mov FaceVertexPosition1, Vertex4
+mov FaceVertexPosition2, BaseVertex
+mov FaceVertexPosition3, Vertex6
+GET_VERTEX_NORMAL
+
+mov FaceVertexPosition1, BaseVertex
+mov FaceVertexPosition2, Vertex7
+mov FaceVertexPosition3, Vertex6
+GET_VERTEX_NORMAL
+
+
+;求顶点法线均值（6个规格化向量相加，除6也必然是规格化向量），并从-1～1映射为0～1（乘加0.5）
+mul Temp1, Normal, ONEBYSIX
+nrm Normal, Temp1
+mad Normal, Normal, HALF, HALF
+;输出
+mov oC0, Normal

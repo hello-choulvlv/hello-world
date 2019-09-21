@@ -1,0 +1,205 @@
+/******************VTF FFT+Wave Water Pixel Shader*************/
+;// b0：是否使用法线图
+;// b1：摄像机是否到了水下
+;// c20 折射率（水上水下不同）
+;// c21 雾化颜色
+;// c22 雾化修正（乘方和缩放）
+#include "WaterPS.h"
+
+
+;//输入
+#define InputTexCoord v1
+#define InputTexCoordInteger v2
+#define InputEyeVector v3
+#define InputVertexNormal v4
+#define InputVertexPosition v5
+
+#define InputTNBRow1 v6
+#define InputTNBRow2 v7
+#define InputTNBRow3 v8
+
+#define InputProjPosition v9
+
+
+#define bUseNormalMap b0
+#define bUnderWater b1		// 摄像机是否到了水下，在水下才渲染出雾化效果
+
+#define cRefractIndex c20.x
+
+#define rRefractVector r20
+#define rRefractColor r21
+#define rCosIncoming r22
+#define rCosRefract r23
+
+;// Fog
+#define rFogCoef r25
+#define rDepth r26
+
+#define cFogColor c21
+#define cFogAdjust c22
+
+
+
+;根据cos(入射)、视线向量、法线和折射率计算折射向量，考虑到CubeMap寻址，这里暂不规格化了
+;// 前三条指令先计算cos(折射)，后三条指令计算折射向量
+#define GET_REFRACTVECTOR(RefractVector, EdotN, EyeVector, Normal, RefractIndex, Temp1, Temp2, Temp3)\
+								mul Temp2, RefractIndex, RefractIndex\
+								sub Temp1, ONE, Temp2\
+								mad Temp3, EdotN, Temp2, Temp1\
+								\
+								mad Temp1, RefractIndex, EdotN, -Temp3\
+								mul Temp1, Temp1, -Normal\
+								mad RefractVector, RefractIndex, -EyeVector, Temp1
+
+
+#define IF_LE(BeJudged, JudgeValue, Value, Constant, Epsilon, TempUse)\
+					 	sub TempUse.x, JudgeValue, BeJudged\
+					 	cmp Value, TempUse.x, Constant, Value\
+					 	
+
+
+ps.3.0
+dcl_texcoord0 InputTexCoord	;//TexCoord
+dcl_texcoord1 InputTexCoordInteger	;//转换为整数的TexCoord，以便Normalmap Bilinear Filtering
+
+dcl_normal1 InputEyeVector	;//Eye Vector
+dcl_normal0 InputVertexNormal	;//VertexNormal，用于屏蔽Normalmap
+dcl_normal2 InputVertexPosition	;// VertexPosition In WorldSpace，用于计算纠正寻址向量CP
+dcl_normal3 InputProjPosition		;// VertexPosition In ProjSpace，用于计算Fog
+
+dcl_tangent0 InputTNBRow1	;//TNBRow1
+dcl_tangent1 InputTNBRow2	;//TNBRow3
+dcl_tangent2 InputTNBRow3	;//TNBRow3
+
+dcl_2d TexBaseMap		;//BaseMap
+dcl_cube TexEnvMap		;//Env CubeMap
+dcl_2d TexFresnelMap		;//FresnelMap
+dcl_2d TexNormalMap		;//Normalap
+
+
+def c10, 0, 0.5, 1, 2
+def c11, 5.0f, 5.0f, 0.98f, 16.0					;//散的常量：FresnelCoefScale、FresnelPower、SpecularCoef、SpecularPower
+
+;//SrcAlpha
+def c12, 0.94f, 0, 0, 0
+
+
+if bUseNormalMap
+	;//Get PixelNormal（In Normalmap） to Temp2
+	/*;//Direct Addressing (Point Filter)
+	mul Temp1, InputTexCoord, NormalmapWrapNum
+	texld Temp2, Temp1, TexNormalMap
+	*/
+	;//Shader Addressing (Bilinear Filter)到Temp2，这里得到的是规格化法线
+	mul Temp1, InputTexCoordInteger, NormalmapWrapNum
+	BILINEAR_TEXLD
+	
+	
+	;//从Temp2的0～1映射回-1～1，这里得到的是规格化法线
+	sub Temp2, Temp2, HALF
+	mul Temp2, Temp2, TWO
+	
+	;//TNB变换，已经是规格化的了，直接输出到Normal
+	dp3 Normal.x, Temp2, InputTNBRow1
+	dp3 Normal.y, Temp2, InputTNBRow2
+	dp3 Normal.z, Temp2, InputTNBRow3
+	mov Normal.w, ONE
+	
+else
+	;//Without NormalMap
+	nrm Normal, InputVertexNormal
+endif
+
+
+;//Normalize Input Vector
+nrm EyeVector, InputEyeVector
+sub rCP, InputVertexPosition, cWaterCentrePos
+
+
+;//Base Map
+texld BaseColor, InputTexCoord, TexBaseMap
+
+
+
+;//Reflect Vector，这里计算的东西很多，还有clamp(E dot N)和WaterColor
+dp3 Temp1, EyeVector, Normal
+mov_sat EdotN, Temp1.x
+	;//顺便计算WaterColor
+mov Temp2, DeepWaterColor
+lrp WaterColor, EdotN, Temp2, ShallowWaterColor
+	;//Reflection Vector不需要把dot结果clamp，所以不用clamp(E dot N)
+mul Temp1, Temp1, Normal
+mad ReflectVector, Temp1, TWO, -EyeVector
+	;// CP
+mad ReflectVector, rCP, cOneByWaterRadius, ReflectVector
+
+
+;//Reflection CubeMap
+texld ReflectColor, ReflectVector, TexEnvMap
+
+;//Fresnel Coef
+texld Temp1, EdotN, TexFresnelMap
+mul_sat FresnelCoef, Temp1.x, FresnelCoefScale	;//因为波浪较大，最好再次缩放FresnelCoef
+
+/*
+;//Specular
+dp3_sat Temp2, ReflectVector, LightSpecularDir
+
+	;//Specular整体差异过大，这里先把它朝0.5～1的范围内聚集一下，再整体缩放，然后再算高光幂
+rsq Temp1.x, Temp2.x
+rcp Temp2.x, Temp1.x
+rsq Temp1.x, Temp2.x
+rcp Temp2.x, Temp1.x
+
+mul Temp2.x, Temp2.x, SpecularCoefScale
+pow SpecularCoef, Temp2.x, SpecularPower
+mad ReflectColor, SpecularCoef, LightSpecularColor, ReflectColor
+*/
+
+
+;// Refraction
+GET_REFRACTVECTOR(rRefractVector, EdotN, EyeVector, Normal, cRefractIndex, Temp1, Temp2, rCosRefract)
+	;// CP
+mad rRefractVector, rCP, cOneByWaterRadius, rRefractVector
+	;// Refract Color
+texld rRefractColor, rRefractVector, TexEnvMap
+;//mul rRefractColor, rRefractColor, WaterColor
+
+
+;//Fresnel Blend
+;//lrp Color, FresnelCoef, ReflectColor, WaterColor	;//得到反射折射的混合颜色
+lrp Color, FresnelCoef, ReflectColor, rRefractColor	;//得到反射折射的混合颜色
+
+
+/*
+;//Diffuse Coef
+dp3 Temp1, Normal, LightDiffuseDir
+cmp DiffuseCoef, Temp1.x, Temp1.x, ZERO	;//max(dot, 0)
+	;//为了抑制住Diffuse防止它太小，故而开方，开方次数越多，它总体的值越偏向0.5～1
+;//rsq Temp1.x, DiffuseCoef
+;//rcp DiffuseCoef, Temp1.x
+
+;//Diffuse Lighting
+mul Color, Color, LightDiffuseColor
+mul Color, Color, DiffuseCoef
+*/
+
+
+
+if bUnderWater
+	;// Fogging
+		;// Homogeous Divid Get 
+	rcp Temp1.w, InputProjPosition.w
+	mul rDepth, InputProjPosition.z, Temp1.w
+		;// FogCoef（Linear Fog）
+	pow_sat rFogCoef, rDepth.x, cFogAdjust.x
+	mul_sat rFogCoef, rFogCoef, cFogAdjust.y
+		;// Fog Color
+	lrp Temp1, rFogCoef, cFogColor, Color
+	mov Color, Temp1
+endif
+
+
+;//Output
+mov Color.a, SrcAlpha
+mov oC0, Color

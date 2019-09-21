@@ -1,0 +1,45 @@
+/**************Add Point Height PixelShader*******************/
+;// Tex0	当前的高度图
+;// t0		当前位置对应的纹理坐标
+;// t1		写入的数据，xz分量分别存放写入高度的绝对值和符号
+
+#include "..\commonps.h"
+
+#define InputHeightData t1
+#define TexNowHeight s0
+
+#define rTexCoord r0		;// 当前处理像素在纹理中的坐标
+
+#define rNowHeight r7			;// 当前帧当前点的高度值
+#define rAddHeight r8			;// 要叠加的高度值
+#define rResult r9
+
+#define Temp1 r10
+#define Temp2 r11
+
+
+
+ps.2.0
+dcl_2d s0
+dcl_2d s1
+dcl t0
+dcl t1
+
+;// 将内插后的纹理坐标修正1/2 tap
+add rTexCoord, t0, cHalfTap
+
+;// 采样当前Y值
+texld rNowHeight, rTexCoord, TexNowHeight
+RESTORE_VELOCITY(rNowHeight, Temp2)
+
+;// 恢复写入的高度值
+mov rAddHeight, InputHeightData
+RESTORE_VELOCITY(rAddHeight, Temp2)
+
+;// 叠加
+add rResult, rNowHeight, rAddHeight
+
+;// 打包写入
+mov rResult.yw, ZERO
+COMBINE_VELOCITY(rResult, Temp1)
+mov oC0, rResult

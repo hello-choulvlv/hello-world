@@ -1,0 +1,187 @@
+/**************Convert BoundaryMap To TypeMap PixelShader*******************/
+;//-----------------需要ps2.x，需要76条指令，其他特性不需要-----------------/
+;// Tex0	Boundary类型图，可通过为1，边界内为2，边界点为0
+;// Tex1	BoundaryToOffset图，用求出的和来寻址
+;// t0		顶点内插后的纹理坐标，同时也表示当前处理像素在图像中的坐标，因为纹理和RT的分辨率完全相同
+;// t1		顶点内插后的纹理坐标（已乘过贴图分辨率转换为整数，for Bilinear Filtering）
+
+#include "..\\commonps.h"
+
+#define cSampCoreUp c5
+#define cSampCoreDown c6
+#define cSampCoreLeft c7
+#define cSampCoreRight c8
+
+#define cCoefUp c9.x				;// 每个采样点对应的系数，上下左右分别为1 10 20 40
+#define cCoefDown c9.y
+#define cCoefLeft c9.z
+#define cCoefRight c9.w
+
+;// 常数1/600, 0.5/600，构造纹理坐标时用
+#define ONEBYSIXHUNDRED c10.x
+#define HALFBYSIXHUNDRED c10.y
+#define TEN c10.z
+#define cEpsilon c10.w
+
+
+#define TexBoundaryType s0
+#define TexOffset s1
+
+
+#define rTexCoord r0		;// 当前处理像素在纹理中的坐标
+#define rType r1				;// 当前点的边界开口类型（从1到12），如果不是边界点，类型就为0
+
+#define rBoundaryType_Right r2				;// 通过偏移后的坐标，寻址到的Obstacle值
+#define rBoundaryType_Left r3
+#define rBoundaryType_Down r4
+#define rBoundaryType_Up r5
+
+#define rBoundaryType_Centre r6
+
+#define rSum r7		;// 求和
+
+#define rOffsetTexCoord r8	;// 当前点求出的和，在偏移图中对应的坐标
+#define rOffset r9					;// 最终的偏移坐标
+
+#define Temp3 r8		;// 注意它们两个和上面是重复的，所以只能用在求和之前
+#define Temp4 r9
+
+#define Temp1 r10
+#define Temp2 r11
+
+
+
+
+ps.2.x
+dcl_2d s0
+dcl_2d s1
+dcl t0
+
+;// 采样核
+def cSampCoreRight, 1, 0, 0, 0
+def cSampCoreLeft, -1, 0, 0, 0
+def cSampCoreDown, 0, 1, 0, 0
+def cSampCoreUp, 0, -1, 0, 0
+
+def c9, 1, 10, 20, 40		;// 上下左右的系数
+
+;// 常数1/600, 0.5/1600, 10, Epsilon
+def c10, 0.001666667f, 0.000833333333333f, 10, 0.0000001f
+
+
+
+/****************寻址********************/
+
+;// 将内插后的纹理坐标修正1/2 tap
+add rTexCoord, t0, cHalfTap
+
+;// 寻址5个点的BoundaryType值，如果为可通过(1)给值0，如果为边界(0)给值1，如果为边界内给值10
+texld rBoundaryType_Centre, rTexCoord, TexBoundaryType
+mov Temp2, cOneTap
+
+	;// 开始采样
+mad Temp1, cSampCoreUp, Temp2, rTexCoord
+texld rBoundaryType_Up, Temp1, TexBoundaryType
+mad Temp3, cSampCoreDown, Temp2, rTexCoord
+texld rBoundaryType_Down, Temp3, TexBoundaryType
+mad Temp4, cSampCoreLeft, Temp2, rTexCoord
+texld rBoundaryType_Left, Temp4, TexBoundaryType
+mad Temp1, cSampCoreRight, Temp2, rTexCoord
+texld rBoundaryType_Right, Temp1, TexBoundaryType
+
+	;// 修正值
+IF_EQ(rBoundaryType_Up.x, ONE, Temp3, ZERO, cEpsilon, Temp1, Temp4)
+IF_EQUALZERO(rBoundaryType_Up.x, Temp3, ONE, cEpsilon, Temp1)
+IF_EQ(rBoundaryType_Up.x, TWO, Temp3, TEN, cEpsilon, Temp1, Temp4)
+/*
+if_eq rBoundaryType_Up.x, ONE
+	mov Temp3, ZERO
+endif
+if_eq rBoundaryType_Up.x, ZERO
+	mov Temp3, ONE
+endif
+if_eq rBoundaryType_Up.x, TWO
+	mov Temp3, TEN
+endif
+*/
+mov rBoundaryType_Up, Temp3
+	
+	
+IF_EQ(rBoundaryType_Down.x, ONE, Temp3, ZERO, cEpsilon, Temp1, Temp4)
+IF_EQUALZERO(rBoundaryType_Down.x, Temp3, ONE, cEpsilon, Temp1)
+IF_EQ(rBoundaryType_Down.x, TWO, Temp3, TEN, cEpsilon, Temp1, Temp4)
+/*
+if_eq rBoundaryType_Down.x, ONE
+	mov Temp3, ZERO
+endif
+if_eq rBoundaryType_Down.x, ZERO
+	mov Temp3, ONE
+endif
+if_eq rBoundaryType_Down.x, TWO
+	mov Temp3, TEN
+endif
+*/
+mov rBoundaryType_Down, Temp3
+
+
+IF_EQ(rBoundaryType_Left.x, ONE, Temp3, ZERO, cEpsilon, Temp1, Temp4)
+IF_EQUALZERO(rBoundaryType_Left.x, Temp3, ONE, cEpsilon, Temp1)
+IF_EQ(rBoundaryType_Left.x, TWO, Temp3, TEN, cEpsilon, Temp1, Temp4)
+/*
+if_eq rBoundaryType_Left.x, ONE
+	mov Temp3, ZERO
+endif
+if_eq rBoundaryType_Left.x, ZERO
+	mov Temp3, ONE
+endif
+if_eq rBoundaryType_Left.x, TWO
+	mov Temp3, TEN
+endif
+*/
+mov rBoundaryType_Left, Temp3
+
+
+IF_EQ(rBoundaryType_Right.x, ONE, Temp3, ZERO, cEpsilon, Temp1, Temp4)
+IF_EQUALZERO(rBoundaryType_Right.x, Temp3, ONE, cEpsilon, Temp1)
+IF_EQ(rBoundaryType_Right.x, TWO, Temp3, TEN, cEpsilon, Temp1, Temp4)
+/*
+if_eq rBoundaryType_Right.x, ONE
+	mov Temp3, ZERO
+endif
+if_eq rBoundaryType_Right.x, ZERO
+	mov Temp3, ONE
+endif
+if_eq rBoundaryType_Right.x, TWO
+	mov Temp3, TEN
+endif
+*/
+mov rBoundaryType_Right, Temp3
+
+
+
+;// 现在假设当前点为边界点，对四个临近点加权系数求和，判断开口方向
+	;// 求和到rSum中
+mul Temp2, rBoundaryType_Up, cCoefUp
+mad Temp2, rBoundaryType_Down, cCoefDown, Temp2
+mad Temp2, rBoundaryType_Left, cCoefLeft, Temp2
+mad rSum, rBoundaryType_Right, cCoefRight, Temp2
+
+
+;// 构造纹理坐标，寻址Type对应的Offset，要加1/2tap偏移
+;//mov rOffsetTexCoord, ZERO
+mad rOffsetTexCoord, rSum, ONEBYSIXHUNDRED, HALFBYSIXHUNDRED
+texld rOffset, rOffsetTexCoord, TexOffset
+
+
+;// 如果当前点不为边界点（Boundary值不为0），直接给边界开口类型0（即偏移全为0.5）
+;// 这个一定要重置，因为非边界点的求和值，也有可能会等于那12种其中之一
+IF_NOTEQUALZERO(rBoundaryType_Centre.x, rOffset, HALF, cEpsilon, Temp1)
+/*
+if_ne rBoundaryType_Centre.x, ZERO
+	mov rOffset, HALF
+endif
+*/
+
+
+;// 寻址出来的Offset已经是映射到0～1的了，直接写入即可
+mov oC0, rOffset

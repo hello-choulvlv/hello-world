@@ -1,0 +1,146 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4e34446b-7ebd-4219-b713-b8f65fa843e7}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;rc;def;r;odl;idl;hpj;bat</Extensions>
+    </Filter>
+    <Filter Include="Source Files\MyEncapD3D">
+      <UniqueIdentifier>{8fde14be-454b-425f-a2c6-51a32ce5ff25}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{c5d8ac61-4824-4d7a-831b-5cd1048ef9d0}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl</Extensions>
+    </Filter>
+    <Filter Include="Header Files\MyEncapD3D No. 1">
+      <UniqueIdentifier>{9dc6f295-abcd-4ac4-bce2-21c6e8af558d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{c7a8b975-3d5a-464b-ba8e-a854ded834ef}</UniqueIdentifier>
+      <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Myd3d.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base.cpp">
+      <Filter>Source Files\MyEncapD3D</Filter>
+    </ClCompile>
+    <ClCompile Include="CameraChange.cpp">
+      <Filter>Source Files\MyEncapD3D</Filter>
+    </ClCompile>
+    <ClCompile Include="EveryModule.cpp">
+      <Filter>Source Files\MyEncapD3D</Filter>
+    </ClCompile>
+    <ClCompile Include="GPGPU.cpp">
+      <Filter>Source Files\MyEncapD3D</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshAnim.cpp">
+      <Filter>Source Files\MyEncapD3D</Filter>
+    </ClCompile>
+    <ClCompile Include="Physics.cpp">
+      <Filter>Source Files\MyEncapD3D</Filter>
+    </ClCompile>
+    <ClCompile Include="ProcXFile.cpp">
+      <Filter>Source Files\MyEncapD3D</Filter>
+    </ClCompile>
+    <ClCompile Include="PRT.cpp">
+      <Filter>Source Files\MyEncapD3D</Filter>
+    </ClCompile>
+    <ClCompile Include="SH.cpp">
+      <Filter>Source Files\MyEncapD3D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shader.cpp">
+      <Filter>Source Files\MyEncapD3D</Filter>
+    </ClCompile>
+    <ClCompile Include="Text.cpp">
+      <Filter>Source Files\MyEncapD3D</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture.cpp">
+      <Filter>Source Files\MyEncapD3D</Filter>
+    </ClCompile>
+    <ClCompile Include="UserControl.cpp">
+      <Filter>Source Files\MyEncapD3D</Filter>
+    </ClCompile>
+    <ClCompile Include="Water.cpp">
+      <Filter>Source Files\MyEncapD3D</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MyD3D.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="base.h">
+      <Filter>Header Files\MyEncapD3D No. 1</Filter>
+    </ClInclude>
+    <ClInclude Include="CameraChange.h">
+      <Filter>Header Files\MyEncapD3D No. 1</Filter>
+    </ClInclude>
+    <ClInclude Include="color.h">
+      <Filter>Header Files\MyEncapD3D No. 1</Filter>
+    </ClInclude>
+    <ClInclude Include="EveryModule.h">
+      <Filter>Header Files\MyEncapD3D No. 1</Filter>
+    </ClInclude>
+    <ClInclude Include="GPGPU.h">
+      <Filter>Header Files\MyEncapD3D No. 1</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshAnim.h">
+      <Filter>Header Files\MyEncapD3D No. 1</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics.h">
+      <Filter>Header Files\MyEncapD3D No. 1</Filter>
+    </ClInclude>
+    <ClInclude Include="ProcXFile.h">
+      <Filter>Header Files\MyEncapD3D No. 1</Filter>
+    </ClInclude>
+    <ClInclude Include="PRT.h">
+      <Filter>Header Files\MyEncapD3D No. 1</Filter>
+    </ClInclude>
+    <ClInclude Include="SH.h">
+      <Filter>Header Files\MyEncapD3D No. 1</Filter>
+    </ClInclude>
+    <ClInclude Include="Shader.h">
+      <Filter>Header Files\MyEncapD3D No. 1</Filter>
+    </ClInclude>
+    <ClInclude Include="Text.h">
+      <Filter>Header Files\MyEncapD3D No. 1</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>Header Files\MyEncapD3D No. 1</Filter>
+    </ClInclude>
+    <ClInclude Include="UserControl.h">
+      <Filter>Header Files\MyEncapD3D No. 1</Filter>
+    </ClInclude>
+    <ClInclude Include="Water.h">
+      <Filter>Header Files\MyEncapD3D No. 1</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\3dfx.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\3dfx.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="res\MyResource.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="res\其他.txt" />
+    <Text Include="res\基本建模.txt" />
+  </ItemGroup>
+</Project>

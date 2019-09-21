@@ -1,0 +1,37 @@
+/**************FFT Scramble X PixelShader*******************/
+;Tex0  Scramble Texture
+;Tex1  Source Texture
+;c0  Half Tap偏移量，格式：0.5/Width, 0.5/Height
+;t0		顶点内插后的纹理坐标，同时也表示当前处理像素在图像中的坐标，因为纹理和RT的分辨率完全相同
+
+
+#define HalfTap c0
+#define TexCoord r0				;当前处理像素在纹理中的坐标
+#define ScrambleTexCoord r1	;
+#define SwapTexCoord r2
+#define SwapTexelColor r3
+
+
+ps.2.0
+dcl_2d s0
+dcl_2d s1
+dcl t0
+
+def c1, 1.0, 1.0, 1.0, 1.0
+
+;将内插后的纹理坐标修正1/2 tap
+add TexCoord, t0, HalfTap
+	;注意ScrambleTexture只有一行，所以y值衡定1/2 tap
+mov ScrambleTexCoord.x, TexCoord.x
+mov ScrambleTexCoord.y, HalfTap.y
+
+;得到Swap点的坐标（在x分量中），这已经是加过1/2 tap的了
+texld SwapTexCoord, ScrambleTexCoord, s0
+	;Y轴对齐（复制当前像素的y坐标即可）以便寻址原图
+mov SwapTexCoord.y, TexCoord.y
+
+;直接寻址原图
+texld SwapTexelColor, SwapTexCoord, s1
+
+;写入即可
+mov oC0, SwapTexelColor

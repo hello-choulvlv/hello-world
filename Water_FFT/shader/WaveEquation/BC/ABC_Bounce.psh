@@ -1,0 +1,86 @@
+/**************BCs: Arbitary BC_Bounce PixelShader*******************/
+;// Tex0	HeightMap
+;// Tex1	障碍Type图
+;// Tex2	Offset图
+;// t0		顶点内插后的纹理坐标，同时也表示当前处理像素在图像中的坐标，因为纹理和RT的分辨率完全相同
+;// t1		顶点内插后的纹理坐标（已乘过贴图分辨率转换为整数，for Bilinear Filtering）
+
+#include "..\\commonps.h"
+
+#define cEpsilon c5
+
+#define TexHeight s0
+#define TexType s1
+#define TexOffset s2
+
+#define rTexCoord r0		;// 当前处理像素在纹理中的坐标
+#define rType r1				;// 当前点的障碍类型
+#define rCoef r2				;// 系数，对应处理边界内、边界、可通过的区分
+#define rOffsetCoord r3	;// 偏移点的纹理坐标
+#define rOffset1 r4			;// 边界前一点对应的高度值（即偏移坐标点处的值）
+#define rOffset2 r5			;// 边界前一点对应的高度值（即偏移坐标点处的值）
+#define rResult r6			;// 当前和最终的高度值
+
+#define rFinalOffset1 r7			;// 经过类型比较后最终使用的偏移点高度值
+#define rFinalOffset2 r8
+
+#define rTwoTap r9			;// 2 * OneTap，用于寻址边界前两点
+#define Temp1 r10
+#define Temp2 r11
+
+
+
+ps.2.0
+dcl_2d s0
+dcl_2d s1
+dcl_2d s2
+dcl t0
+
+def cEpsilon, 0.0000001f, 0.0000001f, 0.0000001f, 0.0000001f
+
+;// 将内插后的纹理坐标修正1/2 tap
+add rTexCoord, t0, cHalfTap
+
+mov Temp1, TWO
+mul rTwoTap, cOneTap, Temp1
+
+;// 寻址偏移坐标图并根据把0～1映射回-1～1（即偏移坐标值）
+texld rOffsetCoord, rTexCoord, TexOffset
+sub rOffsetCoord, rOffsetCoord, HALF
+mul rOffsetCoord, rOffsetCoord, TWO
+
+
+;// 计算偏移点的坐标，并寻址，得到偏移点的X场值，如果是非边界处，将寻址到当前点
+mad Temp1.x, rOffsetCoord.x, rTwoTap.x, rTexCoord.x
+mad Temp1.y, rOffsetCoord.y, rTwoTap.y, rTexCoord.y
+texld rOffset1, Temp1, TexHeight
+RESTORE_VELOCITY(rOffset1, Temp1)
+
+mad Temp2.x, rOffsetCoord.z, rTwoTap.x, rTexCoord.x
+mad Temp2.y, rOffsetCoord.w, rTwoTap.y, rTexCoord.y
+texld rOffset2, Temp2, TexHeight
+RESTORE_VELOCITY(rOffset2, Temp2)
+
+;// 得到当前点的障碍类型，可通过为1，边界内为2，边界点为0
+texld rType, rTexCoord, TexType
+
+;// 根据类型来给定不同的Offset处的高度值，如果当前类型为可通过，则Offset高度等于当前点的高度
+;// 如果当前类型为边界，那么Offset取前两个点的值，如果当前类型为边界内，则清除，即置为0
+mov rFinalOffset1, rOffset1
+mov rFinalOffset2, rOffset2
+
+IF_EQUALZERO(rType.x, rFinalOffset1, rOffset1, cEpsilon, Temp1)
+IF_EQUALZERO(rType.x, rFinalOffset2, rOffset2, cEpsilon, Temp1)
+
+IF_EQ(rType.x, TWO, rFinalOffset1, ZERO, cEpsilon, Temp1, Temp2)
+IF_EQ(rType.x, TWO, rFinalOffset2, ZERO, cEpsilon, Temp1, Temp2)
+
+
+	;// 平均两个Offset的值(0.5*Off1 + 0.5*Off2)
+mul rFinalOffset1, rFinalOffset1, HALF
+mad rResult, rFinalOffset2, HALF, rFinalOffset1
+
+
+;// 写入
+COMBINE_VELOCITY(rResult, Temp1)
+mov oC0, rResult

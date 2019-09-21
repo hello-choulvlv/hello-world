@@ -1,0 +1,10 @@
+/**************Clear Texture PixelShader*******************/
+;// c5	Color
+
+ps.2.0
+dcl_2d s0
+dcl t0
+
+;÷±Ω”–¥»Î
+mov r0, c5
+mov oC0, r0

@@ -1,0 +1,23 @@
+/**************Set Point Height PixelShader*******************/
+;// t0		未用
+;// t1		写入的数据，xz分量分别存放写入高度的绝对值和符号
+
+#include "..\commonps.h"
+
+#define InputHeightData t1
+
+#define rResult r9
+#define Temp1 r10
+#define Temp2 r11
+
+
+
+ps.2.0
+dcl_2d s0
+dcl_2d s1
+dcl t0
+dcl t1
+
+;// 直接写入
+mov rResult, InputHeightData
+mov oC0, rResult

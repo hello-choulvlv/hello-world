@@ -1,0 +1,99 @@
+其中的代码可用来计算即时帧数，COPY到程序中，帧数存放在curfps变量中，过FPSUPDATETIME毫秒更新一次，该宏在myd3d.h中
+另外是设备丢失和显示模式切换的处理
+
+UINT ResetDevice();
+UINT DisplayMyScene()  //循环将每个物体都显示出来，此函数每被运行一次表示一帧
+{
+	LARGE_INTEGER start, end;
+	static DWORD LastUpdateFPSCount = GetTickCount(), CurUpdateFPSCount;
+	UCHAR UpdateFPS = 0;
+	static DWORD CurfpsNum = 0;
+	CurfpsNum++;
+	
+	//处理设备丢失
+	HRESULT hr = d3ddevice->TestCooperativeLevel();
+	UINT InfoID = 0;
+	
+	if(FAILED(hr))
+	{
+		if(hr == D3DERR_DEVICENOTRESET)
+			InfoID = ResetDevice();
+		return InfoID;
+	}
+	
+	//处理显示模式切换
+	if(ChangeDisplayModeSign)
+	{
+		ChangeDisplayModeSign = FALSE;
+		InfoID = ResetDevice();
+		return InfoID;
+	}
+	
+	//FPS更新控制
+	CurUpdateFPSCount = GetTickCount();
+	
+	if(CurUpdateFPSCount - LastUpdateFPSCount > FPSUPDATETIME || curfps == 0)
+	{
+		UpdateFPS = 1;
+		LastUpdateFPSCount = GetTickCount();
+	}
+	
+	//开始计时
+	QueryPerformanceCounter(&start);
+	
+	d3ddevice->Clear(0,NULL,D3DCLEAR_TARGET|D3DCLEAR_ZBUFFER,D3DCOLOR_XRGB(255,255,255),1.0f,0);
+	
+	//手动设置纹理坐标的都在这里进行，防止用VIEW矩阵变换纹理坐标的时候，即渲染到后台，又渲染到纹理，两次改变VIEW的话画面会混乱
+	ApplyEnvironment();
+	//开始渲染
+	for(UINT i=0;i<5;i++)
+	{
+		//如果遇到临时不需要渲染的物体，在此处设置
+		SetMyScene(i);
+		RenderMyScene(i);
+	}
+	//渲染环境映射和渲染到纹理在此
+	UINT mask1[MODULENUM]={1,1,0,0,1};
+	UINT mask2[MODULENUM]={0,1,1,0,1};
+    Cubemap.RenderToSurface(0,0,0,mask1);
+	D3DXVECTOR3 Eyeray;
+	CalcEyeray(&Eyeray);
+	if(test<4)rtt.RenderToTexture(-1+test,1.25,2.5, Eyeray.x,Eyeray.y,Eyeray.z, 1,D3DX_PI/2,mask2);
+	else rtt.RenderToTexture(3,1.25,2.5, Eyeray.x, Eyeray.y, Eyeray.z, 1,D3DX_PI/2,mask2);
+	//摄像机镜头变换
+	CameraChange.ViewTransform();
+	
+	QueryPerformanceCounter(&end);
+		
+	d3ddevice->Present(NULL,NULL,NULL,NULL);
+	
+	//计算当前帧数
+#ifdef USE_AVERAGEFPS
+	if(UpdateFPS) 
+	{
+		curfps = (float)CurfpsNum  * (float)1000 / (float)FPSUPDATETIME;
+		CurfpsNum = 0;
+	}
+#endif USE_AVERAGEFPS
+#ifndef USE_AVERAGEFPS
+	__int64 TimeDelay = end.QuadPart - start.QuadPart;
+	if(UpdateFPS) curfps = (float)PerformanceFrequency.QuadPart / (float)TimeDelay;
+#endif USE_AVERAGEFPS
+
+	return InfoID;
+}
+
+
+void ReleaseMyScene()
+{
+	//在这里释放所有POOL_DEFAULT的资源，包括字体和所有的模型
+	Tree.Release();
+	Image.Release();
+	Mytext.Release();
+	Tiger.Release();
+	Teapot.Release();
+	Sphere.Release();
+	Cubemap.Release();
+	Bumpmap.Release();
+	rtt.Release();
+}

@@ -1,0 +1,27 @@
+/**************Copy Texture PixelShader*******************/
+;// t0		顶点内插后的纹理坐标，同时也表示当前处理像素在图像中的坐标，因为纹理和RT的分辨率完全相同
+
+#include "commonps.h"
+
+#define rTexCoord r0				;当前处理像素在纹理中的坐标
+#define rSrcColor r1
+
+
+ps.2.0
+dcl_2d s0
+dcl t0
+dcl t1
+
+
+;// 将内插后的纹理坐标修正1/2 tap
+add rTexCoord, t0, cHalfTap
+
+;// 直接寻址原图
+texld rSrcColor, rTexCoord, s0
+
+;// Test for TexCoord Value
+;//mov rSrcColor, t0
+;//mov rSrcColor, t1
+
+;// 写入即可
+mov oC0, rSrcColor

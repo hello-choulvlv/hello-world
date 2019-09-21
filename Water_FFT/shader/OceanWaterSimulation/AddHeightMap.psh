@@ -1,0 +1,74 @@
+/**************FFT Ocean Water Add HeightMap PixelShader*******************/
+;Tex0	IFFT Texture
+;Tex1	AddOn HeightMap
+;c0		Half Tap偏移量，格式：0.5/Width, 0.5/Height
+;t0		顶点内插后的纹理坐标
+
+#define HalfTap c0
+
+#define ZERO c2.x
+#define HALF c2.y
+#define ONE c2.z
+#define TWO c2.w
+
+#define TexCoord r0				;当前处理像素在纹理中的坐标
+
+#define IFFT r1
+#define IFFT_Value_re r1.x
+#define IFFT_Value_im r1.y
+#define IFFT_Sign_re r1.z
+#define IFFT_Sign_im r1.w
+
+#define HeightMap r2
+#define HeightMap_Value_re r2.x
+#define HeightMap_Value_im r2.y
+#define HeightMap_Sign_re r2.z
+#define HeightMap_Sign_im r2.w
+
+#define Result r7
+#define Result_Value_re r7.x
+#define Result_Value_im r7.y
+#define Result_Sign_re r7.z
+#define Result_Sign_im r7.w
+
+#define Temp1 r9
+
+ps.2.0
+dcl_2d s0
+dcl_2d s1
+dcl t0
+
+def c2, 0, 0.5, 1, 2
+
+;将内插后的纹理坐标修正1/2 tap
+add TexCoord, t0, HalfTap
+
+;寻址IFFT图和HeightMap图
+texld IFFT, TexCoord, s0
+texld HeightMap, TexCoord, s1
+
+;根据符号（0或2）恢复IFFT和HeightMap数据
+sub IFFT_Sign_re, IFFT_Sign_re, ONE
+sub IFFT_Sign_im, IFFT_Sign_im, ONE
+mul IFFT_Value_re, IFFT_Sign_re, IFFT_Value_re
+mul IFFT_Value_im, IFFT_Sign_im, IFFT_Value_im
+
+sub HeightMap_Sign_re, HeightMap_Sign_re, ONE
+sub HeightMap_Sign_im, HeightMap_Sign_im, ONE
+mul HeightMap_Value_re, HeightMap_Sign_re, HeightMap_Value_re
+mul HeightMap_Value_im, HeightMap_Sign_im, HeightMap_Value_im
+
+
+;合并，两个结果相加
+add Temp1.x, IFFT_Value_re, HeightMap_Value_re
+add Temp1.y, IFFT_Value_im, HeightMap_Value_im
+
+;根据相加结果置最终结果的符号位（0或2）和绝对值
+cmp Result_Value_re, Temp1.x, Temp1.x, -Temp1.x
+cmp Result_Value_im, Temp1.y, Temp1.y, -Temp1.y
+cmp Result_Sign_re, Temp1.x, TWO, ZERO
+cmp Result_Sign_im, Temp1.y, TWO, ZERO
+
+
+;写入结果
+mov oC0, Result

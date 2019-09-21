@@ -1,0 +1,339 @@
+/**************WaveEquation Water Generate Normal PixelShader 2.x(a/b均可)*******************/
+;Tex0	HeightMap
+;c5		海面的长宽（世界坐标），格式：Width, Height
+;t0		顶点内插后的纹理坐标
+
+#include "..\commonps.h"
+
+#define cSquare c5
+#define ONEBYSIX c6
+
+#define HeightScale c10
+
+#define SampleCore1 c11			;采样点分布核
+#define SampleCore2 c12
+#define SampleCore3 c13
+#define SampleCore4 c14
+#define SampleCore5 c15
+#define SampleCore6 c16
+#define SampleCore7 c17
+#define SampleCore8 c18
+
+
+#define FaceVertexTexCoord1 r0					;仅第二阶段（Tangent）用，作为第二阶段的临时输入
+#define FaceVertexTexCoord2 r1
+#define FaceVertexTexCoord3 r2
+
+#define FaceVertexPosition1 r3					;GET_FACE_NORMAL/TANGENT的临时输入，两个阶段都用
+#define FaceVertexPosition2 r4
+#define FaceVertexPosition3 r5
+
+#define OneTap r6								;常量
+
+#define Normal r7								;最终的Normal
+#define Tangent r8							;最终的Tangent
+#define BiNormal r9							;最终的BiNormal
+
+
+#define BaseVertex	r10						;9个像素，0为当前像素
+#define Vertex1	r11							;后8个依次从左到右，从上到下的顺序
+#define Vertex2	r12
+#define Vertex3	r13
+#define Vertex4	r14
+#define Vertex5	r15
+#define Vertex6	r16
+#define Vertex7	r17
+#define Vertex8	r18
+
+#define BaseTexCoord r20				;当前处理像素在纹理中的坐标
+#define TexCoord1 r21					;后8个依次从左到右，从上到下的顺序
+#define TexCoord2 r22
+#define TexCoord3 r23
+#define TexCoord4 r24
+#define TexCoord5 r25
+#define TexCoord6 r26
+#define TexCoord7 r27
+#define TexCoord8 r28
+
+;临时使用
+#define VertexPosition r0				;GET_VERTEX_POSITION的输出，仅第一阶段临时使用，结果直接保存到Vertex#中，寄存器和仅第二阶段用的r0r1r2公用
+#define TexCoord r1						;不同采样点对应的纹理坐标，仅第一阶段临时使用，寄存器和仅第二阶段用的r0r1r2公用
+
+#define TempVertex r2					;仅第一阶段临时使用计算输出，寄存器和仅第二阶段用的r0r1r2公用
+#define TempVertex_Value_re r2.x
+#define TempVertex_Value_im r2.y
+#define TempVertex_Sign_re r2.z
+#define TempVertex_Sign_im r2.w
+
+#define TempLine1 r30
+#define TempLine2 r31
+
+#define Temp1 r19
+#define Temp2 r29
+
+
+
+
+;子函数
+;通过纹理坐标得到顶点坐标，输入TexCoord，输出VertexPosition
+;流程注释：先寻址高度图，得到cos（影响顶点Y）和sin部分（影响顶点X）
+;再根据符号得到真值
+;置VertexPosition数据，这里以TexCoord作为基准坐标，因为前面加过半个tap，这里先将其减去半个tap对其格子坐标
+;计算顶点的XYZ，海浪起点是原点，非常方便了计算
+;z = Z, Z = -TexCoord.y * 海面总长度，这个就是网格上的初始坐标，不受波动影响，注意Z值是向Z轴负方向延伸的，所以要加一个负号
+;x = X + sin * Scale, X为波动前的初始坐标，X = TexCoord * 海面总宽度
+;y = 0 + cos * Scale
+#define GET_VERTEX_POSITION 	texld TempVertex, TexCoord, s0\
+								\
+								sub TempVertex_Sign_re, TempVertex_Sign_re, ONE\
+								sub TempVertex_Sign_im, TempVertex_Sign_im, ONE\
+								mul TempVertex_Value_re, TempVertex_Sign_re, TempVertex_Value_re\
+								mul TempVertex_Value_im, TempVertex_Sign_im, TempVertex_Value_im\
+								\
+								sub TexCoord, TexCoord, cHalfTap\
+								mov VertexPosition.w, ONE\
+								\
+								mul VertexPosition.z, TexCoord.y, -cSquare.y\
+								\
+								mul Temp2, TempVertex_Value_im, HeightScale\
+								mad VertexPosition.x, TexCoord.x, cSquare.x, Temp2\
+								\
+								mul VertexPosition.y, TempVertex_Value_re, HeightScale\
+
+
+
+;通过面的三个顶点数据得到面法线并规格化后累加到总Normal上，输入FaceVertexPosition123，Add To Normal
+;FaceVertex是有顺序的，绘制顺序为1->2->3，顺时针
+#define GET_FACE_NORMAL	\
+							sub TempLine1, FaceVertexPosition2, FaceVertexPosition1\
+							sub TempLine2, FaceVertexPosition3, FaceVertexPosition1\
+							crs Temp1.xyz, TempLine1, TempLine2\
+							nrm Temp2, Temp1\
+							add Normal, Normal, Temp2\
+
+
+
+;计算Tangent，通过面的三个顶点、纹理坐标数据来计算，输入FaceVertexPosition/TexCoord123，Add To Tangent
+;FaceVertex/TexCoord是有顺序的，绘制顺序为1->2->3，顺时针
+#define GET_FACE_TANGENT	\
+							sub TempLine1.x, FaceVertexPosition2.x, FaceVertexPosition1.x\
+							sub TempLine1.y, FaceVertexTexCoord2.x, FaceVertexTexCoord1.x\
+							sub TempLine1.z, FaceVertexTexCoord2.y, FaceVertexTexCoord1.y\
+							\
+							sub TempLine2.x, FaceVertexPosition3.x, FaceVertexPosition1.x\
+							sub TempLine2.y, FaceVertexTexCoord3.x, FaceVertexTexCoord1.x\
+							sub TempLine2.z, FaceVertexTexCoord3.y, FaceVertexTexCoord1.y\
+							\
+							crs Temp1.xyz, TempLine1, TempLine2\
+							rcp Temp1.x, Temp1.x\
+							mul Temp2.x, -Temp1.y, Temp1.x\
+							\
+							\
+							sub TempLine1.x, FaceVertexPosition2.y, FaceVertexPosition1.y\
+							sub TempLine2.x, FaceVertexPosition3.y, FaceVertexPosition1.y\
+							\
+							crs Temp1.xyz, TempLine1, TempLine2\
+							rcp Temp1.x, Temp1.x\
+							mul Temp2.y, -Temp1.y, Temp1.x\
+							\
+							\
+							sub TempLine1.x, FaceVertexPosition2.z, FaceVertexPosition1.z\
+							sub TempLine2.x, FaceVertexPosition3.z, FaceVertexPosition1.z\
+							\
+							crs Temp1.xyz, TempLine1, TempLine2\
+							rcp Temp1.x, Temp1.x\
+							mul Temp2.z, -Temp1.y, Temp1.x\
+							\
+							\
+							nrm Temp1, Temp2\
+							add Tangent, Tangent, Temp1\
+
+
+ps.2.x
+dcl_2d s0
+dcl t0
+
+def ONEBYSIX, 0.1666666666666667f, 0.1666666666666667f, 0.1666666666666667f, 0.1666666666666667f
+def HeightScale, 1, 1, 1, 1
+
+;采样核
+def SampleCore1, -1, -1, 0, 0
+def SampleCore2, 0, -1, 0, 0
+def SampleCore3, 1, -1, 0, 0
+def SampleCore4, -1, 0, 0, 0
+def SampleCore5, 1, 0, 0, 0
+def SampleCore6, -1, 1, 0, 0
+def SampleCore7, 0, 1, 0, 0
+def SampleCore8, 1, 1, 0, 0
+
+
+
+
+;将内插后的纹理坐标修正1/2 tap
+add BaseTexCoord, t0, cHalfTap
+
+;寻址9个采样点，得到真实网格的顶点坐标（未做世界变换）和真实纹理坐标，其实其中的点1和8是用不到的
+
+mov OneTap, cOneTap
+
+mad TexCoord, SampleCore1, OneTap, BaseTexCoord
+GET_VERTEX_POSITION
+mov Vertex1, VertexPosition
+mov TexCoord1, TexCoord		;为什么要取这里的纹理坐标而不是输入子程序前的呢？前面的TexCoord为了寻址已经增加了1/2tap，在子程序中为了计算海浪顶点会减去，这里正好拣现成
+
+mad TexCoord, SampleCore2, OneTap, BaseTexCoord
+GET_VERTEX_POSITION
+mov Vertex2, VertexPosition
+mov TexCoord2, TexCoord
+
+mad TexCoord, SampleCore3, OneTap, BaseTexCoord
+GET_VERTEX_POSITION
+mov Vertex3, VertexPosition
+mov TexCoord3, TexCoord
+
+mad TexCoord, SampleCore4, OneTap, BaseTexCoord
+GET_VERTEX_POSITION
+mov Vertex4, VertexPosition
+mov TexCoord4, TexCoord
+
+mad TexCoord, SampleCore5, OneTap, BaseTexCoord
+GET_VERTEX_POSITION
+mov Vertex5, VertexPosition
+mov TexCoord5, TexCoord
+
+mad TexCoord, SampleCore6, OneTap, BaseTexCoord
+GET_VERTEX_POSITION
+mov Vertex6, VertexPosition
+mov TexCoord6, TexCoord
+
+mad TexCoord, SampleCore7, OneTap, BaseTexCoord
+GET_VERTEX_POSITION
+mov Vertex7, VertexPosition
+mov TexCoord7, TexCoord
+
+mad TexCoord, SampleCore8, OneTap, BaseTexCoord
+GET_VERTEX_POSITION
+mov Vertex8, VertexPosition
+mov TexCoord8, TexCoord
+
+
+mov TexCoord, BaseTexCoord
+GET_VERTEX_POSITION
+mov BaseVertex, VertexPosition
+mov BaseTexCoord, TexCoord			;为何要把BaseTexCoord放到最后，这里会改变用于寻址的BaseTexCoord，为了不影响其他的点，故放到最后
+
+
+
+;得到6个面的法线并累加
+mov Normal, ZERO
+
+	;左上面204
+mov FaceVertexPosition1, Vertex2
+mov FaceVertexPosition2, BaseVertex
+mov FaceVertexPosition3, Vertex4
+GET_FACE_NORMAL
+
+	;右下面057
+mov FaceVertexPosition1, BaseVertex
+mov FaceVertexPosition2, Vertex5
+mov FaceVertexPosition3, Vertex7
+GET_FACE_NORMAL
+
+	;右上的两个面230和350
+mov FaceVertexPosition1, Vertex2
+mov FaceVertexPosition2, Vertex3
+mov FaceVertexPosition3, BaseVertex
+GET_FACE_NORMAL
+
+mov FaceVertexPosition1, Vertex3
+mov FaceVertexPosition2, Vertex5
+mov FaceVertexPosition3, BaseVertex
+GET_FACE_NORMAL
+
+	;左下的两个面406和076
+mov FaceVertexPosition1, Vertex4
+mov FaceVertexPosition2, BaseVertex
+mov FaceVertexPosition3, Vertex6
+GET_FACE_NORMAL
+
+mov FaceVertexPosition1, BaseVertex
+mov FaceVertexPosition2, Vertex7
+mov FaceVertexPosition3, Vertex6
+GET_FACE_NORMAL
+
+
+;求顶点法线均值，并从-1～1映射为0～1（乘加0.5）
+mul Temp1, Normal, ONEBYSIX
+nrm Normal, Temp1
+mad Normal, Normal, HALF, HALF
+
+
+
+
+
+/*
+;得到6个面的切线并累加
+mov Tangent, ZERO
+
+	;左上面204
+mov FaceVertexPosition1, Vertex2
+mov FaceVertexPosition2, BaseVertex
+mov FaceVertexPosition3, Vertex4
+mov FaceVertexTexCoord1, TexCoord2
+mov FaceVertexTexCoord2, BaseTexCoord
+mov FaceVertexTexCoord3, TexCoord4
+GET_FACE_TANGENT
+
+	;右下面057
+mov FaceVertexPosition1, BaseVertex
+mov FaceVertexPosition2, Vertex5
+mov FaceVertexPosition3, Vertex7
+mov FaceVertexTexCoord1, BaseTexCoord
+mov FaceVertexTexCoord2, TexCoord5
+mov FaceVertexTexCoord3, TexCoord7
+GET_FACE_TANGENT
+
+	;右上的两个面230和350
+mov FaceVertexPosition1, Vertex2
+mov FaceVertexPosition2, Vertex3
+mov FaceVertexPosition3, BaseVertex
+mov FaceVertexTexCoord1, TexCoord2
+mov FaceVertexTexCoord2, TexCoord3
+mov FaceVertexTexCoord3, BaseTexCoord
+GET_FACE_TANGENT
+
+mov FaceVertexPosition1, Vertex3
+mov FaceVertexPosition2, Vertex5
+mov FaceVertexPosition3, BaseVertex
+mov FaceVertexTexCoord1, TexCoord3
+mov FaceVertexTexCoord2, TexCoord5
+mov FaceVertexTexCoord3, BaseTexCoord
+GET_FACE_TANGENT
+
+	;左下的两个面406和076
+mov FaceVertexPosition1, Vertex4
+mov FaceVertexPosition2, BaseVertex
+mov FaceVertexPosition3, Vertex6
+mov FaceVertexTexCoord1, TexCoord4
+mov FaceVertexTexCoord2, BaseTexCoord
+mov FaceVertexTexCoord3, TexCoord6
+GET_FACE_TANGENT
+
+mov FaceVertexPosition1, BaseVertex
+mov FaceVertexPosition2, Vertex7
+mov FaceVertexPosition3, Vertex6
+mov FaceVertexTexCoord1, BaseTexCoord
+mov FaceVertexTexCoord2, TexCoord7
+mov FaceVertexTexCoord3, TexCoord6
+GET_FACE_TANGENT
+
+
+;求顶点切线均值，并从-1～1映射为0～1（乘加0.5）
+mul Temp1, Tangent, ONEBYSIX
+nrm Tangent, Temp1
+mad Tangent, Tangent, HALF, HALF
+*/
+
+
+;输出
+mov oC0, Normal

@@ -1,0 +1,126 @@
+/**************Solve WaveEquation(Laplacian + VerletIntegration) PixelShader*******************/
+;// c5		K，阻尼Damp，用于运动学Verlet积分
+;// c6		波速，波动方程中加速度的系数C^2
+;// c7		dt^2，Verlet积分用
+
+;// Tex0	上一帧的高度图
+;// Tex1	当前的高度图
+;// Tex2	加速度衰减图
+;// t0		顶点内插后的纹理坐标，同时也表示当前处理像素在图像中的坐标，因为纹理和RT的分辨率完全相同
+;// t1		顶点内插后的纹理坐标（已乘过贴图分辨率转换为整数，for Bilinear Filtering）
+
+#include "..\commonps.h"
+
+#define cK c5
+#define cWaveSpeed c6
+#define cDeltaTime2 c7
+
+#define cDamp c9					;// 避免引起数值不稳定，给一个非常非常接近1的系数，否则水面高度会有略微的累加效应
+#define FOUR c10
+
+#define cSampCoreX0 c11
+#define cSampCoreX1 c12
+#define cSampCoreY0 c13
+#define cSampCoreY1 c14
+
+#define TexPrevHeight s0
+#define TexNowHeight s1
+#define TexDamping s2
+
+#define rTexCoord r0		;// 当前处理像素在纹理中的坐标
+#define rTempCoord r1
+
+#define rHeight_X0 r2				;// 通过偏移后的坐标，寻址到的高度值
+#define rHeight_X1 r3
+#define rHeight_Y0 r4
+#define rHeight_Y1 r5
+
+#define rAccelerate r6			;// 对Y做拉普拉斯，再乘c^2就是加速度a
+#define rPrevHeight r7			;// 上一帧当前点的高度值
+#define rNowHeight r8			;// 当前帧当前点的高度值
+
+#define rResult r9			;// Verlet积分计算出来的U
+#define Temp1 r10
+#define Temp2 r11
+
+
+
+ps.2.0
+dcl_2d s0
+dcl_2d s1
+dcl_2d s2
+dcl t0
+dcl t1
+
+def FOUR, 4, 4, 4, 4
+def cDamp, 0.9999f, 0.9999f, 0.9999f, 0.9999f
+
+;// 采样核，01分别为前、后排列
+def cSampCoreX0, 1, 0, 0, 0
+def cSampCoreX1, -1, 0, 0, 0
+def cSampCoreY0, 0, 1, 0, 0
+def cSampCoreY1, 0, -1, 0, 0
+
+
+;// 将内插后的纹理坐标修正1/2 tap
+add rTexCoord, t0, cHalfTap
+
+;// 采样Y
+texld rNowHeight, rTexCoord, TexNowHeight
+RESTORE_VELOCITY(rNowHeight, Temp2)
+
+texld rPrevHeight, rTexCoord, TexPrevHeight
+RESTORE_VELOCITY(rPrevHeight, Temp2)
+
+
+;// 采样4个P
+mov Temp1, cSampCoreX0
+mad rTempCoord, Temp1, cOneTap, rTexCoord
+texld rHeight_X0, rTempCoord, TexNowHeight
+RESTORE_VELOCITY(rHeight_X0, Temp2)
+
+mov Temp1, cSampCoreX1
+mad rTempCoord, Temp1, cOneTap, rTexCoord
+texld rHeight_X1, rTempCoord, TexNowHeight
+RESTORE_VELOCITY(rHeight_X1, Temp2)
+
+mov Temp1, cSampCoreY0
+mad rTempCoord, Temp1, cOneTap, rTexCoord
+texld rHeight_Y0, rTempCoord, TexNowHeight
+RESTORE_VELOCITY(rHeight_Y0, Temp2)
+
+mov Temp1, cSampCoreY1
+mad rTempCoord, Temp1, cOneTap, rTexCoord
+texld rHeight_Y1, rTempCoord, TexNowHeight
+RESTORE_VELOCITY(rHeight_Y1, Temp2)
+
+
+;// 计算加速度a，a = Damping * c^2 * Laplacian[Y(t)]
+	;// 先做拉普拉斯，这里假定dx和dz都是单位间距1
+add rAccelerate, rHeight_X0, rHeight_X1
+add rAccelerate, rAccelerate, rHeight_Y0
+add rAccelerate, rAccelerate, rHeight_Y1
+mad rAccelerate, rNowHeight, -FOUR, rAccelerate
+
+	;// 再乘Damping和c^2
+;//texld Temp1, rTexCoord, TexDamping
+;//mul rAccelerate, rAccelerate, Temp1.a
+mul rAccelerate, rAccelerate, cWaveSpeed
+
+
+;// Verlet积分，得到新Y：Y(t+dt) = Y(t) + k*[Y(t)-Y(t-dt)] + a*dt*dt
+mad rResult, rAccelerate, cDeltaTime2, rNowHeight
+
+sub Temp1, rNowHeight, rPrevHeight
+mad rResult, Temp1, cK, rResult
+
+;// 乘Damp，为了让高度值在没有波动的情况下稳定在0，防止出现累加效应
+;// 不过这样运算的基本条件是：模拟区域无波动情况下的基本高度等于0。如果基本高度不为0，就改用模拟时基本高度为0 + 平移后再渲染的方式来处理
+mul rResult, rResult, cDamp
+
+
+
+;// 将高度改写为绝对值+符号的形式，并写入
+mov rResult.yw, ZERO
+COMBINE_VELOCITY(rResult, Temp1)
+mov oC0, rResult

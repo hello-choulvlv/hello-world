@@ -1,0 +1,29 @@
+/**************FFT Get Result & Fourier Divid PixelShader*******************/
+;Tex0  Scramble Texture
+;Tex1  Source Texture
+;c0  Half Tap偏移量，格式：0.5/Width, 0.5/Height
+;c1  乘的傅里叶系数，格式：1/MN, 1/MN, 1, 1（不影响后面的符号值）
+;t0		顶点内插后的纹理坐标，同时也表示当前处理像素在图像中的坐标，因为纹理和RT的分辨率完全相同
+
+
+#define HalfTap c0
+#define FourierCoef c1
+#define TexCoord r0				;当前处理像素在纹理中的坐标
+#define SrcColor r1	;
+
+
+ps.2.0
+dcl_2d s0
+dcl t0
+
+
+;将内插后的纹理坐标修正1/2 tap
+add TexCoord, t0, HalfTap
+
+;直接寻址原图
+texld SrcColor, TexCoord, s0
+;Fourier Divid: 1/MN
+mul SrcColor, SrcColor, FourierCoef
+
+;写入即可
+mov oC0, SrcColor

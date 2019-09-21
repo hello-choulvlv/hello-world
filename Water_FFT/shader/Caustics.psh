@@ -1,0 +1,271 @@
+/******************Caustics Pixel Shader*************/
+;// c0		Diffuse1π‚∑ΩœÚ£®πÊ∏ÒªØ£©£¨¡„œÚ¡øŒ™Ω˚÷ππ‚’’£¨œ¬Õ¨
+;// c1		Specular1π‚∑ΩœÚ£®πÊ∏ÒªØ£©Ì
+;// c2		Diffuse2π‚∑ΩœÚ£®πÊ∏ÒªØ£©
+;// c3		ŒÌªØ—’…´
+;// c4		FogŒ¢µ˜
+;// c6		Œ∆¿Ì∆Ω∆Ãœµ ˝
+;// c7		∏ﬂπ‚Power∫ÕScale
+
+;// c8		ÀÆ√Ê∑®œﬂÕºµƒTextureDimension
+;// c9		ÀÆ√Ê∑®œﬂÕºµƒ1tap
+
+
+;// Tex0	µ◊Õº
+;// Tex1	ª∑æ≥∑¥…‰Õº
+;// Tex2	ÀÆ√ÊNormalMap
+
+;// ‰»Î
+#define InputTexCoord t0
+#define InputVertexNormal t1
+#define InputVertexPosition t2
+#define InputEyeVector t3
+#define InputCaustics t4
+#define InputProjPosition t5
+
+#define cLightDiffuseDir1 c0
+#define cLightSpecularDir1 c1
+#define cLightDiffuseDir2 c2
+#define cFogColor c3
+#define cFogAdjust c4									;// ¥”Projø’º‰…Ó∂»÷±Ω”Õ®π˝≥À∑Ωº∆À„≥ˆŒÌªØœµ ˝£¨Proj…Ó∂»≤¢∑«œﬂ–‘£¨’‚¿Ô“™–ﬁ’˝“ªœ¬£¨≥À∑Ω∫ÕÀı∑≈
+
+
+#define cTexCoordWrap c6
+
+#define ZERO c10.x
+#define HALF c10.y
+#define ONE c10.z
+#define TWO c10.w
+
+#define cSpecularPower c7.x
+#define cSpecularScale c7.y
+
+#define cNormalMapDimension c8
+#define cOneTap c9
+
+#define TexBaseMap s0
+#define TexEnvMap s1
+#define TexNormalMap s2
+
+#define bUnderWater b0		// …„œÒª˙ «∑ÒµΩ¡ÀÀÆœ¬£¨‘⁄ÀÆœ¬≤≈‰÷»æ≥ˆΩπ…¢∫ÕŒÌªØµƒ–ßπ˚
+
+
+;//π´”√ ˝æ›
+#define DiffuseCoef r0.x
+#define SpecularCoef r0.y
+#define BaseColor r1
+#define ReflectColor r2
+#define Color r3
+
+;//¡Ÿ ± ˝æ›
+#define Normal r4
+#define ReflectVector r5
+#define EyeVector r6
+#define rLightDiffuseDir r7
+#define rLightSpecularDir r8
+#define rTexCoord r9
+
+#define Temp1 r10
+#define Temp2 r11
+#define Temp3 r12
+#define Temp4 r13
+#define Temp5 r14
+
+;// Fog
+#define rFogCoef r15
+#define rDepth r16
+
+;// Caustics
+#define EdotN r19
+
+#define rRefractVector r20
+#define rRefractColor r21
+#define rCosIncoming r22
+#define rCosRefract r23
+
+#define rCausticsNormal r24
+#define rCausticsCoef r25
+
+#define rCausticsLightDir r26
+
+#define cRefractIndex c20.x
+#define cCausticsLightDir c21
+#define cCausticsAdjust c22
+#define cEpsilon c23
+#define cWaterSurfaceHeight c24
+
+
+
+;∏˘æ›cos(»Î…‰)°¢ ”œﬂœÚ¡ø°¢∑®œﬂ∫Õ’€…‰¬ º∆À„’€…‰œÚ¡ø£¨øº¬«µΩCubeMap—∞÷∑£¨’‚¿Ô‘›≤ªπÊ∏ÒªØ¡À
+;// «∞»˝Ãı÷∏¡Óœ»º∆À„cos(’€…‰)£¨∫Û»˝Ãı÷∏¡Óº∆À„’€…‰œÚ¡ø
+#define GET_REFRACTVECTOR(RefractVector, EdotN, EyeVector, Normal, RefractIndex, Temp1, Temp2, Temp3)\
+								mul Temp2, RefractIndex, RefractIndex\
+								sub Temp1, ONE, Temp2\
+								mad Temp3, EdotN, Temp2, Temp1\
+								\
+								mad Temp1, RefractIndex, EdotN, -Temp3\
+								mul Temp1, Temp1, -Normal\
+								mad RefractVector, RefractIndex, -EyeVector, Temp1
+
+
+
+#define GET_REFLECTVECTOR(ReflectVector, InputVector, Normal, TempUse)\
+								dp3 TempUse, InputVector, Normal\
+								mul TempUse, TempUse, Normal\
+								mad ReflectVector, TempUse, TWO, -InputVector\
+								
+								
+#define BILINEAR_TEXLD(Color, TexelCoordInteger, Texture, OneTap, Temp1, Temp2, Temp3, Temp4, Temp5)\
+						frc Color, TexelCoordInteger\
+						sub Temp1, TexelCoordInteger, Color\
+						\
+						sub Color.z, ONE, Color.x\
+						sub Color.w, ONE, Color.y\
+						\
+						add Temp4, Temp1, ONE\
+						\
+						mov Temp2.x, Temp4.x\
+						mov Temp2.y, Temp1.y\
+						mov Temp2.zw, ONE\
+						\
+						mov Temp3.x, Temp1.x\
+						mov Temp3.y, Temp4.y\
+						mov Temp3.zw, ONE\
+						\
+						mul Temp5.x, Color.z, Color.w\
+						mul Temp5.y, Color.x, Color.w\
+						mul Temp5.z, Color.z, Color.y\
+						mul Temp5.w, Color.x, Color.y\
+						\
+						add Temp1, Temp1, HALF\
+						mul Temp1, Temp1, OneTap\
+						texld Temp1, Temp1, Texture\
+						\
+						add Temp2, Temp2, HALF\
+						mul Temp2, Temp2, OneTap\
+						texld Temp2, Temp2, Texture\
+						\
+						add Temp3, Temp3, HALF\
+						mul Temp3, Temp3, OneTap\
+						texld Temp3, Temp3, Texture\
+						\
+						add Temp4, Temp4, HALF\
+						mul Temp4, Temp4, OneTap\
+						texld Temp4, Temp4, Texture\
+						\
+						mul Color, Temp1, Temp5.x\
+						mad Color, Temp2, Temp5.y, Color\
+						mad Color, Temp3, Temp5.z, Color\
+						mad Color, Temp4, Temp5.w, Color\
+
+
+
+#define IF_LE(BeJudged, JudgeValue, Value, Constant, Epsilon, TempUse)\
+					 	sub TempUse.x, JudgeValue, BeJudged\
+					 	cmp Value, TempUse.x, Constant, Value\
+												
+
+ps.2.x
+
+dcl InputTexCoord	;//TexCoord0
+dcl InputVertexNormal	;//VertexNormal
+dcl InputVertexPosition	;//VertexPosition
+dcl InputEyeVector	;//Eye Vector
+dcl InputCaustics		;// Caustics Space TexCoord to address Normalmap
+dcl InputProjPosition		;// Proj Space Position for Depth Fog
+
+
+dcl_2d TexBaseMap		;//BaseMap
+dcl_cube TexEnvMap		;//Env CubeMap
+dcl_2d TexNormalMap		;// WaterMesh NormalMap
+
+def c10, 0, 0.5, 1, 2
+def cEpsilon, 0.0000001, 0.0000001, 0.0000001, 0.0000001
+def cWaterSurfaceHeight, -0.5, 0, 0, 0
+
+;// 1/1.33£¨ÀÆ»Î…‰µΩø’∆¯µƒ’€…‰¬ 
+def c20, 0.75187969924812030075187969924812, 0, 0, 0
+;// Ωπ…¢π‚‘¥º∞«ø∂»Œ¢µ˜…Ë÷√
+def cCausticsLightDir, -1, 1, 0.5f, 0
+def cCausticsAdjust, 16.0f, 8.0f, 0, 0.7f			;// Àı∑≈œµ ˝°¢≥À∑Ω°¢µ˛º”œµ ˝°¢µ◊Õº—’…´Àı∑≈œµ ˝
+
+
+;//Normalize Input Vector
+nrm Normal, InputVertexNormal
+nrm EyeVector, InputEyeVector
+
+;//Base Map
+mul rTexCoord, InputTexCoord, cTexCoordWrap
+texld BaseColor, rTexCoord, TexBaseMap
+
+
+;//Reflect Vector
+GET_REFLECTVECTOR(Temp2, EyeVector, Normal, Temp1)
+nrm ReflectVector, Temp2
+
+
+;//Diffuse Coef
+dp3_sat Temp1, Normal, cLightDiffuseDir1
+dp3_sat Temp2, Normal, cLightDiffuseDir2
+add_sat DiffuseCoef, Temp1, Temp2
+	
+;// Diffuse Lighting
+mul Color, BaseColor, DiffuseCoef
+
+
+
+
+if bUnderWater
+	;// Caustics
+		;// Homogeous Divid
+	rcp Temp1.w, InputCaustics.w
+	mul rTexCoord, InputCaustics, Temp1.w
+		;// Y-Axis from ScreenSpace to TexelSpace
+	mul rTexCoord.y, rTexCoord.y, -ONE
+		;// Direct Mapping To NormalMap, Means Perpencular Light Trace£®Pass 1£©
+	;//texld rCausticsNormal, rTexCoord, TexNormalMap
+	mul rTexCoord, rTexCoord, cNormalMapDimension
+	BILINEAR_TEXLD(rCausticsNormal, rTexCoord, TexNormalMap, cOneTap, Temp1, Temp2, Temp3, Temp4, Temp5)
+		
+	
+	mov EyeVector.xzw, ZERO
+	mov EyeVector.y, -ONE
+	mul rCausticsNormal, rCausticsNormal, -ONE
+		
+		;// Inverse Light Trace£®Pass 2£©
+		;// Get Refract Vector
+	dp3_sat EdotN, EyeVector, rCausticsNormal
+		
+	GET_REFRACTVECTOR(rRefractVector, EdotN, EyeVector, rCausticsNormal, cRefractIndex, Temp1, Temp2, rCosRefract)
+		
+		;// Normalize
+	nrm rCausticsLightDir, cCausticsLightDir
+	mov Temp1, rRefractVector
+	nrm rRefractVector, Temp1
+		
+		;// Calculate LightSource Tribute£¨Ωπ…¢ªÏ∫œ∫Ûµƒ—’…´‘⁄Temp1÷–
+	dp3_sat Temp1, rRefractVector, rCausticsLightDir
+	pow_sat rCausticsCoef, Temp1.x, cCausticsAdjust.y
+		;// Blend Caustics to Color£¨’‚¿Ô∂‘µ◊Õº—’…´ºı∞µ“ªµ„£¨–ßπ˚∏¸∫√
+	mul Temp1, Color, cCausticsAdjust.w
+	mad Temp1, rCausticsCoef, cCausticsAdjust.x, Temp1
+	;// ÷ª”–ÀÆœ¬µƒœÒÀÿ≤≈”–Ωπ…¢
+	IF_LE(InputVertexPosition.y, ZERO, Color, Temp1, cEpsilon, Temp2)
+		
+		
+		
+			;// Fogging
+		;// Homogeous Divid Get 
+	rcp Temp1.w, InputProjPosition.w
+	mul rDepth, InputProjPosition.z, Temp1.w
+		;// FogCoef£®Linear Fog£©
+	pow_sat rFogCoef, rDepth.x, cFogAdjust.x
+	mul_sat rFogCoef, rFogCoef, cFogAdjust.y
+		;// Fog Color in Temp1
+	lrp Temp1, rFogCoef, cFogColor, Color
+		;// ÷ª”–ÀÆœ¬µƒœÒÀÿ≤≈”–ŒÌªØ
+	IF_LE(InputVertexPosition.y, ZERO, Color, Temp1, cEpsilon, Temp2)
+endif
+
+;//Output
+mov oC0, Color

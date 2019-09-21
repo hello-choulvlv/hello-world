@@ -1,0 +1,208 @@
+//Microsoft Developer Studio generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// Chinese (中国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
+#ifdef _WIN32
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
+#pragma code_page(936)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_CHANGEMODEDLG DIALOG DISCARDABLE  0, 0, 187, 114
+STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_VISIBLE | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Change Display Mode"
+FONT 10, "System"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,21,93,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,114,93,50,14
+    COMBOBOX        IDC_MODELIST,38,35,109,95,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    LTEXT           "请选择全屏显示模式：",IDC_STATIC,53,14,84,13
+    CONTROL         "窗口模式",IDC_WINDOWMODE,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,70,59,96,13
+    CTEXT           "不建议选16位色模式！可能会出现问题!",IDC_STATIC,18,78,
+                    154,9
+END
+
+IDD_HELPDLG DIALOG DISCARDABLE  0, 0, 201, 253
+STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_VISIBLE | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Help"
+FONT 10, "System"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,63,232,50,14,BS_CENTER | BS_BOTTOM
+    CONTROL         "逻辑操作控制：（注意有两个版本用于不同的程序）",
+                    IDC_STATIC,"Static",SS_LEFTNOWORDWRAP | WS_GROUP,7,7,192,
+                    10
+    LTEXT           "前后移动：上下键",IDC_STATIC,35,21,127,10
+    LTEXT           "左右转动：左右键",IDC_STATIC,35,35,127,10
+    LTEXT           "左右平移：ZX（旧版） AD（新版）",IDC_STATIC,35,49,127,
+                    10
+    LTEXT           "上升下降：AS（旧版） 左右CTRL（新版）",IDC_STATIC,34,61,
+                    151,10
+    LTEXT           "上下转动：HOME、END",IDC_STATIC,34,73,127,10
+    LTEXT           "打开/关闭特效：ENTER键",IDC_STATIC,34,112,127,10
+    LTEXT           "F2键：改变显示模式",IDC_STATIC,34,173,127,10
+    LTEXT           "F10键：窗口/全屏切换",IDC_STATIC,34,199,127,10
+    LTEXT           "F11键：截图",IDC_STATIC,34,212,127,10
+    LTEXT           "F1键：显示帮助",IDC_STATIC,34,160,127,10
+    LTEXT           "F3键：显示版权",IDC_STATIC,34,186,127,10
+    LTEXT           "切换特效：＋－键",IDC_STATIC,34,125,127,10
+    CONTROL         "系统功能控制：",IDC_STATIC,"Static",SS_LEFTNOWORDWRAP | 
+                    WS_GROUP,7,145,179,10
+    LTEXT           "重置视角：R键（新版）",IDC_STATIC,34,99,127,10
+    LTEXT           "左右摇动：左右Shift（新版）",IDC_STATIC,35,86,127,10
+END
+
+IDD_ABOUTDLG DIALOG DISCARDABLE  0, 0, 187, 151
+STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_VISIBLE | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "About"
+FONT 10, "System"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,67,130,50,14
+    LTEXT           "Copyright @ 1999-2005. All Rights Reserved.",IDC_STATIC,
+                    19,13,151,12
+    LTEXT           "To My Favourite: 3dfx Voodoo Series",IDC_STATIC,31,63,
+                    141,11
+    LTEXT           "To My Favourite: Need For Speed II-SE / III",IDC_STATIC,
+                    22,26,141,11
+    LTEXT           "To My Favourite: Diablo II",IDC_STATIC,46,37,141,11
+    LTEXT           "To My Favourite: 3DMark Series",IDC_STATIC,38,48,141,11
+    CONTROL         105,IDC_STATIC,"Static",SS_BITMAP,71,76,41,45
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_CHANGEMODEDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 180
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 107
+    END
+
+    IDD_HELPDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 199
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 246
+    END
+
+    IDD_ABOUTDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 180
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 144
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_3DFX                ICON    DISCARDABLE     "3dfx.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_3DFX                BITMAP  DISCARDABLE     "3dfx.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    MYERR_NOTEXTUREFILE     "读取纹理错误！"
+    MYERR_NOMESHFILE        "读取模型错误！"
+    MYERR_CREATEVERTEXBUFFER "初始化顶点缓冲错！"
+    MYERR_CREATECUBEMAP     "初始化立方纹理错！"
+    MYERR_CREATERENDERTOTEXTURE "初始化渲染到纹理错！"
+    MYERR_CREATEBUMPMAP     "初始化凹凸贴图错！"
+    MYERR_CREATENORMALMAP   "初始化法向量贴图错！"
+    MYERR_CREATEVERTEXSHADER "初始化顶点着色器出错！"
+    MYERR_CREATEPIXELSHADER "初始化像素着色器出错！"
+    MYERR_CREATEATTENUATIONMAP "初始化衰减纹理错！"
+    MYERR_CREATEANISOTROPYMAP "初始化各向异性光照纹理错！"
+    MYERR_CREATEANISODIRMAP "初始化各向异性光照方向纹理错！"
+    MYERR_CREATESPECULARMAP "初始化高光强度贴图错！"
+END
+
+#endif    // Chinese (中国) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

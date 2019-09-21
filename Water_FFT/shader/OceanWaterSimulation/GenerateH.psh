@@ -1,0 +1,163 @@
+/**************FFT Ocean Water Generate h(K) PixelShader*******************/
+/*****************Only Deep Ocean Condition Supported*******************/
+
+;Tex0	h0(K) Texture
+;Tex1	h0(-K) Texture
+;c0		Half Tap偏移量，格式：0.5/Width, 0.5/Height
+;c1		当前时间t
+;c30/31	sincos Constant
+;t0		顶点内插后的纹理坐标，同时也表示当前处理像素在图像中的坐标，即K
+
+#define HalfTap c0
+#define Time c1
+#define GravityMul2Pi c3		; 2Pi * g
+#define PI c4.x
+#define _2PI c4.y
+#define ONEBY2PI c4.z
+
+
+#define SINCOSCONSTANT1 c30
+#define SINCOSCONSTANT2 c31
+
+#define ZERO c2.x
+#define HALF c2.y
+#define ONE c2.z
+#define TWO c2.w
+
+#define TexCoord r0				;当前处理像素在纹理中的坐标
+
+#define h0 r1
+#define h0_Value_re r1.x
+#define h0_Value_im r1.y
+#define h0_Sign_re r1.z
+#define h0_Sign_im r1.w
+
+#define h0_Oppo r2
+#define h0_Oppo_Value_re r2.x
+#define h0_Oppo_Value_im r2.y
+#define h0_Oppo_Sign_re r2.z
+#define h0_Oppo_Sign_im r2.w
+
+#define e_Value r3.xy
+#define e_Value_re r3.x
+#define e_Value_im r3.y
+
+#define e_Oppo_Value r4.xy
+#define e_Oppo_Value_re r4.x
+#define e_Oppo_Value_im r4.y
+
+#define eh0 r5
+#define eh0_Value_re r5.x
+#define eh0_Value_im r5.y
+
+#define eh0_Oppo r6
+#define eh0_Oppo_Value_re r6.x
+#define eh0_Oppo_Value_im r6.y
+
+#define Result r7
+#define Result_Value_re r7.x
+#define Result_Value_im r7.y
+#define Result_Sign_re r7.z
+#define Result_Sign_im r7.w
+
+#define wt r8.x
+#define k r8.y
+
+#define Temp1 r9
+#define Temp2 r10
+#define TempSincos r11
+
+ps.2.0
+dcl_2d s0
+dcl_2d s1
+dcl t0
+
+def c2, 0, 0.5, 1, 2
+def c3, 61.575216f, 61.575216f, 61.575216f, 61.575216f
+def c4, 3.1415926f, 6.2831853f, 0.159154943f, 0
+//Test 2Pi = 3.1416 * 2 = 6.28
+def c20, 3.92, 0, 0, 0
+
+;将内插后的纹理坐标修正1/2 tap
+add TexCoord, t0, HalfTap
+
+;直接寻址h0图
+texld h0, TexCoord, s0
+texld h0_Oppo, TexCoord, s1
+
+
+;根据符号（0或2）恢复h0数据
+sub h0_Sign_re, h0_Sign_re, ONE
+sub h0_Sign_im, h0_Sign_im, ONE
+mul h0_Value_re, h0_Sign_re, h0_Value_re
+mul h0_Value_im, h0_Sign_im, h0_Value_im
+
+sub h0_Oppo_Sign_re, h0_Oppo_Sign_re, ONE
+sub h0_Oppo_Sign_im, h0_Oppo_Sign_im, ONE
+mul h0_Oppo_Value_re, h0_Oppo_Sign_re, h0_Oppo_Value_re
+mul h0_Oppo_Value_im, h0_Oppo_Sign_im, h0_Oppo_Value_im
+
+
+;先给t0加一个tap（即TexCoord + 0.5tap），避免K的模为0
+add TexCoord, TexCoord, HalfTap
+
+;按深海情况来计算wt，这个是内部计算，不管符号, wt=sqrt(g*k/ws)
+;讨厌的是没有直接计算平方根的，只有先rsq再求倒数，我的性能啊……
+dp2add Temp1.x, TexCoord, TexCoord, ZERO
+rsq Temp2.x, Temp1.x
+rcp k, Temp2.x					;求当前纹理坐标（即K）的模k（即ws）
+
+mul Temp1.y, GravityMul2Pi, k
+rsq Temp2.y, Temp1.y
+rcp wt, Temp2.y					;wt = sqrt(g * 2Pi*|K|)
+
+;计算e(wt*t)和e(-wt*t)，这个也不管符号
+mul Temp1.z, wt, Time
+mul Temp2.z, -wt, Time
+	;注意映射这两个弧度值到-Pi～Pi，否则在烂A卡上出错！
+mul Temp1.z, Temp1.z, ONEBY2PI
+frc TempSincos.x, Temp1.z
+mad TempSincos.x, TempSincos.x, _2PI, -PI
+
+mul Temp2.z, Temp2.z, ONEBY2PI
+frc TempSincos.y, Temp2.z
+mad TempSincos.y, TempSincos.y, _2PI, -PI
+
+sincos e_Value, TempSincos.x, SINCOSCONSTANT1, SINCOSCONSTANT2
+sincos e_Oppo_Value, TempSincos.y, SINCOSCONSTANT1, SINCOSCONSTANT2
+
+	;强制减了PI，这里修正（取负）
+mul e_Value_re, e_Value_re, -ONE
+mul e_Oppo_Value_re, e_Oppo_Value_re, -ONE
+mul e_Value_im, e_Value_im, -ONE
+mul e_Oppo_Value_im, e_Oppo_Value_im, -ONE
+
+
+;计算两个e*h0，即两个复数乘
+mul Temp1.w, e_Value_im, h0_Value_im
+mad eh0_Value_re, e_Value_re, h0_Value_re, -Temp1.w	;eh0.re = e.re*h0.re - e.im*h0.im
+mul Temp2.w, e_Value_im, h0_Value_re
+mad eh0_Value_im, e_Value_re, h0_Value_im, Temp2.w	;eh0.im = e.re*h0.im + e.im*h0.re
+
+mul Temp1.w, e_Oppo_Value_im, h0_Oppo_Value_im
+mad eh0_Oppo_Value_re, e_Oppo_Value_re, h0_Oppo_Value_re, -Temp1.w
+mul Temp2.w, e_Oppo_Value_im, h0_Oppo_Value_re
+mad eh0_Oppo_Value_im, e_Oppo_Value_re, h0_Oppo_Value_im, Temp2.w	
+
+;合并，两个结果相加
+add Temp1.x, eh0_Value_re, eh0_Oppo_Value_re
+add Temp1.y, eh0_Value_im, eh0_Oppo_Value_im
+
+;Test，只选e*h0，不取负数
+;mov Temp1.x, eh0_Value_re
+;mov Temp1.y, eh0_Value_im
+
+;根据相加结果置最终结果的符号位（0或2）和绝对值
+cmp Result_Value_re, Temp1.x, Temp1.x, -Temp1.x
+cmp Result_Value_im, Temp1.y, Temp1.y, -Temp1.y
+cmp Result_Sign_re, Temp1.x, TWO, ZERO
+cmp Result_Sign_im, Temp1.y, TWO, ZERO
+
+
+;写入结果
+mov oC0, Result

@@ -1,0 +1,37 @@
+/**************Set Area Height PixelShader*******************/
+;// c5		高度缩放系数
+;// Tex0	刷子纹理，xz通道保存高度的绝对值和符号
+
+;// t0		顶点内插后的纹理坐标，同时也表示当前处理像素在图像中的坐标，因为纹理和RT的分辨率完全相同
+;// t1		顶点内插后的纹理坐标（已乘过贴图分辨率转换为整数，for Bilinear Filtering）
+
+
+#include "..\commonps.h"
+
+#define cHeightScale c5
+
+#define TexBrush s0
+#define InputTexCoord t0
+
+#define rBrushHeight r0
+#define rResult r9
+
+#define Temp1 r10
+#define Temp2 r11
+
+
+
+ps.2.0
+dcl_2d s0
+dcl t0
+dcl t1
+
+;// 因为并非1对1的关系，这里直接用纹理坐标寻址即可
+texld rBrushHeight, InputTexCoord, TexBrush
+
+;// 乘系数
+mul rResult, rBrushHeight, cHeightScale
+
+;// 直接，不用恢复符号
+mov rResult.yw, ZERO
+mov oC0, rResult

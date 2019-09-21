@@ -1,0 +1,143 @@
+/**************IFFT Butterfly X PixelShader 2.0*******************/
+
+;Tex0  Butterfly Texture
+;Tex1  Butterfly_Sign Texture
+;Tex2  Source Texture
+
+;c0  Half Tap偏移量，格式：0.5/Width, 0.5/Height
+;t0		顶点内插后的纹理坐标，同时也表示当前处理像素在图像中的坐标，因为纹理和RT的分辨率完全相同
+
+
+#define HalfTap c0
+#define ZERO c1.x
+#define HALF c1.y
+#define ONE c1.z
+#define TWO c1.w
+
+
+#define TexCoord r0				;当前处理像素在纹理中的坐标
+#define ButterflyTexCoord r10	;寻址Butterfly图的纹理坐标
+
+
+#define ButterflyValue r1
+#define A_PartCoord r1.x	;不和W乘的值的像素坐标，它的值大于1表示减
+#define B_PartCoord r1.y	;必定和W乘的
+#define W_Absvalue_re r1.z
+#define W_Absvalue_im r1.w
+
+#define ButterflySignValue r2
+#define AddOrMinus r2.x
+#define W_Sign r2.zw
+#define W_Sign_re r2.z
+#define W_Sign_im r2.w
+
+#define A_TexCoord r3		;A和B完整的纹理坐标，用于寻址到A和B的值
+#define B_TexCoord r4
+
+#define A r5						;读取纹理后暂存在这
+#define A_Value r5.xy		;A恢复后的真值
+#define A_Value_re r5.x
+#define A_Value_im r5.y
+#define A_Sign r5.zw
+#define A_Sign_re r5.z
+#define A_Sign_im r5.w
+
+#define B r6						;读取纹理后暂存在这
+#define B_Value r6.xy		;B恢复后的真值
+#define B_Value_re r6.x
+#define B_Value_im r6.y
+#define B_Sign r6.zw
+#define B_Sign_re r6.z
+#define B_Sign_im r6.w
+
+#define W_Value r7.xy		;W恢复后的真值
+#define W_Value_re r7.x
+#define W_Value_im r7.y
+
+
+#define BW_Value r8.xy	;B*W，复数乘法结果，这里是中间结果，所以带符号，不用特殊处理
+#define BW_Value_re r8.x
+#define BW_Value_im r8.y
+
+#define Result r9				;A+B*W，注意按实虚部绝对值和符号的结构存储
+#define Result_Value r9.xy
+#define Result_Value_re r9.x
+#define Result_Value_im r9.y
+#define Result_Sign r9.zw
+#define Result_Sign_re r9.z
+#define Result_Sign_im r9.w
+
+#define Temp r11
+
+ps.2.0
+dcl_2d s0
+dcl_2d s1
+dcl_2d s2
+dcl t0
+
+def c1, 0, 0.5, 1, 2
+
+;将内插后的纹理坐标修正1/2 tap
+add TexCoord, t0, HalfTap
+;得到寻址Butterfly图的坐标
+mov ButterflyTexCoord, TexCoord
+mov ButterflyTexCoord.y, HalfTap.y
+
+
+;先读取Butterfly图，得到W的绝对值和AB的部分坐标
+texld ButterflyValue, ButterflyTexCoord, s0
+;再读取ButterflySign图，得到W的符号和结合方式（加减），由于Sign图存放的全是符号（0表示负号减，2表示正号加），所以在这统一减ONE即可
+texld ButterflySignValue, ButterflyTexCoord, s1
+sub ButterflySignValue, ButterflySignValue, ONE		;负数符号为0，正数符号为2，直接减1即可变成-1和1，包含W_Sign和AddOrMinus
+
+;恢复AB坐标，即保留当前x值的情况下，Y轴对齐（复制当前像素的y坐标即可）以便寻址原图
+mov A_TexCoord.x, A_PartCoord
+mov A_TexCoord.y, TexCoord.y
+mov B_TexCoord.x, B_PartCoord
+mov B_TexCoord.y, TexCoord.y
+
+
+;恢复W的真正值（即考虑符号标记），在上面减了ONE，W_Sign已经得到了
+mul W_Value_re, W_Sign_re, W_Absvalue_re					;符号已经得到了，乘绝对值即可
+mul W_Value_im, W_Sign_im, W_Absvalue_im					;符号已经得到了，乘绝对值即可
+
+
+;寻址A和B的值，并通过符号恢复数据，注意这里一定要分通道进行，如果两个通道swizzling进行运算，又同时输出到自己的话，就会出错
+texld A, A_TexCoord, s2
+sub A_Sign_re, A_Sign_re, ONE
+sub A_Sign_im, A_Sign_im, ONE
+mul A_Value_re, A_Value_re, A_Sign_re
+mul A_Value_im, A_Value_im, A_Sign_im
+
+texld B, B_TexCoord, s2
+sub B_Sign_re, B_Sign_re, ONE
+sub B_Sign_im, B_Sign_im, ONE
+mul B_Value_re, B_Value_re, B_Sign_re
+mul B_Value_im, B_Value_im, B_Sign_im
+
+
+;计算BW = B*W，复数乘法
+mul Temp.x, B_Value_im, W_Value_im
+mad BW_Value_re, B_Value_re, W_Value_re, -Temp.x	;BW.re = B.re*W.re - B.im*W.im
+mul Temp.y, B_Value_im, W_Value_re
+mad BW_Value_im, B_Value_re, W_Value_im, Temp.y	;BW.im = B.re*W.im + B.im*W.re
+
+
+;根据加减标记，来修正BW，将BW取负（或不变），前面已经处理过了，结合方式为减的话这里已经变成-1
+mul BW_Value_re, BW_Value_re, AddOrMinus
+mul BW_Value_im, BW_Value_im, AddOrMinus
+
+;计算Result = A+Modify(BW)
+add Temp.x, A_Value_re, BW_Value_re
+add Temp.y, A_Value_im, BW_Value_im
+
+
+;根据结果实虚部的正负，填入绝对值和正确的符号值，同上所说，还是每通道进行，否则swizzling运算到自己会出错
+cmp Result_Value_re, Temp.x, Temp.x, -Temp.x
+cmp Result_Value_im, Temp.y, Temp.y, -Temp.y
+cmp Result_Sign_re, Temp.x, TWO, ZERO
+cmp Result_Sign_im, Temp.y, TWO, ZERO
+
+
+;写入即可
+mov oC0, Result

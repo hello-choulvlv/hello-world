@@ -1,0 +1,130 @@
+/******************Normal Object Pixel Shader*************/
+;// c0		Diffuse1光方向（规格化），零向量为禁止光照，下同
+;// c1		Specular1光方向（规格化）
+;// c2		Diffuse2光方向（规格化）
+;// c6		纹理平铺系数
+;// c7		高光Power和Scale
+
+;// Tex0	底图
+;// Tex1	环境反射图
+
+;//输入
+#define InputTexCoord t0
+#define InputVertexNormal t1
+#define InputVertexPosition t2
+#define InputEyeVector t3
+
+#define cLightDiffuseDir1 c0
+#define cLightSpecularDir1 c1
+#define cLightDiffuseDir2 c2
+
+#define cLightDiffusePos c4
+#define cLightSpecularPos c5
+
+#define cTexCoordWrap c6
+
+#define ZERO c10.x
+#define HALF c10.y
+#define ONE c10.z
+#define TWO c10.w
+
+#define cSpecularPower c7.x
+#define cSpecularScale c7.y
+
+#define TexBaseMap s0
+#define TexEnvMap s1
+
+
+
+
+;//公用数据
+#define DiffuseCoef r0.x
+#define SpecularCoef r0.y
+#define BaseColor r1
+#define ReflectColor r2
+#define Color r3
+
+;//临时数据
+#define Normal r4
+#define ReflectVector r5
+#define EyeVector r6
+#define rLightDiffuseDir r7
+#define rLightSpecularDir r8
+#define rTexCoord r9
+
+#define Temp1 r10
+#define Temp2 r11
+
+
+
+
+
+
+
+
+
+
+#define GET_REFLECTVECTOR(ReflectVector, InputVector, Normal, TempUse)\
+								dp3 TempUse, InputVector, Normal\
+								mul TempUse, TempUse, Normal\
+								mad ReflectVector, TempUse, TWO, -InputVector\
+
+
+ps.2.0
+
+dcl InputTexCoord	;//TexCoord0
+dcl InputVertexNormal	;//VertexNormal
+dcl InputVertexPosition	;//VertexPosition
+dcl InputEyeVector	;//Eye Vector
+
+dcl_2d TexBaseMap		;//BaseMap
+dcl_cube TexEnvMap		;//Env CubeMap
+
+
+def c10, 0, 0.5, 1, 2
+def c11, 0.7f, 5.0f, 0.98f, 16.0					;//散的常量：FresnelCoefScale、FresnelPower、SpecularCoef、SpecularPower
+
+;//Normalize Input Vector
+nrm Normal, InputVertexNormal
+nrm EyeVector, InputEyeVector
+
+;//Base Map
+mul rTexCoord, InputTexCoord, cTexCoordWrap
+texld BaseColor, rTexCoord, TexBaseMap
+
+
+
+;//Reflection CubeMap
+GET_REFLECTVECTOR(Temp2, EyeVector, Normal, Temp1)
+;//texld ReflectColor, Temp2, TexEnvMap
+mov ReflectColor, BaseColor
+nrm ReflectVector, Temp2
+
+/*
+;//Point Light Dir
+sub Temp1, cLightDiffusePos, InputVertexPosition
+nrm rLightDiffuseDir, Temp1
+sub Temp2, cLightSpecularPos, InputVertexPosition
+nrm rLightSpecularDir, Temp2
+*/
+
+;//Diffuse Coef
+dp3_sat Temp1, Normal, cLightDiffuseDir1
+dp3_sat Temp2, Normal, cLightDiffuseDir2
+add_sat DiffuseCoef, Temp1, Temp2
+	;//为了抑制住Diffuse防止它太小，故而开方，开方次数越多，它总体的值越偏向0.5～1
+;//rsq Temp1.x, DiffuseCoef
+;//rcp DiffuseCoef, Temp1.x
+
+
+;//Specular
+dp3_sat SpecularCoef, ReflectVector, cLightSpecularDir1
+pow Temp2, SpecularCoef, cSpecularPower
+mul SpecularCoef, Temp2.x, cSpecularScale
+
+;// Combine Color
+lrp Color, HALF, ReflectColor, BaseColor
+mad Color, Color, DiffuseCoef, SpecularCoef
+
+;//Output
+mov oC0, Color

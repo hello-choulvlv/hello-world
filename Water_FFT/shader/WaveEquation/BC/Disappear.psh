@@ -1,0 +1,87 @@
+/**************WaveEquation BCs: Disappear at Boundaries PixelShader*******************/
+;// c5~6	OffsetX坐标：X方向的偏移核
+;// c7~8	OffsetY坐标：Y方向的偏移核
+;// Tex0	当前的高度图
+;// t0		顶点内插后的纹理坐标，同时也表示当前处理像素在图像中的坐标，因为纹理和RT的分辨率完全相同
+;// t1		顶点内插后的纹理坐标（已乘过贴图分辨率转换为整数，for Bilinear Filtering）
+
+#include "..\commonps.h"
+
+#define cOffsetX0 c5
+#define cOffsetX1 c6
+#define cOffsetY0 c7
+#define cOffsetY1 c8
+
+#define TexHeight s1
+
+#define rTexCoord r0		;// 当前处理像素在纹理中的坐标
+#define rTempCoord r1
+
+#define rHeight_X0 r2				;// 通过偏移后的坐标，寻址到的高度值
+#define rHeight_X1 r3
+#define rHeight_Y0 r4
+#define rHeight_Y1 r5
+
+#define rOneTap r8
+
+#define rHeight_Boundary r9			;// 当前边界点的高度值
+#define Temp1 r10
+#define Temp2 r11
+
+
+
+ps.2.0
+dcl_2d s0
+dcl_2d s1
+dcl t0
+dcl t1
+
+
+;// 将内插后的纹理坐标修正1/2 tap
+add rTexCoord, t0, cHalfTap
+mov rOneTap, cOneTap
+
+;// 采样X方向的两个（边界前一点和边界前两点）
+mad rTempCoord, cOffsetX0, rOneTap, rTexCoord
+texld rHeight_X0, rTempCoord, TexHeight
+RESTORE_VELOCITY(rHeight_X0, Temp2)
+
+mad rTempCoord, cOffsetX1, rOneTap, rTexCoord
+texld rHeight_X1, rTempCoord, TexHeight
+RESTORE_VELOCITY(rHeight_X1, Temp2)
+
+;// 采样Y方向的两个（边界前一点和边界前两点）
+mad rTempCoord, cOffsetY0, rOneTap, rTexCoord
+texld rHeight_Y0, rTempCoord, TexHeight
+RESTORE_VELOCITY(rHeight_Y0, Temp2)
+
+mad rTempCoord, cOffsetY1, rOneTap, rTexCoord
+texld rHeight_Y1, rTempCoord, TexHeight
+RESTORE_VELOCITY(rHeight_Y1, Temp2)
+
+
+
+;// 计算边界处的值：x0(t+dt) = b + x1 - 2x0 = 0, b = 2x0 - x1
+;//									y0(t+dt) = b + y1 - 2y0 = 0, b = 2y0 - y1
+;//									b = 0.5 * (2x0 - x1) + 0.5 * (2y0 - y1)
+mad rHeight_Boundary, TWO, rHeight_X0, -rHeight_X1
+mul rHeight_Boundary, rHeight_Boundary, HALF
+
+mad Temp1, TWO, rHeight_Y0, -rHeight_Y1
+mad rHeight_Boundary, Temp1, HALF, rHeight_Boundary
+
+
+;// Test for b = 2x0 - x1
+mad rHeight_Boundary, TWO, rHeight_X0, -rHeight_X1
+mul rHeight_Boundary, rHeight_Boundary, HALF
+
+;// Test for b = x0
+mov rHeight_Boundary, rHeight_X0
+
+;//mov rHeight_Boundary, ZERO
+
+
+;// 将高度改写为绝对值+符号的形式，并写入
+mov rHeight_Boundary.yw, ZERO
+COMBINE_VELOCITY(rHeight_Boundary, Temp1)
+mov oC0, rHeight_Boundary
