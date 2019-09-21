@@ -1,0 +1,212 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="源文件\engine">
+      <UniqueIdentifier>{4e7e43a4-64ec-4fc8-b8bd-c7e5099fcf22}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\engine\event">
+      <UniqueIdentifier>{cbf2a12f-918a-404c-88d9-16547cd76c48}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\engine">
+      <UniqueIdentifier>{d7033474-e8f7-4596-95f7-59cabb650cef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\engine\event">
+      <UniqueIdentifier>{e0c5bcab-5933-4d19-b285-d56b7bb7ee9c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\OpenGL.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\Camera.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\Frustum.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\Geometry.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\GLCacheManager.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\GLContext.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\GLMainEntry.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\GLProgram.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\GLTexture.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\Math.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\NoiseTexture.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\Object.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\Quaternion.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\RenderTexture.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\ShadowMap.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\Shape.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\Sprite.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\TGAImage.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\Tools.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\event\EventManager.cpp">
+      <Filter>源文件\engine\event</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\event\KeyEventListener.cpp">
+      <Filter>源文件\engine\event</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\event\MouseEventListener.cpp">
+      <Filter>源文件\engine\event</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\event\TouchEventListener.cpp">
+      <Filter>源文件\engine\event</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\Camera2.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\DefferedShader.cpp">
+      <Filter>源文件\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ShadowMapVSM.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\VSM.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\LightSpaceSM.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\include\engine\Camera.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\FFT.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\Frustum.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\Geometry.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\GLCacheManager.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\GLContext.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\GLProgram.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\GLState.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\GLTexture.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\Math.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\NoiseTexture.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\Object.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\Quaternion.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\RenderTexture.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\ShadowMap.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\Shape.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\Sprite.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\TGAImage.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\Tools.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\Types.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\event\EventListener.h">
+      <Filter>头文件\engine\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\event\EventManager.h">
+      <Filter>头文件\engine\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\event\KeyCode.h">
+      <Filter>头文件\engine\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\event\KeyEventListener.h">
+      <Filter>头文件\engine\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\event\Mouse.h">
+      <Filter>头文件\engine\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\event\MouseEventListener.h">
+      <Filter>头文件\engine\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\event\Touch.h">
+      <Filter>头文件\engine\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\event\TouchEventListener.h">
+      <Filter>头文件\engine\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\Camera2.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\engine\DefferedShader.h">
+      <Filter>头文件\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ShadowMapVSM.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\VSM.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\LightSpaceSM.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

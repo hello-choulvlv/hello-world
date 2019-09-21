@@ -1,0 +1,156 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{128E14D5-BE6C-4535-9A38-5202CCEECDDB}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>OpenGL</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140_xp</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>..\..\bin\</OutDir>
+    <IntDir>.\Debug\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;_CRT_SECURE_NO_WARNINGS;HYCOMMONWINAPI_EXPORTS;_USE_MATH_DEFINES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\..\include;..\..\other;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4273;4099;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OutputFile>..\..\bin\$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalLibraryDirectories>..\..\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>freeglut_staticd.lib;glew32s.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\engine\Camera.cpp" />
+    <ClCompile Include="..\..\engine\Camera2.cpp" />
+    <ClCompile Include="..\..\engine\DefferedShader.cpp" />
+    <ClCompile Include="..\..\engine\event\EventManager.cpp" />
+    <ClCompile Include="..\..\engine\event\KeyEventListener.cpp" />
+    <ClCompile Include="..\..\engine\event\MouseEventListener.cpp" />
+    <ClCompile Include="..\..\engine\event\TouchEventListener.cpp" />
+    <ClCompile Include="..\..\engine\Frustum.cpp" />
+    <ClCompile Include="..\..\engine\Geometry.cpp" />
+    <ClCompile Include="..\..\engine\GLCacheManager.cpp" />
+    <ClCompile Include="..\..\engine\GLContext.cpp" />
+    <ClCompile Include="..\..\engine\GLMainEntry.cpp" />
+    <ClCompile Include="..\..\engine\GLProgram.cpp" />
+    <ClCompile Include="..\..\engine\GLTexture.cpp" />
+    <ClCompile Include="..\..\engine\Math.cpp" />
+    <ClCompile Include="..\..\engine\NoiseTexture.cpp" />
+    <ClCompile Include="..\..\engine\Object.cpp" />
+    <ClCompile Include="..\..\engine\Quaternion.cpp" />
+    <ClCompile Include="..\..\engine\RenderTexture.cpp" />
+    <ClCompile Include="..\..\engine\ShadowMap.cpp" />
+    <ClCompile Include="..\..\engine\Shape.cpp" />
+    <ClCompile Include="..\..\engine\Sprite.cpp" />
+    <ClCompile Include="..\..\engine\TGAImage.cpp" />
+    <ClCompile Include="..\..\engine\Tools.cpp" />
+    <ClCompile Include="..\LightSpaceSM.cpp" />
+    <ClCompile Include="..\OpenGL.cpp" />
+    <ClCompile Include="..\ShadowMapVSM.cpp" />
+    <ClCompile Include="..\VSM.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\include\engine\Camera.h" />
+    <ClInclude Include="..\..\include\engine\Camera2.h" />
+    <ClInclude Include="..\..\include\engine\DefferedShader.h" />
+    <ClInclude Include="..\..\include\engine\event\EventListener.h" />
+    <ClInclude Include="..\..\include\engine\event\EventManager.h" />
+    <ClInclude Include="..\..\include\engine\event\KeyCode.h" />
+    <ClInclude Include="..\..\include\engine\event\KeyEventListener.h" />
+    <ClInclude Include="..\..\include\engine\event\Mouse.h" />
+    <ClInclude Include="..\..\include\engine\event\MouseEventListener.h" />
+    <ClInclude Include="..\..\include\engine\event\Touch.h" />
+    <ClInclude Include="..\..\include\engine\event\TouchEventListener.h" />
+    <ClInclude Include="..\..\include\engine\FFT.h" />
+    <ClInclude Include="..\..\include\engine\Frustum.h" />
+    <ClInclude Include="..\..\include\engine\Geometry.h" />
+    <ClInclude Include="..\..\include\engine\GLCacheManager.h" />
+    <ClInclude Include="..\..\include\engine\GLContext.h" />
+    <ClInclude Include="..\..\include\engine\GLProgram.h" />
+    <ClInclude Include="..\..\include\engine\GLState.h" />
+    <ClInclude Include="..\..\include\engine\GLTexture.h" />
+    <ClInclude Include="..\..\include\engine\Math.h" />
+    <ClInclude Include="..\..\include\engine\NoiseTexture.h" />
+    <ClInclude Include="..\..\include\engine\Object.h" />
+    <ClInclude Include="..\..\include\engine\Quaternion.h" />
+    <ClInclude Include="..\..\include\engine\RenderTexture.h" />
+    <ClInclude Include="..\..\include\engine\ShadowMap.h" />
+    <ClInclude Include="..\..\include\engine\Shape.h" />
+    <ClInclude Include="..\..\include\engine\Sprite.h" />
+    <ClInclude Include="..\..\include\engine\TGAImage.h" />
+    <ClInclude Include="..\..\include\engine\Tools.h" />
+    <ClInclude Include="..\..\include\engine\Types.h" />
+    <ClInclude Include="..\LightSpaceSM.h" />
+    <ClInclude Include="..\ShadowMapVSM.h" />
+    <ClInclude Include="..\VSM.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
