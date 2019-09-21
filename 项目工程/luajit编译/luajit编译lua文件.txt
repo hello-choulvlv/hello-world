@@ -1,0 +1,4 @@
+for /r %%v in (*.lua) do luajit -b %%v %%v  
+
+输入luajit+文件名 即可运行Lua脚本。
+输入luajit -b+Lua脚本+目标文件名，即可编译脚本

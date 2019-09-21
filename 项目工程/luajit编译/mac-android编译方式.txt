@@ -1,0 +1,26 @@
+1:64位编译方式
+make clean
+make CFLAGS=-DLUAJIT_ENABLE_GC64
+
+2:32位编译方式
+make clean
+make CFLAGS=-DLUAJIT_ENABLE_GC32
+
+//iOS编译方式
+1> 先安装 toolchains:
+xcode-select --install
+2> 找下缺失本机上对应命令的真实路径：
+xcodebuild -find gcc
+3> 如果能找到，就把命令复制到缺失命令的位置；如果本机找不到，就从网上搜下安装教程。
+
+ISDKP=$(xcrun --sdk iphoneos --show-sdk-path)
+ICC=$(xcrun --sdk iphoneos --find clang)
+ISDKF="-arch arm64 -isysroot $ISDKP"
+make DEFAULT_CC=clang HOST_CC="clang -m32 -arch i386" CROSS="$(dirname $ICC)/" TARGET_FLAGS="$ISDKF" TARGET_SYS=iOS
+
+//安卓编译方式src/Makefile文件中
+语句
+ifeq (Darwin,$(HOST_SYS))
+DEFAULT_CC= clang
+endif
+C++编译器:clang-->gcc
