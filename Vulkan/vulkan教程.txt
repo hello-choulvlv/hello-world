@@ -1,0 +1,26 @@
+//intel官方教程
+	https://software.intel.com/zh-cn/articles/api-without-secrets-introduction-to-vulkan-preface
+//Vulkan材料
+	Vulkan: https://bitbucket.org/jose_henriques/vulkan_tutorial.git
+//Vulkan官方在线文档
+	https://github.com/KhronosGroup/Vulkan-Docs.git
+//Vulkan加载
+	https://github.com/KhronosGroup/Vulkan-LoaderAndValidationLayers.git
+//VulkanSample
+	https://github.com/LunarG/VulkanSamples.git
+Vulkan教程:
+	https://github.com/GameTechDev/IntroductionToVulkan.git
+//Vulkan SDK网址
+	Vulkan SDK  https://vulkan.lunarg.com/
+//Vulkan Tutorial
+	https://vulkan-tutorial.com/Introduction
+	https://bitbucket.org/jose_henriques/vulkan_tutorial.git
+https://github.com/vinjn/awesome-vulkan.git
+
+https://github.com/vulkanprogrammingguide/examples.git
+
+https://github.com/heitaoflower/vulkan-tutorial.git
+//Vulkan内存分配器
+https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+
+https://github.com/Overv/VulkanTutorial.git
