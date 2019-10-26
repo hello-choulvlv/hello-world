@@ -692,6 +692,52 @@ void quick_sort(TM *source, int tk_num, std::function<bool(const TM &a, const TM
 
 	delete[] bubble;
 }
+//另一种排序算法,与之前的相比较而言,区别在于比较函数
+template<typename TM>
+void quick_sort_origin_type(TM *source, int tk_num, std::function<bool(const TM a, const TM b)> &compare_func)
+{
+	//排序算法目前先采用插入排序,后面我们将会使用归并排序
+	TM   *bubble = new TM[tk_num];
+	int     step = 1, half = tk_num / 2;
+	TM  *t1 = source, *t2 = bubble;
+	for (; step < tk_num; step *= 2)
+	{
+		int  base_j = 0;
+		//compare and exchange
+		for (int index_j = 0; index_j < tk_num; index_j += step * 2)
+		{
+			int  base_j = index_j;
+			int  l_index = index_j;
+			int  other_j = index_j + step;
+			int l_boundary = other_j < tk_num ? other_j : tk_num;
+			int r_boundary = other_j + step < tk_num ? other_j + step : tk_num;
+
+			while (base_j < l_boundary && other_j < r_boundary)//边界
+			{
+				if (compare_func(t1[base_j], t1[other_j]))
+				{
+					t2[l_index] = t1[base_j];
+					++base_j;
+				}
+				else
+				{
+					t2[l_index] = t1[other_j];
+					++other_j;
+				}
+				++l_index;
+			}
+			//检查是否有某些元素还没有完全参与计算
+			for (; base_j < l_boundary; ++base_j, ++l_index) t2[l_index] = t1[base_j];
+			for (; other_j < r_boundary; ++other_j, ++l_index)t2[l_index] = t1[other_j];
+		}
+		TM *t = t1;
+		t1 = t2; t2 = t;
+	}
+	if (t1 != source)
+		memcpy(source, t1, sizeof(TM) * tk_num);
+
+	delete[] bubble;
+}
 
 struct VPoint
 {
@@ -835,5 +881,268 @@ bool segment_segment_intersect_test(const Segment2D &a, const Segment2D &b)
 	Vec2 d2 = b.final_point - b.start_point;
 
 	return cross(direction, a1) * cross(direction, b.final_point - a.start_point) <= 0 && cross(d2,a1) * cross(d2,a.final_point - b.start_point) >= 0;
+}
+
+bool segment_segment_intersect_test(const Segment2D &a, const Segment2D &b,Vec2 &intersect_point)
+{
+	Vec2 a1 = b.start_point - a.start_point;
+	Vec2 a2 = b.final_point - a.start_point;
+
+	Vec2 d1 = a.final_point - a.start_point;
+	Vec2 d2 = b.final_point - b.start_point;
+
+	float fa = cross(a1, d1);
+	float fb = cross(d1, a2);
+	float f2 = cross(d2, a1) * cross(d2, a.final_point - b.start_point);
+
+	if (fa * fb >= 0 && f2 >= 0)
+	{
+		intersect_point = b.start_point + d2 * (fa/(fa+fb));
+		return true;
+	}
+
+	return false;
+}
+/*
+  *线段端点的类型
+ */
+enum SegmentEndPointType
+{
+	PointType_Origin = 0,//线段的起始端点
+	PointType_Intersect = 1,//线段之间的交叉点
+	PointType_Over = 2,//线段的终止端点
+};
+
+struct SegmentEndPoint
+{
+	Vec2  end_point;
+	Segment2D  *segment,*other;
+	SegmentEndPointType point_type;
+};
+//将一个事件点所代表的直线加入到扫描线状态中
+//在第一版中,只实现基本的算法
+//在第二版中,我们将考虑各种退化情况
+void static_segment_insert_sweep_status(std::vector<Segment2D *> &segments,Segment2D &segment,std::vector<Vec2> &intersect_points)
+{
+	float y = segment.start_point.y;
+	int target_l = 0;
+	for (int index_l = 0; index_l < segments.size(); ++index_l,++target_l)
+	{
+		Segment2D *target_segment = segments[index_l];
+		//求线段与当前的扫描线之间的交点的x坐标
+		float d_y = target_segment->final_point.y - target_segment->start_point.y;
+		float d_x = target_segment->final_point.x - target_segment->start_point.x;
+		float f = d_y ==0?0:(y - target_segment->start_point.y)/d_y;
+		float x = target_segment->start_point.x + d_x * f;
+
+		if (segment.start_point.x < x)
+			break;
+		//应该考虑相等的情况,此算法将会更加复杂,此种情况目前暂时不考虑
+	}
+	//插入到队列中
+	segments.insert(segments.begin() + target_l,&segment);
+}
+//检查线段的左邻居
+Segment2D  *static_segment_check_left_neightbor(std::vector<Segment2D *> &segments,const Segment2D *target_segment)
+{
+	for (int index_l = 0; index_l < segments.size(); ++index_l)
+	{
+		//此时需要检测前面的数据
+		if (segments[index_l] == target_segment && index_l > 0)
+			return segments[index_l -1];
+	}
+	return nullptr;
+}
+/*
+  *检查线段的右邻居
+ */
+Segment2D  *static_segment_check_right_neightbor(std::vector<Segment2D *> &segments, const Segment2D *target_segment)
+{
+	for (int index_l = 0; index_l < segments.size(); ++index_l)
+	{
+		//此时需要检测前面的数据
+		if (segments[index_l] == target_segment && index_l < segments.size() - 1)
+			return segments[index_l + 1];
+	}
+	return nullptr;
+}
+/*
+  *计算是否两条线段相交,
+  *如果相交,则给出交点,并且产生新的事件点,加入到事件点队列中
+  *否则不产生任何的副作用
+ */
+static void static_segment_intersect_event(float event_y,const Segment2D &a,const Segment2D &b,std::vector<Vec2> &intersect_points,std::vector<SegmentEndPoint> &end_point_event)
+{
+	const Vec2 ca = a.start_point - b.start_point;
+	const Vec2 cb = a.final_point - b.start_point;
+	const Vec2 d = b.final_point - b.start_point;
+	const Vec2 d2 = a.final_point - a.start_point;
+	float f1 = cross(d, ca);
+	float f2 = cross(cb, d);
+	//如果相交,则求出交点
+	if (f1 * f2 >= 0 && cross(d2, ca) * cross(d2, b.final_point - a.start_point) >= 0)
+	{
+		const Vec2 intersect_point = a.start_point + d2 * (f1 / (f1 + f2));
+		//该事件点应该小于当前扫描线的y坐标,也就是事件点的坐标y
+		if (intersect_point.y < event_y)
+		{
+			intersect_points.push_back(intersect_point);
+			//将相关的事件点插入到队列中
+			SegmentEndPoint  new_event = {
+				intersect_point,
+				(Segment2D*)&a,(Segment2D*)&b,
+				PointType_Intersect,
+			};
+			int index_l = 0;
+			for (; index_l < end_point_event.size(); ++index_l)
+			{
+				SegmentEndPoint  &now_event = end_point_event.at(index_l);
+				//事件点排列在最小的最大值之前
+				if (intersect_point.y > now_event.end_point.y || intersect_point.y == now_event.end_point.y && (intersect_point.x < now_event.end_point.x || intersect_point.x == now_event.end_point.x && now_event.point_type > PointType_Intersect))
+					break;
+			}
+			end_point_event.insert(end_point_event.begin() + index_l, new_event);
+		}
+	}
+}
+/*
+  *删除指定的线段,如果删除后有新的邻居,则返回
+ */
+bool static_segment_remove_target(std::vector<Segment2D *> &sweep_status,Segment2D *segment,Segment2D **l_segment,Segment2D **r_segment)
+{
+	int array_size = sweep_status.size();
+	for (int index_l = 0; index_l < array_size; ++index_l)
+	{
+		//此时需要检测前面的数据
+		if (sweep_status[index_l] == segment)
+		{
+			if (index_l < array_size - 1)
+				*r_segment = sweep_status[index_l + 1];
+			if (index_l > 0)
+				*l_segment = sweep_status[index_l - 1];
+			sweep_status.erase(sweep_status.begin() + index_l);
+			break;
+		}
+	}
+	return *l_segment && *r_segment;
+}
+/*
+   *交换两个线段的位置
+  */
+void static_segment_exchange_place(std::vector<Segment2D *> &sweep_status,Segment2D *l_segment, Segment2D *r_segment)
+{
+	int base_l = -1, secondary_l = -1;
+	for (int index_l = 0; index_l < sweep_status.size(); ++index_l)
+	{
+		//此时需要检测前面的数据
+		if (sweep_status[index_l] == l_segment)
+			base_l = index_l;
+		if (sweep_status[index_l] == r_segment)
+			secondary_l = index_l;
+	}
+	if (base_l != -1 && secondary_l != -1)
+	{
+		Segment2D *t = sweep_status[base_l];
+		sweep_status[base_l] = sweep_status[secondary_l];
+		sweep_status[secondary_l] = t;
+	}
+}
+/*
+  *算法假设输入的数线段据中,起始端点是大于终止端点的,其标准参见比较函数
+  *该算法需要两个数据结构
+  *一个是事件点,
+  *一个是当前与扫描线相交的线段的集合,我们称之为扫描线的状态.
+  *目前该算法只是用了基本的数据结构,为的是简单容易的表达出,并没有经过其他的优化
+  *注意,该算法并没有经过优化
+ */
+int segment_n_intersect_point(const std::vector<Segment2D> &segments, std::vector<cocos2d::Vec2> &intersect_points)
+{
+	//第一步收集所有线段的端点,目前算法暂时不考虑各种退化情况
+	//比如一个线段的起始端点落在了另一个线段之上,两个线段局部重合,某几条线段相交于一点,某几个线段起始/终止于一点
+	std::vector<SegmentEndPoint>  end_point_event(segments.size() * 2);
+	Segment2D  *segment_array = (Segment2D *)segments.data();
+	SegmentEndPoint *end_point_array = end_point_event.data();
+	for (int index_l = 0; index_l < segments.size(); ++index_l)
+	{
+		end_point_array[index_l * 2].end_point = segment_array[index_l].start_point;
+		end_point_array[index_l * 2].point_type = PointType_Origin;
+		end_point_array[index_l * 2].segment = &segment_array[index_l];
+		end_point_array[index_l * 2].other = nullptr;
+
+		end_point_array[index_l * 2 + 1].end_point = segment_array[index_l].final_point;
+		end_point_array[index_l * 2 + 1].point_type = PointType_Over;
+		end_point_array[index_l * 2 + 1].segment = &segment_array[index_l];
+		end_point_array[index_l * 2 + 1].other = nullptr;
+	}
+	//排序
+	std::function<bool(const SegmentEndPoint &, const SegmentEndPoint &)> compare_func = [](const SegmentEndPoint &a, const SegmentEndPoint &b)->bool {
+		//端点的Y坐标越大,其优先级越高
+		if (a.end_point.y > b.end_point.y)
+			return true;
+		//如果Y坐标相等,那么就比较x坐标,x坐标越大,其优先级越高,或者在坐标相同的条件下,比较端点的类型
+		if (a.end_point.y == b.end_point.y && (a.end_point.x < b.end_point.x || a.end_point.x == b.end_point.x && a.point_type < b.point_type))
+			return true;
+		//剩下的情况,要么是a的y坐标小于b的y坐标的,或者相等然而a的x坐标大于b的x坐标,或者x坐标相等,然而类型的优先级较小
+		return false;//以上代码可以优化,这里为了注释的清晰,就省略了
+	};
+	quick_sort<SegmentEndPoint>(end_point_array, end_point_event.size(), compare_func);
+	std::vector<Segment2D*>   sweep_status;
+	sweep_status.reserve(end_point_event.size());
+	//针对每一个事件点,进行遍历
+	while (end_point_event.size() > 0)
+	{
+		//删除掉第一个事件点
+		SegmentEndPoint   now_event = end_point_event.front();
+		end_point_event.erase(end_point_event.begin());
+		//如果是起始端点,则加入到扫描线中,并且检查该线段的两边是否有邻居,如果有,则一一检测
+		if (now_event.point_type == PointType_Origin)
+		{
+			static_segment_insert_sweep_status(sweep_status, *now_event.segment, intersect_points);
+			Segment2D  *l_segment = static_segment_check_left_neightbor(sweep_status, now_event.segment);
+			Segment2D  *r_segment = static_segment_check_right_neightbor(sweep_status, now_event.segment);
+			if (l_segment)
+				static_segment_intersect_event(now_event.end_point.y,*l_segment,*now_event.segment,intersect_points,end_point_event);
+			if(r_segment)
+				static_segment_intersect_event(now_event.end_point.y,*now_event.segment, *r_segment, intersect_points, end_point_event);
+		}
+		else if (now_event.point_type == PointType_Over)//如果是结束端点,则将相关的线段移除掉,并对新的邻居进行测试
+		{
+			Segment2D *l_segment = nullptr,*r_segment = nullptr;
+			static_segment_remove_target(sweep_status,now_event.segment,&l_segment,&r_segment);
+			if (l_segment && r_segment)
+				static_segment_intersect_event(now_event.end_point.y,*l_segment, *r_segment, intersect_points, end_point_event);
+		}
+		else//如果是中间交叉点,则需要交换他们之间的顺序,并对新形成的邻居重新计算相交点
+		{
+			static_segment_exchange_place(sweep_status, now_event.segment, now_event.other);
+			Segment2D	*l1 = static_segment_check_left_neightbor(sweep_status, now_event.other);
+			if (l1)
+				static_segment_intersect_event(now_event.end_point.y,*l1,*now_event.other,intersect_points,end_point_event);
+
+			Segment2D  *r2 = static_segment_check_right_neightbor(sweep_status, now_event.segment);
+			if (r2)
+				static_segment_intersect_event(now_event.end_point.y,*now_event.segment, *r2, intersect_points, end_point_event);
+		}
+	}
+	return intersect_points.size();
+}
+
+int segment_n_intersect_prim(const std::vector<Segment2D> &segments, std::vector<cocos2d::Vec2> &intersect_points)
+{
+	int array_size = segments.size();
+	for (int index_l = 0; index_l < array_size - 1; ++index_l)
+	{
+		for (int index_j = index_l + 1; index_j < array_size; ++index_j)
+		{
+			Vec2 intersect_point;
+			if (segment_segment_intersect_test(segments[index_l], segments[index_j],intersect_point))
+			{
+				if (intersect_points.size() >= intersect_points.capacity())
+					intersect_points.reserve(intersect_points.size() * 2);
+				intersect_points.push_back(intersect_point);
+			}
+		}
+	}
+	return intersect_points.size();
 }
 NS_GT_END

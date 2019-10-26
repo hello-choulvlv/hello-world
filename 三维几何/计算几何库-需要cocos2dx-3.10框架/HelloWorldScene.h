@@ -111,6 +111,8 @@ public:
 	void gjkAlgorithmTest();
 	//quick-hull算法测试
 	void quickHullAlgorithmTest();
+	//快速线段求交测试
+	void  quickSegmentIntersectTest();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

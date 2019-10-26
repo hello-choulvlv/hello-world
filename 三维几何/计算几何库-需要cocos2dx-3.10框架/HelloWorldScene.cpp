@@ -30,7 +30,7 @@ bool HelloWorld::init()
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 	auto &winSize = _director->getWinSize();
-	int64_t seed = time(nullptr);
+	int64_t seed = time(nullptr);//1572057392;
 	CCLOG("seed->%ld", seed);
 	srand(seed);//14,23,27
 
@@ -94,7 +94,8 @@ bool HelloWorld::init()
 	//dispersePointsMinDistanceTest();
 	//dispersePoints3DMinDistanceTest();
 	//gjkAlgorithmTest();
-	quickHullAlgorithmTest();
+	//quickHullAlgorithmTest();
+	quickSegmentIntersectTest();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -715,6 +716,58 @@ void HelloWorld::quickHullAlgorithmTest()
 		draw_node->drawLine(polygon[last_index],polygon[index_l],Color4F::GREEN);
 		last_index = index_l;
 	}
+
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::quickSegmentIntersectTest()
+{
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+
+	auto &winSize = _director->getWinSize();
+	const float scale_factor = 1.0f;
+	const Vec2 screen_center(winSize.width * 0.5f * scale_factor, winSize.height * 0.5f * scale_factor);
+
+	const int array_size = 128;
+	std::vector<gt::Segment2D>    segment_array(array_size);
+	for (int index_l = 0; index_l < array_size; ++index_l)
+	{
+		Vec2 start_point(scale_factor * winSize.width * gt::random(), scale_factor * winSize.height * gt::random());
+		Vec2 final_point(scale_factor * winSize.width * gt::random(), scale_factor * winSize.height * gt::random());
+		//对生成的线段端点做额外的处理
+		if (start_point.y > final_point.y || start_point.y == final_point.y && start_point.x < final_point.x)
+		{
+			segment_array[index_l].start_point = start_point - screen_center;
+			segment_array[index_l].final_point = final_point - screen_center;
+		}
+		else
+		{
+			segment_array[index_l].start_point = final_point - screen_center;
+			segment_array[index_l].final_point = start_point - screen_center;
+		}
+		float length_l = 120 * (0.4f + gt::random());
+		segment_array[index_l].final_point = segment_array[index_l].start_point + gt::normalize(segment_array[index_l].final_point - segment_array[index_l].start_point) * length_l;
+		//画出线段
+		draw_node->drawLine(segment_array[index_l].start_point, segment_array[index_l].final_point, Color4F::GREEN);
+	}
+	//交点
+	std::vector<Vec2>	intersect_points;
+	int number = gt::segment_n_intersect_point(segment_array, intersect_points);
+	for (int index_l = 0; index_l < number; ++index_l)
+	{
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(intersect_points[index_l]);
+		sprite->setColor(Color3B::RED);
+		root_node->addChild(sprite);
+	}
+
+	std::vector<Vec2>	intersect_points2;
+	int number2 = gt::segment_n_intersect_prim(segment_array, intersect_points2);
+	CCLOG("fast->%d,prim->%d",number,number2);
 
 	root_node->setCameraMask(s_CameraMask);
 }

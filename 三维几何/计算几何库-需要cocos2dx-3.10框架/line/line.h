@@ -157,7 +157,22 @@ void segment_grid2d_intersect_test(const cocos2d::Vec2 &start_point,const cocos2
 bool segments2d_N_intersect_test(const Segment2D  *line_array,int line_size);
 /*
   *两线段相交测试
+  *并给出交点,如果相交
  */
 bool segment_segment_intersect_test(const Segment2D &a,const Segment2D &b);
+bool segment_segment_intersect_test(const Segment2D &a, const Segment2D &b, cocos2d::Vec2 &intersect_point);
+/*
+  *判断一个点是否在一个线段的左侧,如果刚好处于线段上,也将视为左侧
+ */
+bool point_segment_relative_location(const cocos2d::Vec2 &s,const cocos2d::Vec2 &b,const cocos2d::Vec2 &point);
+/*
+  *求N条线段之间的所有交点
+  *输出所有的线段之间的交点,以及交点的数目
+ */
+int   segment_n_intersect_point(const std::vector<Segment2D> &segments,std::vector<cocos2d::Vec2> &intersect_points);
+/*
+  *线段求交的朴素算法实现
+ */
+int segment_n_intersect_prim(const std::vector<Segment2D> &segments, std::vector<cocos2d::Vec2> &intersect_points);
 NS_GT_END
 #endif
