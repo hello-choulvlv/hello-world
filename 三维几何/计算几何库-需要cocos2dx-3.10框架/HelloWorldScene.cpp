@@ -2,6 +2,7 @@
 #include "SimpleAudioEngine.h"
 #include "geometry.h"
 #include "DrawNode3D.h"
+#include "data_struct/balance_tree.h"
 
 USING_NS_CC;
 
@@ -95,7 +96,8 @@ bool HelloWorld::init()
 	//dispersePoints3DMinDistanceTest();
 	//gjkAlgorithmTest();
 	//quickHullAlgorithmTest();
-	quickSegmentIntersectTest();
+	//quickSegmentIntersectTest();
+	testRedBlackTree();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -189,6 +191,44 @@ void HelloWorld::menuCloseCallback(Ref* pSender)
     
     //EventCustom customEndEvent("game_scene_close_event");
     //_eventDispatcher->dispatchEvent(&customEndEvent);
+}
+
+int compare_func(const int &a,const int &b,const int &l_other)
+{
+	return a < b ? -1: (a > b? 1 : 0);
+}
+
+void HelloWorld::testRedBlackTree()
+{
+	gt::red_black_tree<int, int>   rb_tree(compare_func,32);
+	int l_other = 0;
+	for (int index_l = 0; index_l < 128; ++index_l)
+		rb_tree.insert(index_l, l_other);
+	//Êä³ö
+	auto search_node = rb_tree.lookup(0, l_other);
+	assert(search_node!=nullptr);
+	int  target = -1;
+	while (search_node)
+	{
+		assert(target < search_node->tw_value);
+		target = search_node->tw_value;
+		search_node = rb_tree.find_next(search_node);
+	}
+	//É¾³ý
+	int start_j = gt::random() * 64;
+	int final_j = start_j + 12;
+	for (; start_j < final_j; ++start_j)
+		rb_tree.remove(start_j, l_other);
+
+	search_node = rb_tree.find_minimum();
+	assert(search_node != nullptr);
+	target = -1;
+	while (search_node)
+	{
+		assert(target < search_node->tw_value);
+		target = search_node->tw_value;
+		search_node = rb_tree.find_next(search_node);
+	}
 }
 
 void HelloWorld::doPlaneIntersectWithPlane()

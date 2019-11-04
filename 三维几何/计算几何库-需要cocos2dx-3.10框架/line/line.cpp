@@ -1115,6 +1115,7 @@ int segment_n_intersect_point(const std::vector<Segment2D> &segments, std::vecto
 		else//如果是中间交叉点,则需要交换他们之间的顺序,并对新形成的邻居重新计算相交点
 		{
 			static_segment_exchange_place(sweep_status, now_event.segment, now_event.other);
+			//注意交换顺序之后,其代表的位置含义将反序
 			Segment2D	*l1 = static_segment_check_left_neightbor(sweep_status, now_event.other);
 			if (l1)
 				static_segment_intersect_event(now_event.end_point.y,*l1,*now_event.other,intersect_points,end_point_event);

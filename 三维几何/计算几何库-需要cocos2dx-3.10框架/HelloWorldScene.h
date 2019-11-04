@@ -113,6 +113,8 @@ public:
 	void quickHullAlgorithmTest();
 	//快速线段求交测试
 	void  quickSegmentIntersectTest();
+	//平衡树/红黑树测试
+	void testRedBlackTree();
 };
 
 #endif // __HELLOWORLD_SCENE_H__
