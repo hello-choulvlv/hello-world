@@ -8,8 +8,10 @@
 #include "line/line.h"
 #include "cycle_sphere/cycle_sphere.h"
 #include<unordered_map>
+#include "data_struct/balance_tree.h"
 //#include<map>
 #include<stack>
+#include<set>
 #include<assert.h>
 using namespace cocos2d;
 NS_GT_BEGIN
@@ -202,6 +204,18 @@ void quick_sort(TK *source, int tk_num, std::function<bool(const TK &a, const TK
 		memcpy(source, t1, sizeof(TK) * tk_num);
 
 	delete[] bubble;
+}
+
+/*
+*遍历顺序表
+*/
+template<typename TS>
+bool check_sequence_have(const std::vector<TS> &rs_vec, const TS &ts_value)
+{
+	for (auto it = rs_vec.begin(); it != rs_vec.end(); ++it)
+		if (*it == ts_value)
+			return true;
+	return false;
 }
 
 bool check_in_target_plane(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b, const cocos2d::Vec3 &c, const cocos2d::Vec3 &p)
@@ -940,5 +954,424 @@ bool quick_hull_algorithm2d(const std::vector<cocos2d::Vec2> &points, std::vecto
 		}
 	}
 	return polygon.size() >= 3;
+}
+
+//检测顶点的类型
+enum VertexType
+{
+	VertexType_Start = 0,//开始顶点
+	VertexType_Split = 1,//分裂顶点
+	VertexType_Merge = 2,//汇合顶点
+	VertexType_End = 3,//结束顶点
+	VertexType_Normal = 4,//常规顶点
+};
+
+VertexType check_vertex_type(int  vertex_index,const std::vector<cocos2d::Vec2> &polygon_points)
+{
+	const int array_size = polygon_points.size();
+	const Vec2  &target_point = polygon_points[vertex_index];
+	const Vec2 &next_point = polygon_points[vertex_index < array_size -1? vertex_index +1: 0];
+	const Vec2 &prev_point = polygon_points[vertex_index > 0? vertex_index - 1:array_size-1];
+
+	float f = cross(target_point - prev_point, next_point - target_point);
+	//如果内角小于Π,则检测其两边的顶点相对当前顶点的高度
+	if (f >= 0)
+	{
+		if (prev_point.y <= target_point.y && next_point.y <= target_point.y)
+			return VertexType_Start;
+		if (prev_point.y >= target_point.y && next_point.y >= target_point.y)
+			return VertexType_End;
+	}
+	else
+	{
+		if (prev_point.y >= target_point.y && next_point.y >= target_point.y)
+			return VertexType_Merge;
+		if (prev_point.y <= target_point.y && next_point.y <= target_point.y)
+			return VertexType_Split;
+	}
+	assert(prev_point.y >= target_point.y && target_point.y >= next_point.y || prev_point.y <= target_point.y && target_point.y <= next_point.y);
+	return VertexType_Normal;
+}
+//可以使用二分算法
+void polygon_simple_decompose_insert(std::vector<int> &adj_edge, const std::vector<cocos2d::Vec2> &polygon_points, int point_index)
+{
+	int array_size = polygon_points.size();
+	const Vec2 &target_point = polygon_points[point_index];
+	int index_j = 0;
+	for (; index_j < adj_edge.size(); ++index_j)
+	{
+		int  base_index = adj_edge[index_j];
+		int  next_index = base_index < array_size - 1?base_index+1:0;
+		const Vec2 &base_location = polygon_points[base_index];
+		const Vec2 &next_location = polygon_points[next_index];
+		//求线段[base_index,next_index]与水平线y = polygon_points[point_index].y的交点的x坐标
+		float d_x = next_location.x - base_location.x;
+		float d_y = next_location.y - base_location.y;
+		float f = d_y!=0.0f?(target_point.y - base_location.y)/ d_y:0.0f;
+		float x = base_location.x + d_x * f;
+
+		if (target_point.x < x)
+			break;
+	}
+	adj_edge.insert(adj_edge.begin() + index_j, point_index);
+}
+//删除目标边,可以使用二分算法
+void polygon_simple_decompose_remove(int edge_number, std::vector<int> &adj_edge)
+{
+	for (int index_j = 0; index_j < adj_edge.size(); ++index_j)
+	{
+		if (adj_edge[index_j] == edge_number)
+		{
+			adj_edge.erase(adj_edge.begin() + index_j);
+			break;
+		}
+	}
+}
+//查找左侧最邻近的边,实际上可以使用二分算法
+int polygon_simple_decompose_check_left(std::vector<int> &adj_edge,const std::vector<cocos2d::Vec2> &polygon_points,int target_point_index)
+{
+	int array_size = polygon_points.size();
+	const Vec2 &target_point = polygon_points[target_point_index];
+	int index_j = adj_edge.size() - 1;
+	for (; index_j >=0; --index_j)
+	{
+		int  base_index = adj_edge[index_j];
+		int  next_index = base_index < array_size - 1 ? base_index + 1 : 0;
+		const Vec2 &base_location = polygon_points[base_index];
+		const Vec2 &next_location = polygon_points[next_index];
+		//求线段[base_index,next_index]与水平线y = polygon_points[point_index].y的交点的x坐标
+		float d_x = next_location.x - base_location.x;
+		float d_y = next_location.y - base_location.y;
+		float f = d_y != 0.0f ? (target_point.y - base_location.y) / d_y : 0.0f;
+		float x = base_location.x + d_x * f;
+
+		if (x < target_point.x)
+			break;
+	}
+	return adj_edge[index_j];
+}
+
+bool polygon_simple_decompose(const std::vector<cocos2d::Vec2> &polygon_points, std::map<int,int>  &addtional_edge_map, std::vector<int> &points_sequence, std::vector<int> &boundary_index)
+{
+	//针对所有的多边形,记录其顶点的顺序
+	struct PolygonVertex
+	{
+		Vec2   *vertex_location;
+		int       vertex_index;
+	};
+	//记录所有的顶点,并排序,并且记录下最大以及最小的顶点
+	std::vector<PolygonVertex>  polygon_vertexs(polygon_points.size());
+	int	max_index = -1,min_index = -1,array_size = polygon_points.size();
+	for (int index_l = 0; index_l < array_size; ++index_l)
+	{
+		polygon_vertexs[index_l].vertex_location = (Vec2 *)(polygon_points.data() + index_l);
+		polygon_vertexs[index_l].vertex_index = index_l;
+
+		if (max_index == -1 || polygon_points[max_index].y < polygon_points[index_l].y || (polygon_points[max_index].y == polygon_points[index_l].y && polygon_points[max_index].x > polygon_points[index_l].x))
+			max_index = index_l;
+
+		if (min_index == -1 || polygon_points[min_index].y > polygon_points[index_l].y || (polygon_points[min_index].y == polygon_points[index_l].y && polygon_points[min_index].x < polygon_points[index_l].x))
+			min_index = index_l;
+	}
+	//对所有的顶点进行排序
+	std::function<bool(const PolygonVertex &a, const PolygonVertex &b)> compare_func = [](const PolygonVertex &a, const PolygonVertex &b)->bool {
+		return a.vertex_location->y > b.vertex_location->y || (a.vertex_location->y == b.vertex_location->y && a.vertex_location->x < b.vertex_location->x);
+	};
+	quick_sort<PolygonVertex>(polygon_vertexs.data(), array_size, compare_func);
+	//针对每一个目标顶点,依次处理
+#define check_orientation_left(vvv) (polygon_points[vvv].y <= polygon_points[vvv > 0?vvv-1:array_size-1].y && polygon_points[vvv].y >= polygon_points[vvv < array_size -1 ?vvv +1:0].y)
+#define safe_insert_map(m,helper,next){assert(m.find(helper) == m.end());m[helper] = next;}
+	std::map<int, int>  edge_helper;//边的助手
+	std::vector<int>	adj_edge;//在目标顶点左侧的边的集合
+	//所有新增加的边
+	std::map<int,int>   other_edge_map;
+	int helper, last_vertex, edge_index, target_edge_index;
+	for (int index_j = 0;index_j < array_size;++index_j)//不会增加新的事件点
+	{
+		PolygonVertex &polygon_vertex = polygon_vertexs[index_j];
+		int vertex_index = polygon_vertex.vertex_index;
+		//依据顶点的类型,有不同的处理算法
+		VertexType  vertex_type = check_vertex_type(vertex_index, polygon_points);
+		switch (vertex_type)
+		{
+		case VertexType_Start:
+			polygon_simple_decompose_insert(adj_edge, polygon_points, vertex_index);
+			edge_helper[vertex_index] = vertex_index;
+			break;
+		case VertexType_Split://分裂顶点
+			edge_index = polygon_simple_decompose_check_left(adj_edge, polygon_points, vertex_index);
+			helper = edge_helper[edge_index];
+			//other_edge_map[helper] = vertex_index;
+			safe_insert_map(other_edge_map,helper, vertex_index);
+			edge_helper[edge_index] = vertex_index;//更新助手
+			edge_helper[vertex_index] = vertex_index;//更新助手
+			polygon_simple_decompose_insert(adj_edge, polygon_points, vertex_index);
+			break;
+		case VertexType_Merge://汇合顶点的处理要稍微复杂一些
+			last_vertex = vertex_index > 0 ? vertex_index - 1 : array_size - 1;
+			helper = edge_helper[last_vertex];
+			if (check_vertex_type(helper, polygon_points) == VertexType_Merge)
+				safe_insert_map(other_edge_map, helper, vertex_index);// other_edge_map[helper] = vertex_index;
+			polygon_simple_decompose_remove(last_vertex,adj_edge);
+			//查找离顶点左侧最近的边
+			target_edge_index = polygon_simple_decompose_check_left(adj_edge, polygon_points, vertex_index);
+			helper = edge_helper[target_edge_index];
+			if (check_vertex_type(helper, polygon_points) == VertexType_Merge)
+				safe_insert_map(other_edge_map, helper, vertex_index); // other_edge_map[helper] = vertex_index;
+			edge_helper[target_edge_index] = vertex_index;
+			break;
+		case VertexType_End:
+			last_vertex = vertex_index > 0 ? vertex_index - 1 : array_size - 1;
+			helper = edge_helper[last_vertex];
+			if (check_vertex_type(helper, polygon_points) == VertexType_Merge)
+				safe_insert_map(other_edge_map, helper, vertex_index); // other_edge_map[helper] = vertex_index;
+			polygon_simple_decompose_remove(last_vertex, adj_edge);
+			break;
+		case VertexType_Normal://对于普通顶点的处理要稍微有点复杂
+			if (check_orientation_left(vertex_index))//左侧
+			{
+				int  last_edge = vertex_index > 0 ? vertex_index - 1 :array_size-1;
+				int helper = edge_helper[last_edge];
+				if (check_vertex_type(helper,polygon_points) == VertexType_Merge)
+					safe_insert_map(other_edge_map, helper, vertex_index); //other_edge_map[helper] = vertex_index;
+				polygon_simple_decompose_remove(last_edge,adj_edge);
+				polygon_simple_decompose_insert(adj_edge, polygon_points, vertex_index);
+				edge_helper[vertex_index] = vertex_index;
+			}
+			else//右侧
+			{
+				int  left_edge = polygon_simple_decompose_check_left(adj_edge, polygon_points, vertex_index);
+				int helper = edge_helper[left_edge];
+				if (check_vertex_type(helper, polygon_points) == VertexType_Merge)
+					safe_insert_map(other_edge_map, helper, vertex_index); //other_edge_map[helper] = vertex_index;
+				edge_helper[left_edge] = vertex_index;
+			}
+		}
+	}
+#undef safe_insert_map
+#undef check_orientation_left
+	addtional_edge_map = other_edge_map;
+	//polygon_triangular_cycle_sequence(array_size, other_edge_map, points_sequence, boundary_index);
+	return points_sequence.size() > 0;
+}
+
+void polygon_simple_cycle_sequence(int points_number, const std::map<int, int> &adj_edge_map, std::vector<int> &points_sequence, std::vector<int> &boundary_index)
+{
+	//使用栈式处理算法,其核心思想类似于quick hull算法
+	struct MonotonePartion
+	{
+		std::vector<int>			points_sequence_vec;
+		std::set<int>					points_set;
+	};
+	//第一步,对现有的点集进行二元划分
+	if (!adj_edge_map.size())
+	{
+		points_sequence.reserve(points_number);
+		for (int j = 0; j < points_number; ++j)points_sequence.push_back(j);
+		boundary_index.push_back(points_number);
+		return;
+	}
+	std::list<MonotonePartion>		binary_partion_list;
+	MonotonePartion   partion;
+	std::map<int, int>  adj_edge_map_copy = adj_edge_map;
+	auto it = adj_edge_map_copy.begin();
+	//逆时针排序
+	int  start_vertex = min_f(it->first,it->second);
+	int  end_vertex = max_f(it->first,it->second);
+
+	binary_partion_list.push_back(partion);
+	binary_partion_list.push_back(partion);
+
+	auto &top_partion = binary_partion_list.front();
+	auto &bottom_partion = binary_partion_list.back();
+	//上侧划分,注意,划分的过程中
+	for (int base_j = start_vertex; base_j != end_vertex; base_j = (base_j + 1) % points_number)
+		top_partion.points_sequence_vec.push_back(base_j),top_partion.points_set.insert(base_j);
+	top_partion.points_sequence_vec.push_back(end_vertex);
+	top_partion.points_set.insert(end_vertex);
+	//下侧划分
+	for (int base_j = start_vertex; base_j != end_vertex; base_j = (base_j - 1 + points_number) % points_number)
+		bottom_partion.points_sequence_vec.push_back(base_j),bottom_partion.points_set.insert(base_j);
+	bottom_partion.points_sequence_vec.push_back(end_vertex);
+	bottom_partion.points_set.insert(end_vertex);
+	//移除掉第一个连通边
+	adj_edge_map_copy.erase(it);
+	//针对已经划分出的部分,再次进行遍历
+	while (binary_partion_list.size())
+	{
+		auto now_partion = binary_partion_list.front();
+		binary_partion_list.pop_front();
+
+		auto &points_sequence_vec = now_partion.points_sequence_vec;
+		int  base_l = 0,secondary_l = -1;//记录下分裂的位置
+		for (base_l = 0; base_l < points_sequence_vec.size(); ++base_l)
+		{
+			int  now_vertex = points_sequence_vec[base_l];
+			auto itk = adj_edge_map_copy.find(now_vertex);//如果在该集合中查找到有分裂边
+			if (itk != adj_edge_map_copy.end() && now_partion.points_set.find(itk->second) != now_partion.points_set.end())
+			{
+				secondary_l = itk->second;
+				it = itk;
+				break;
+			}
+		}
+		//如果没有找到,则意味着此顶点序列所形成的环中没有其他新引入的边,因此可以直接写入
+		if (secondary_l == -1)
+		{
+			points_sequence.insert(points_sequence.end(), points_sequence_vec.begin(), points_sequence_vec.end());
+			boundary_index.push_back(points_sequence.size());
+		}
+		else//否则再次分裂,只是分裂的过程要稍微有些复杂
+		{
+			binary_partion_list.push_front(partion);
+			auto &bottom_partion = binary_partion_list.front();
+
+			binary_partion_list.push_front(partion);
+			auto &top_partion = binary_partion_list.front();
+			int  array_size = points_sequence_vec.size();
+			//上侧划分
+			for (int index_l = base_l; points_sequence_vec[index_l] != secondary_l; index_l = (index_l + 1) % array_size)
+				top_partion.points_sequence_vec.push_back(points_sequence_vec[index_l]), top_partion.points_set.insert(points_sequence_vec[index_l]);
+			top_partion.points_sequence_vec.push_back(secondary_l);
+			top_partion.points_set.insert(secondary_l);
+			//下册划分
+			for (int index_l = base_l; points_sequence_vec[index_l] != secondary_l; index_l = (index_l - 1 + array_size) % array_size)
+				bottom_partion.points_sequence_vec.push_back(points_sequence_vec[index_l]), bottom_partion.points_set.insert(points_sequence_vec[index_l]);
+			bottom_partion.points_sequence_vec.push_back(secondary_l);
+			bottom_partion.points_set.insert(secondary_l);
+			//删除掉该连通边映射关系
+			adj_edge_map_copy.erase(it);
+		}
+	}
+}
+
+void polygon_simple_generate(std::vector<cocos2d::Vec2> &polygon_points, std::vector<cocos2d::Vec2> &simple_polygon)
+{
+	if (&polygon_points != &simple_polygon)
+		simple_polygon = polygon_points;
+	//首先对顶点进行遍历,找出y坐标最小的点
+	int   base_j = -1;
+	for (int index_l = 0; index_l < simple_polygon.size(); ++index_l)
+	{
+		if (base_j == -1 || simple_polygon[index_l].y < simple_polygon[base_j].y || (simple_polygon[index_l].y == simple_polygon[base_j].y && simple_polygon[index_l].x < simple_polygon[base_j].x))
+			base_j = index_l;
+	}
+	Vec2  compare_point = simple_polygon[base_j];
+	std::function<bool(const Vec2 &a, const Vec2 &b)> compare_func = [compare_point](const Vec2 &a,const Vec2 &b)->bool {
+		float a_x = a.x - compare_point.x;
+		float a_y = a.y - compare_point.y;
+		float f1 = atan2f(a_y,a_x);
+
+		float b_x = b.x - compare_point.x;
+		float b_y = b.y - compare_point.y;
+		float f2 = atan2f(b_y,b_x);
+
+		return f1 < f2 || f1 == f2 && a_x * a_x + a_y *a_y <= b_x * b_x + b_y * b_y;
+	};
+	quick_sort(simple_polygon.data(), (int)simple_polygon.size(), compare_func);
+}
+
+void polygon_monotone_triangulate(const std::vector<cocos2d::Vec2> &points_array, const int *sequence_array, int array_size, std::vector<int> &triangle_sequence, std::map<int, int> &addtional_edge_map)
+{
+	//首先对当前的顶点进行排序,其排序算法比较简单,因为已经假设输入的多边形为y单调多边形
+	int   *sorted_points_array = new int[array_size];
+	int     base_j = 0,secondary_l =0;
+	//首先遍历数组,查找最高与最低的顶点,并计算多边形的CCW走向
+	float polygon_sign_area = 0.0f;
+	for (int index_l = 0,last = array_size-1; index_l < array_size; last = index_l, ++index_l)
+	{
+		int select_y = sequence_array[index_l];
+		int  min_y = sequence_array[base_j];
+		if (points_array[min_y].y < points_array[select_y].y || points_array[min_y].y == points_array[select_y].y && points_array[min_y].x > points_array[select_y].x)
+			base_j = index_l;
+
+		int max_y = sequence_array[secondary_l];
+		if (points_array[max_y].y > points_array[select_y].y || points_array[max_y].y == points_array[select_y].y && points_array[max_y].x < points_array[select_y].x)
+			secondary_l = index_l;
+		polygon_sign_area += cross(points_array[sequence_array[last]], points_array[select_y]);
+	}
+	//对于y单调多边形,其顶点排序算法只需要一次遍历,即可完成
+	int index_y = 0;
+	sorted_points_array[index_y++] = base_j;
+	for (int left = (base_j + 1) % array_size, right = (base_j - 1 + array_size) % array_size;left != secondary_l || right != secondary_l;)
+	{
+		//比较y值
+		int translate_l = sequence_array[left];
+		int translate_r = sequence_array[right];
+		if (left != secondary_l && (points_array[translate_l].y > points_array[translate_r].y || points_array[translate_l].y == points_array[translate_r].y && points_array[translate_l].x < points_array[translate_r].x))
+		{
+			sorted_points_array[index_y] = left;
+			left = (left + 1) % array_size;
+		}
+		else
+		{
+			assert(right != secondary_l);
+			sorted_points_array[index_y] = right;
+			right = (right - 1 + array_size) % array_size;
+		}
+		++index_y;
+	}
+	sorted_points_array[index_y++] = secondary_l;
+	std::list<int>	sweep_stack;
+	sweep_stack.push_back(0);
+	sweep_stack.push_back(1);
+	triangle_sequence.reserve(array_size * 2);
+	//左侧值为1,右侧为-1,注意判断顺时针/逆时针的顺序并非那么的直观
+	int ccw_type = polygon_sign_area > 0? 1 : -1;
+#define check_vertex_boundary_type(secondary_index)  (points_array[sequence_array[secondary_index]].y <= points_array[sequence_array[(secondary_index - ccw_type + array_size)%array_size]].y && points_array[sequence_array[secondary_index]].y >= points_array[sequence_array[(secondary_index + ccw_type + array_size)%array_size]].y?1:-1)
+#define check_secondary_index(idx)	sequence_array[sorted_points_array[idx]]
+#define safe_insert_map(m,s,t) {triangle_sequence.push_back(s);triangle_sequence.push_back(t);}//auto i = m.find(s);if(i == m.end())m[s] = t;else m[t] =s;}
+	for (int index_l = 2; index_l < index_y - 1; ++index_l)
+	{
+		int  now_index = sorted_points_array[index_l];
+		int real_index = sequence_array[now_index];
+
+		int  now_type = check_vertex_boundary_type(now_index);
+		//检测栈顶元素的类型
+		int top_index = sweep_stack.back();
+		int top_type = check_vertex_boundary_type(sorted_points_array[top_index]);
+		//如果在异侧
+		if (now_type * top_type < 0)
+		{
+			//除了最后一个元素之外的其他元素,分别插入对角线
+			int bottom_index = sweep_stack.front();
+			while (sweep_stack.size())
+			{
+				int perform_index = sweep_stack.back();
+				sweep_stack.pop_back();
+				if (perform_index != bottom_index)
+					safe_insert_map(addtional_edge_map,check_secondary_index(perform_index),real_index);// addtional_edge_map[check_secondary_index(perform_index)] = real_index;
+			}
+			sweep_stack.push_back(top_index);//top_index == (index_l -1 + array_size)%array_size
+			sweep_stack.push_back(index_l);
+		}
+		else//如果在同侧,则处理算法要稍微复杂一些
+		{
+			sweep_stack.pop_back();//第一个元素除外
+			int  last_perform_index = top_index;
+			while (sweep_stack.size() && cross(points_array[real_index], points_array[check_secondary_index(last_perform_index)], points_array[check_secondary_index(sweep_stack.back())]) * now_type < 0)
+			{
+				last_perform_index = sweep_stack.back();
+				sweep_stack.pop_back();
+				safe_insert_map(addtional_edge_map, check_secondary_index(last_perform_index), real_index); // addtional_edge_map[check_secondary_index(last_perform_index)] = real_index;
+			}
+			sweep_stack.push_back(last_perform_index);
+			sweep_stack.push_back(index_l);
+		}
+	}
+	//针对最后一个元素,需要特殊处理
+	if (sweep_stack.size())
+		sweep_stack.pop_back();
+	if (sweep_stack.size())
+		sweep_stack.pop_front();
+	for (auto it = sweep_stack.begin(); it != sweep_stack.end(); ++it)
+		safe_insert_map(addtional_edge_map, check_secondary_index(*it), check_secondary_index(array_size - 1));//addtional_edge_map[check_secondary_index(*it)] = check_secondary_index(array_size - 1);
+
+	delete[] sorted_points_array;
+	sorted_points_array = nullptr;
+
+#undef safe_insert_map
+#undef check_secondary_index
+#undef check_vertex_boundary_type
 }
 NS_GT_END

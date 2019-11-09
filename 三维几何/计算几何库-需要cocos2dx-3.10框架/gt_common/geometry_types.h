@@ -11,4 +11,6 @@
 #define NS_GT_BEGIN namespace gt{
 #define NS_GT_END     }
 
+#define min_f(x,y)  ((x) < (y) ?(x):(y))
+#define max_f(x,y)  ((x) > (y)?(x):(y))
 #endif

@@ -54,6 +54,7 @@ void  mat3_transform_vec3(const mat3x3 &mat,const cocos2d::Vec3 &t,cocos2d::Vec3
 cocos2d::Vec3  cross(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b);
 cocos2d::Vec3  cross_normalize(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b);
 float cross(const cocos2d::Vec2 &a, const cocos2d::Vec2 &b);
+float cross(const cocos2d::Vec2 &base,const cocos2d::Vec2 &fc1,const cocos2d::Vec2 &fc2);
 /*
 *向量规范化
 */

@@ -124,6 +124,11 @@ float cross(const cocos2d::Vec2 &a, const cocos2d::Vec2 &b)
 	return a.x * b.y - a.y * b.x;
 }
 
+float cross(const cocos2d::Vec2 &base, const cocos2d::Vec2 &fc1, const cocos2d::Vec2 &fc2)
+{
+	return	(fc1.x - base.x) * (fc2.y - base.y) - (fc1.y - base.y) * (fc2.x - base.x);
+}
+
 float sign_area(const cocos2d::Vec2 &db, const cocos2d::Vec2 &dc)
 {
 	return db.x * dc.y - db.y * dc.x;

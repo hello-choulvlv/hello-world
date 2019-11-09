@@ -111,5 +111,28 @@ float point_compute_minimum_distance(const std::vector<cocos2d::Vec3> &points,co
   *修改非常简单
  */
 bool polygon_polygon_intersect_test(const Polygon &pa,const Polygon &pb,cocos2d::Vec2 &a,cocos2d::Vec2 &b);
+/*
+  *三角剖分算法实现
+  *其包含了一系列的函数
+  *其输入假设是简单多边形，并且其顶点的顺序为逆时针
+  *其输出将包含了一些列的单调Y多边形
+ */
+bool polygon_simple_decompose(const std::vector<cocos2d::Vec2> &polygon_points,std::map<int,int>  &addtional_edge_map,std::vector<int> &points_sequence,std::vector<int> &boundary_index);
+/*
+  *计算单调剖分图中的圆环序列
+  *核心算法位为广度优先级搜索
+ */
+void polygon_simple_cycle_sequence(int point_number,const std::map<int,int> &adj_edge, std::vector<int> &points_sequence, std::vector<int> &boundary_index);
+/*
+  *简单多边形的生成算法
+ */
+void polygon_simple_generate(std::vector<cocos2d::Vec2> &polygon_points, std::vector<cocos2d::Vec2> &simple_polygon);
+/*
+  *y单调多边形的三角剖分算法实现
+  *输出生成的三角形顶点序列,以及新增加的边
+  *注意,算法并没有经过优化
+  *目前,暂时没有将生成三角形序列的算法实现,读者可以自己去完成
+ */
+void polygon_monotone_triangulate(const std::vector<cocos2d::Vec2> &points_array,const int *sequence_array,int array_size,std::vector<int>  &triangle_sequence,std::map<int,int> &addtional_edge_map);
 NS_GT_END
 #endif

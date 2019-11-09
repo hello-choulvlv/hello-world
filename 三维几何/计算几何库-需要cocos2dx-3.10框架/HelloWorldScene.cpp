@@ -97,7 +97,8 @@ bool HelloWorld::init()
 	//gjkAlgorithmTest();
 	//quickHullAlgorithmTest();
 	//quickSegmentIntersectTest();
-	testRedBlackTree();
+	//testRedBlackTree();
+	simplePolygonYDecompose();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -809,5 +810,67 @@ void HelloWorld::quickSegmentIntersectTest()
 	int number2 = gt::segment_n_intersect_prim(segment_array, intersect_points2);
 	CCLOG("fast->%d,prim->%d",number,number2);
 
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::simplePolygonYDecompose()
+{
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+
+	float  length_l = 600.0f;
+	float length_w = 600;
+	const int array_size = 17;
+	//三角形平面
+	std::vector<Vec2>  points(array_size);
+
+	for (int index_j = 0; index_j < array_size; ++index_j)
+	{
+		points[index_j] = Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(points[index_j]);
+		root_node->addChild(sprite);
+	}
+	//生成简单多边形
+	gt::polygon_simple_generate(points, points);
+	//画出离散的边
+	for (int index_j = 0; index_j < array_size; ++index_j)
+		draw_node->drawLine(points[index_j], points[index_j < array_size-1?index_j+1:0],Color4F::GREEN);
+	//计算简单多边形的单调划分
+	std::map<int,int> addtional_edge_map;
+	std::vector<int>		monotone_polygon_vec;
+	std::vector<int>		boundary_index_vec;
+	gt::polygon_simple_decompose(points, addtional_edge_map, monotone_polygon_vec, boundary_index_vec);
+	//画出来额外的边
+	for (auto it = addtional_edge_map.begin(); it != addtional_edge_map.end(); ++it)
+		draw_node->drawLine(points[it->first], points[it->second], Color4F::RED);
+	//计算离散y单调多边形的集合
+	std::vector<int>  points_sequence,points_index;
+	gt::polygon_simple_cycle_sequence(array_size, addtional_edge_map, points_sequence, points_index);
+
+	int base_j = 0;
+	Vec2 offset(600,200);
+	for (int index_l = 0; index_l < points_index.size(); ++index_l)
+	{
+		int boundary_l = points_index[index_l];
+		const Color4F  color_array(gt::random(),gt::random(),gt::random(),1.0f);
+		//for (int loop_l = base_j; loop_l < boundary_l; ++loop_l)
+		//	draw_node->drawLine(points[points_sequence[loop_l]] + offset, points[points_sequence[loop_l < boundary_l-1?loop_l +1: base_j]] + offset, color_array);
+		//对新产生的y单调多边形,进行三角剖分
+		const int *points_array = points_sequence.data() + base_j;
+		std::map<int, int>  local_edge_map;
+		std::vector<int>		triangle_sequence_vec;
+		gt::polygon_monotone_triangulate(points, points_array, boundary_l - base_j, triangle_sequence_vec, local_edge_map);
+		//画出额外的边
+		//for (auto it = local_edge_map.begin(); it != local_edge_map.end(); ++it)
+		//	draw_node->drawLine(points[it->first], points[it->second],color_array);
+		for(int index_j = 0;index_j < triangle_sequence_vec.size();index_j +=2)
+			draw_node->drawLine(points[triangle_sequence_vec[index_j]], points[triangle_sequence_vec[index_j +1]], color_array);
+		base_j = boundary_l;
+	}
 	root_node->setCameraMask(s_CameraMask);
 }

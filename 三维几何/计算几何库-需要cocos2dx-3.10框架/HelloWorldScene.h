@@ -115,6 +115,8 @@ public:
 	void  quickSegmentIntersectTest();
 	//平衡树/红黑树测试
 	void testRedBlackTree();
+	//简单多边形的y单调分解
+	void simplePolygonYDecompose();
 };
 
 #endif // __HELLOWORLD_SCENE_H__
