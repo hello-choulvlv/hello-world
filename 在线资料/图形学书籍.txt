@@ -1,0 +1,13 @@
+C++ AMP：用Visual C++加速大规模并行计算
+CUDA C编程权威指南 如何使用GPU技术 CUDAC语言编程教程
+Direct3D技术内幕
+3D游戏:卷1.实时渲染与软件技术
+3D游戏 卷2动画与高级实时渲染技术
+DirectX 10 3D游戏编程深度探索 游戏软件开发专
+DirectX9.03D游戏开发编程基础
+3D游戏与计算机图形学中的数学方法（第3版）
+计算几何算法应用(第三版)
+实时碰撞检测
+
+#extension GL_ARB_compute_shader : enable
+#extension GL_ARB_shader_storage_buffer_object : enable

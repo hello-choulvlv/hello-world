@@ -72,6 +72,12 @@ bool check_in_target_plane(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b, const
 */
 bool polygon_compute_minimum(const std::vector<cocos2d::Vec2> &points, std::vector<cocos2d::Vec2> &polygon_points);
 /*
+  *计算两个多边形的公切线
+  *对输入已经假设两个多边形不会相交,并且其顶点形式都是逆时针排列的
+  *输出是两对顶点的索引,<p1,p2>,<p1,p2>分别代表上公切线,下公切线
+ */
+void polygon_polygon_tangent_line(const std::vector<cocos2d::Vec2> &polygon1,const std::vector<cocos2d::Vec2> &polygon2,int tangent_index_array[4]);
+/*
   *求多边形的最远距离
   *并给出距离最远的两个点坐标
  */

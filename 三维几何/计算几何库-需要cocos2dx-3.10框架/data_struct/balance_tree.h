@@ -8,14 +8,14 @@
 #define __BALANCE_TREE_H__
 #include "gt_common/geometry_types.h"
 #include<assert.h>
+#include<functional>
 NS_GT_BEGIN
-#include <assert.h>
 
 enum ColorType { ColorType_Red, ColorType_Black };
 #define node_color(node) ((!node)?ColorType_Black:(node)->color_type)
-#define __check_red_black_protity 0
+#define __check_red_black_property 0
 
-template<typename TW, typename SV>
+template<typename TW>
 class red_black_tree {
 public:
 	struct internal_node
@@ -32,9 +32,9 @@ private:
 	struct internal_node  *_root, *_cache_head;
 	int       _node_size, _cache_size, _cache_capacity;
 	//比较函数,稍后读者将会发现最后面的一个参数是怎么来的
-	int(*_compare_func)(const TW &a, const TW &b, const SV &l);
+	//int(*_compare_func)(const TW &a, const TW &b, const SV &l);
 public:
-	red_black_tree(int(*compare_func)(const TW &, const TW &b, const SV &), int capacity_size = 8) :_compare_func(compare_func), _root(nullptr), _cache_head(nullptr), _node_size(0), _cache_size(0), _cache_capacity(capacity_size) {
+	red_black_tree(int capacity_size = 8) :/*_compare_func(compare_func),*/ _root(nullptr), _cache_head(nullptr), _node_size(0), _cache_size(0), _cache_capacity(capacity_size) {
 	};
 	~red_black_tree() {
 		if (_node_size)
@@ -106,10 +106,10 @@ public:
 		return child;
 	}
 
-	internal_node* lookup(const TW &tw_value, const SV &sv_value) {
+	internal_node* lookup(const TW &tw_value, std::function<bool (const TW &, const TW &)> &compare_func) {
 		internal_node* n = _root;
 		while (n != nullptr) {
-			int comp_result = _compare_func(tw_value, n->tw_value, sv_value);
+			int comp_result = compare_func(tw_value, n->tw_value);
 			if (comp_result == 0) {
 				return n;
 			}
@@ -124,7 +124,7 @@ public:
 		return n;
 	}
 
-	void insert(const TW &tw_value, const SV &sv_value) {
+	void insert(const TW &tw_value, std::function<bool(const TW &, const TW &)> &compare_func) {
 		internal_node* inserted_node = nullptr;// new_node(tw_value, ColorType_Red, nullptr, nullptr);
 		if (_root == nullptr) {
 			_root = inserted_node =  apply_memory(tw_value);
@@ -132,7 +132,7 @@ public:
 		else {
 			internal_node* n = _root;
 			while (1) {
-				int comp_result = _compare_func(tw_value, n->tw_value, sv_value);
+				int comp_result = compare_func(tw_value, n->tw_value);
 				if (comp_result == 0) {
 					return;
 				}
@@ -186,8 +186,8 @@ public:
 		verify_properties();
 	}
 
-	void remove(const TW &tw_value, const SV &sv_value) {
-		internal_node* search_node = lookup(tw_value, sv_value);
+	void remove(const TW &tw_value, std::function<bool(const TW &, const TW &)> &compare_func) {
+		internal_node* search_node = lookup(tw_value, compare_func);
 		if (!search_node)
 			remove(search_node);
 	}
@@ -306,7 +306,7 @@ private:
 	}
 
 	void verify_properties() {
-#if __check_red_black_protity
+#if __check_red_black_property
 		property_1(_root);
 		property_2(_root);
 		property_4(_root);

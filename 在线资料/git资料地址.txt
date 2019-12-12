@@ -68,3 +68,6 @@ https://github.com/Jackie0423/ACM.git
 //////////////////////////////GPU-Pro + GPU-GEMS/////////////////////////////////////////
 https://github.com/wolfgangfengel/GPU-Pro-6.git
 https://github.com/wolfgangfengel
+
+//高等数学
+https://oi-wiki.org/math/simplex/

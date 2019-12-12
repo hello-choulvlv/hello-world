@@ -308,6 +308,84 @@ bool polygon_compute_minimum(const std::vector<cocos2d::Vec2> &points, std::vect
 	return polygon_points.size() >= 3;
 }
 
+void polygon_polygon_tangent_line(const std::vector<cocos2d::Vec2> &polygon1, const std::vector<cocos2d::Vec2> &polygon2, int tangent_index_array[4])
+{
+	//查找第一个凸多边形的最大y坐标顶点,以及最小y坐标顶点,如果有多个顶点的y坐标相同,则选取的方案有所不同
+	const int a_array_size = polygon1.size();
+	const int b_array_size = polygon2.size();
+	int a_top_index = 0;
+	int a_bottom_index = 0;
+	//A
+	bool b_max = true, b_min = true;
+	for (int index_l = 1; index_l < a_array_size; ++index_l)
+	{
+		if (polygon1[a_top_index].y < polygon1[index_l].y || polygon1[a_top_index].y == polygon1[index_l].y && polygon1[a_top_index].x > polygon1[index_l].x)
+			a_top_index = index_l;
+
+		if (polygon1[a_bottom_index].y > polygon1[index_l].y || polygon1[a_bottom_index].y == polygon1[index_l].y && polygon1[a_bottom_index].x > polygon1[index_l].x)
+			a_bottom_index = index_l;
+	}
+
+	int b_top_index = 0;
+	int b_bottom_index = 0;
+	//需要增加一轮循环,才能计算出来
+	b_min = b_max = true;
+	int a_top_prev = (a_top_index - 1 + a_array_size)%a_array_size;
+	int a_top_next = (a_top_index +1)%a_array_size;
+
+	int a_bottom_prev = (a_bottom_index -1 + a_array_size)%a_array_size;
+	int a_bottom_next = (a_bottom_index +1)%a_array_size;
+
+	int b_top_prev = b_array_size - 1;
+	int b_top_next = 1;
+
+	int b_bottom_prev = b_array_size - 1;
+	int b_bottom_next = 1;
+
+	while (b_min || b_max)
+	{
+		if (b_max)
+		{
+			if (cross(polygon1[a_top_index], polygon2[b_top_index], polygon1[a_top_prev]) > 0)
+				a_top_index = a_top_prev;
+			else if (cross(polygon1[a_top_index], polygon2[b_top_index], polygon1[a_top_next]) > 0)
+				a_top_index = a_top_prev;
+			else if (cross(polygon1[a_top_index], polygon2[b_top_index], polygon2[b_top_prev]) > 0)
+				b_top_index = b_top_prev;
+			else if (cross(polygon1[a_top_index], polygon2[b_top_index], polygon2[b_top_next]) > 0)
+				b_top_index = b_top_next;
+			else
+				b_max = false, tangent_index_array[0] = a_top_index, tangent_index_array[1] = b_top_index;
+
+			a_top_prev = (a_top_index - 1 + a_array_size) % a_array_size;
+			a_top_next = (a_top_index + 1) % a_array_size;
+
+			b_top_prev = (b_top_index - 1 + b_array_size) % b_array_size;
+			b_top_next = (b_top_index + 1) % b_array_size;
+		}
+
+		if (b_min)
+		{
+			if (cross(polygon1[a_bottom_index], polygon2[b_bottom_index], polygon1[a_bottom_prev]) < 0)
+				a_bottom_index = a_bottom_prev;
+			else if (cross(polygon1[a_bottom_index], polygon2[b_bottom_index], polygon1[a_bottom_next]) < 0)
+				a_bottom_index = a_bottom_next;
+			else if (cross(polygon1[a_bottom_index], polygon2[b_bottom_index], polygon2[b_bottom_prev]) < 0)
+				b_bottom_index = b_bottom_prev;
+			else if (cross(polygon1[a_bottom_index], polygon2[b_bottom_index], polygon2[b_bottom_next]) < 0)
+				b_bottom_index = b_bottom_next;
+			else
+				b_min = false, tangent_index_array[2] = a_bottom_index, tangent_index_array[3] = b_bottom_index;
+
+			a_bottom_prev = (a_bottom_index - 1 + a_array_size) % a_array_size;
+			a_bottom_next = (a_bottom_index + 1) % a_array_size;
+
+			b_bottom_prev = (b_bottom_index - 1 + b_array_size) % b_array_size;
+			b_bottom_next = (b_bottom_index + 1) % b_array_size;
+		}
+	}
+}
+
 void plane2d_create(Plane2D &plane, const cocos2d::Vec2 &normal, float d)
 {
 	plane.normal = normalize(normal);
@@ -1268,7 +1346,7 @@ void polygon_simple_generate(std::vector<cocos2d::Vec2> &polygon_points, std::ve
 
 		return f1 < f2 || f1 == f2 && a_x * a_x + a_y *a_y <= b_x * b_x + b_y * b_y;
 	};
-	quick_sort(simple_polygon.data(), (int)simple_polygon.size(), compare_func);
+	quick_sort<Vec2>(simple_polygon.data(), (int)simple_polygon.size(), compare_func);
 }
 
 void polygon_monotone_triangulate(const std::vector<cocos2d::Vec2> &points_array, const int *sequence_array, int array_size, std::vector<int> &triangle_sequence, std::map<int, int> &addtional_edge_map)
@@ -1277,8 +1355,8 @@ void polygon_monotone_triangulate(const std::vector<cocos2d::Vec2> &points_array
 	int   *sorted_points_array = new int[array_size];
 	int     base_j = 0,secondary_l =0;
 	//首先遍历数组,查找最高与最低的顶点,并计算多边形的CCW走向
-	float polygon_sign_area = 0.0f;
-	for (int index_l = 0,last = array_size-1; index_l < array_size; last = index_l, ++index_l)
+	float polygon_sign_area = cross(points_array[sequence_array[array_size-1]], points_array[sequence_array[0]]);
+	for (int index_l = 1; index_l < array_size; ++index_l)
 	{
 		int select_y = sequence_array[index_l];
 		int  min_y = sequence_array[base_j];
@@ -1288,7 +1366,7 @@ void polygon_monotone_triangulate(const std::vector<cocos2d::Vec2> &points_array
 		int max_y = sequence_array[secondary_l];
 		if (points_array[max_y].y > points_array[select_y].y || points_array[max_y].y == points_array[select_y].y && points_array[max_y].x < points_array[select_y].x)
 			secondary_l = index_l;
-		polygon_sign_area += cross(points_array[sequence_array[last]], points_array[select_y]);
+		polygon_sign_area += cross(points_array[sequence_array[index_l-1]], points_array[select_y]);
 	}
 	//对于y单调多边形,其顶点排序算法只需要一次遍历,即可完成
 	int index_y = 0;

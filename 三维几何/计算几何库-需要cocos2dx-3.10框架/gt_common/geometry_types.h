@@ -13,4 +13,8 @@
 
 #define min_f(x,y)  ((x) < (y) ?(x):(y))
 #define max_f(x,y)  ((x) > (y)?(x):(y))
+/*
+  *std::vector快速追加元素
+ */
+#define vector_fast_push_back(v,s) {if(v.size() >= v.capacity())v.reserve(v.size() * 2);v.push_back(s);}
 #endif

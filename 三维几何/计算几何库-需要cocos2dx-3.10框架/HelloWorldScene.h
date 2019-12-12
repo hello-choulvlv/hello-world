@@ -117,6 +117,10 @@ public:
 	void testRedBlackTree();
 	//简单多边形的y单调分解
 	void simplePolygonYDecompose();
+	//二维线性规划测试
+	void twoDimensionLinearlyProgram();
+	//计算两个凸多边形的公切线
+	void twoPolygonTangentLine();
 };
 
 #endif // __HELLOWORLD_SCENE_H__
