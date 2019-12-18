@@ -17,4 +17,12 @@
   *std::vector快速追加元素
  */
 #define vector_fast_push_back(v,s) {if(v.size() >= v.capacity())v.reserve(v.size() * 2);v.push_back(s);}
+
+/*
+  *针对某一些数据结构的快速寻址时使用
+ */
+#ifndef __offsetof
+#define __offsetof(s,m) (long)((char *)&((s *)nullptr)->m)
+#endif
+
 #endif

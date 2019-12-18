@@ -121,6 +121,8 @@ public:
 	void twoDimensionLinearlyProgram();
 	//计算两个凸多边形的公切线
 	void twoPolygonTangentLine();
+	//计算离散点集的三角剖分算法测试
+	void delaunayTriangulate();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

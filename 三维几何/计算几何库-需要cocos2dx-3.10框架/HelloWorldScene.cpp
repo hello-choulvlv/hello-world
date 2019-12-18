@@ -100,7 +100,8 @@ bool HelloWorld::init()
 	//testRedBlackTree();
 	//simplePolygonYDecompose();
 	//twoDimensionLinearlyProgram();
-	twoPolygonTangentLine();
+	//twoPolygonTangentLine();
+	delaunayTriangulate();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -312,4 +313,71 @@ void HelloWorld::twoPolygonTangentLine()
 	draw_polygon->drawLine(polygon_vector[tangent_index_array[2]], polygon_vector2[tangent_index_array[3]], Color4F::YELLOW);
 
 	root_node->addChild(draw_polygon);
+}
+
+void HelloWorld::delaunayTriangulate()
+{
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+
+	float  length_l = 600.0f;
+	float length_w = 700;
+	const int array_size = 128;
+	//三角形平面
+	std::vector<Vec2>  points(array_size + 3);
+	std::vector<Sprite*>  sprite_array[array_size];
+	//生成随机离散点,并计算boundingbox
+	Vec2 origin(FLT_MAX, FLT_MAX), bottom(-FLT_MAX,-FLT_MAX);
+	for (int index_j = 0; index_j < array_size; ++index_j)
+	{
+		points[index_j] = Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+
+		origin.x = fminf(origin.x,points[index_j].x);
+		origin.y = fminf(origin.y,points[index_j].y);
+
+		bottom.x = fmaxf(bottom.x,points[index_j].x);
+		bottom.y = fmaxf(bottom.y,points[index_j].y);
+
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(points[index_j]);
+		root_node->addChild(sprite);
+		sprite_array[index_j];
+	}
+	//Cycle
+	//gt::Cycle cycle;
+	//gt::DelaunayTriangle delaunay_triangle = {short(0),short(1),short(2)};
+	//static_create_cycle_by_triangle(cycle, points,delaunay_triangle);
+	//draw_node->drawCircle(cycle.center,cycle.radius, 360, 2.0f * M_PI * cycle.radius / 4.0f, false, 1.0f,1.0f, Color4F::GREEN);
+	//计算离散点集的boundingbox的外接三角形
+	Vec2 triangle[3];
+
+	gt::rect_outerline_triangle(origin, bottom - origin, triangle);
+	//draw_node->drawLines(triangle, 3, true, Color4F::BLUE);
+
+	points[array_size] = triangle[0];
+	points[array_size + 1] = triangle[1];
+	points[array_size + 2] = triangle[2];
+
+	std::vector<gt::DelaunayTriangle>   delaunay_trianges;
+	int real_size = 0;
+	gt::delaunay_triangulate_bowyer_washton(points, delaunay_trianges, real_size);
+
+	for (int index_l = 0; index_l < real_size; ++index_l)
+	{
+		auto &delaunay = delaunay_trianges[index_l];
+		Color4F color(gt::random(),gt::random(),gt::random(),1.0f);
+		draw_node->drawLine(points[delaunay.v1],points[delaunay.v2],color);
+		draw_node->drawLine(points[delaunay.v2], points[delaunay.v3], color);
+		draw_node->drawLine(points[delaunay.v3], points[delaunay.v1], color);
+
+
+		//gt::Cycle cycle;
+		//gt::cycle_create(points[delaunay.v1], points[delaunay.v2], points[delaunay.v3], cycle);
+		//draw_node->drawCircle(cycle.center, cycle.radius,360.0f,2.0f * M_PI * cycle.radius/4.0f,false,color);
+	}
+
+	root_node->setCameraMask(s_CameraMask);
 }

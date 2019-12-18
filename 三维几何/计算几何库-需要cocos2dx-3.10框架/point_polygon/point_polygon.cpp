@@ -159,53 +159,6 @@ bool polygon_cycle_intersect_test(const Polygon &polygon, const Cycle &cycle)
 	//不能直接返回true,有一种情况下,上面的代码无法排除掉,就是圆同时与两个相邻的平面相交,但是却没有与多边形相交
 	return polygon_contains_point(polygon, cycle.center);
 }
-//not Optimal
-template<typename TK>
-void quick_sort(TK *source, int tk_num, std::function<bool(const TK &a, const TK &b)> &compare_func)
-{
-	//排序算法目前先采用插入排序,后面我们将会使用归并排序
-	TK   *bubble = new TK[tk_num];
-	int     step = 1, half = tk_num / 2;
-	TK  *t1 = source, *t2 = bubble;
-	for (; step < tk_num; step *= 2)
-	{
-		int  base_j = 0;
-		//compare and exchange
-		for (int index_j = 0; index_j < tk_num; index_j += step * 2)
-		{
-			int  base_j = index_j;
-			int  l_index = index_j;
-			int  other_j = index_j + step;
-			int l_boundary = other_j < tk_num ? other_j : tk_num;
-			int r_boundary = other_j + step < tk_num ? other_j + step : tk_num;
-
-			while (base_j < l_boundary && other_j < r_boundary)//边界
-			{
-				if (compare_func(t1[base_j], t1[other_j]))
-				{
-					t2[l_index] = t1[base_j];
-					++base_j;
-				}
-				else
-				{
-					t2[l_index] = t1[other_j];
-					++other_j;
-				}
-				++l_index;
-			}
-			//检查是否有某些元素还没有完全参与计算
-			for (; base_j < l_boundary; ++base_j, ++l_index) t2[l_index] = t1[base_j];
-			for (; other_j < r_boundary; ++other_j, ++l_index)t2[l_index] = t1[other_j];
-		}
-		TK *t = t1;
-		t1 = t2; t2 = t;
-	}
-	if (t1 != source)
-		memcpy(source, t1, sizeof(TK) * tk_num);
-
-	delete[] bubble;
-}
-
 /*
 *遍历顺序表
 */
@@ -315,26 +268,16 @@ void polygon_polygon_tangent_line(const std::vector<cocos2d::Vec2> &polygon1, co
 	const int b_array_size = polygon2.size();
 	int a_top_index = 0;
 	int a_bottom_index = 0;
-	//A
-	bool b_max = true, b_min = true;
-	for (int index_l = 1; index_l < a_array_size; ++index_l)
-	{
-		if (polygon1[a_top_index].y < polygon1[index_l].y || polygon1[a_top_index].y == polygon1[index_l].y && polygon1[a_top_index].x > polygon1[index_l].x)
-			a_top_index = index_l;
-
-		if (polygon1[a_bottom_index].y > polygon1[index_l].y || polygon1[a_bottom_index].y == polygon1[index_l].y && polygon1[a_bottom_index].x > polygon1[index_l].x)
-			a_bottom_index = index_l;
-	}
 
 	int b_top_index = 0;
 	int b_bottom_index = 0;
 	//需要增加一轮循环,才能计算出来
-	b_min = b_max = true;
-	int a_top_prev = (a_top_index - 1 + a_array_size)%a_array_size;
-	int a_top_next = (a_top_index +1)%a_array_size;
+	bool b_min =true, b_max = true;
+	int a_top_prev = a_array_size - 1;
+	int a_top_next = 1;
 
-	int a_bottom_prev = (a_bottom_index -1 + a_array_size)%a_array_size;
-	int a_bottom_next = (a_bottom_index +1)%a_array_size;
+	int a_bottom_prev = a_array_size - 1;
+	int a_bottom_next = 1;
 
 	int b_top_prev = b_array_size - 1;
 	int b_top_next = 1;

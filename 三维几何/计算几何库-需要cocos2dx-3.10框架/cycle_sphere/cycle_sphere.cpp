@@ -14,7 +14,7 @@ bool check_point_insideof_cycle(const Cycle &cycle, const cocos2d::Vec2 &point)
 	float d_x = point.x - cycle.center.x;
 	float d_y = point.y - cycle.center.y;
 
-	return d_x * d_x + d_y * d_y <= cycle.radius * cycle.radius;
+	return d_x * d_x + d_y * d_y < cycle.radius * cycle.radius;
 }
 ///////////////////////////////////base////////////////////////////
 void sphere_create(Sphere &sphere, const cocos2d::Vec3 &center, float radius)

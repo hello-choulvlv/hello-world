@@ -1,5 +1,7 @@
 /*
+  *公共函数集合
  *matrix变换,针对3x3,4x4,全部使用行矩阵,并且矩阵乘法,矩阵与向量的乘法也严格遵照行矩阵变换进行
+ *一些基本排序算法
  *2019/6/16
  *@author:xiaohuaxiong
  */
@@ -78,5 +80,100 @@ void  mat3_mutiply(const mat3x3 &a,const mat3x3 &b,mat3x3 &dst);
 void mat4_load_identity(mat4x4 &mat);
 void mat4_multiply(const mat4x4 &a,const mat4x4 &b,mat4x4 &dst);
 
+/*
+*排序函数
+*/
+template<typename TK>
+void  quick_sort(TK *source, int   tk_num, std::function<bool(const TK &a, const TK &b)> &compare_func)
+{
+	//排序算法目前先采用插入排序,后面我们将会使用归并排序
+	TK   *bubble = new TK[tk_num];
+	int     step = 1, half = tk_num / 2;
+	TK  *t1 = source, *t2 = bubble;
+	for (; step < tk_num; step *= 2)
+	{
+		int  base_j = 0;
+		//compare and exchange
+		for (int index_j = 0; index_j < tk_num; index_j += step * 2)
+		{
+			int  base_j = index_j;
+			int  l_index = index_j;
+			int  other_j = index_j + step;
+			int l_boundary = other_j < tk_num ? other_j : tk_num;
+			int r_boundary = other_j + step < tk_num ? other_j + step : tk_num;
+
+			while (base_j < l_boundary && other_j < r_boundary)//边界
+			{
+				if (compare_func(t1[base_j], t1[other_j]))
+				{
+					t2[l_index] = t1[base_j];
+					++base_j;
+				}
+				else
+				{
+					t2[l_index] = t1[other_j];
+					++other_j;
+				}
+				++l_index;
+			}
+			//检查是否有某些元素还没有完全参与计算
+			for (; base_j < l_boundary; ++base_j, ++l_index) t2[l_index] = t1[base_j];
+			for (; other_j < r_boundary; ++other_j, ++l_index)t2[l_index] = t1[other_j];
+		}
+		TK *t = t1;
+		t1 = t2; t2 = t;
+	}
+	if (t1 != source)
+		memcpy(source, t1, sizeof(TK) * tk_num);
+
+	delete[] bubble;
+}
+
+//另一种排序算法,与之前的相比较而言,区别在于比较函数
+template<typename TM>
+void quick_sort_origin_type(TM *source, int tk_num, std::function<bool(const TM a, const TM b)> &compare_func)
+{
+	//排序算法目前先采用插入排序,后面我们将会使用归并排序
+	TM   *bubble = new TM[tk_num];
+	int     step = 1, half = tk_num / 2;
+	TM  *t1 = source, *t2 = bubble;
+	for (; step < tk_num; step *= 2)
+	{
+		int  base_j = 0;
+		//compare and exchange
+		for (int index_j = 0; index_j < tk_num; index_j += step * 2)
+		{
+			int  base_j = index_j;
+			int  l_index = index_j;
+			int  other_j = index_j + step;
+			int l_boundary = other_j < tk_num ? other_j : tk_num;
+			int r_boundary = other_j + step < tk_num ? other_j + step : tk_num;
+
+			while (base_j < l_boundary && other_j < r_boundary)//边界
+			{
+				if (compare_func(t1[base_j], t1[other_j]))
+				{
+					t2[l_index] = t1[base_j];
+					++base_j;
+				}
+				else
+				{
+					t2[l_index] = t1[other_j];
+					++other_j;
+				}
+				++l_index;
+			}
+			//检查是否有某些元素还没有完全参与计算
+			for (; base_j < l_boundary; ++base_j, ++l_index) t2[l_index] = t1[base_j];
+			for (; other_j < r_boundary; ++other_j, ++l_index)t2[l_index] = t1[other_j];
+		}
+		TM *t = t1;
+		t1 = t2; t2 = t;
+	}
+	if (t1 != source)
+		memcpy(source, t1, sizeof(TM) * tk_num);
+
+	delete[] bubble;
+}
 NS_GT_END
 #endif

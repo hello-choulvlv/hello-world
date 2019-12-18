@@ -50,11 +50,6 @@ bool polygon_contains_point(const Polygon &polygon,const cocos2d::Vec2 &point);
 bool triangle_contains_point(const cocos2d::Vec2 vertex[3],const cocos2d::Vec2 &point);
 //多边形与圆的相交测试
 bool polygon_cycle_intersect_test(const Polygon &polygon,const Cycle &cycle);
-/*
-*排序函数
-*/
-template<typename TK>
-void  quick_sort(TK *source, int   tk_num, std::function<bool(const TK &a, const TK &b)> &compare_func);
 //////////////////////////////////////////////////////////////////////////
 /*
 *计算质心坐标,如果给定的点不与其他的点共面,则返回false
