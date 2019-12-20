@@ -18,11 +18,26 @@ struct DelaunayTriangle
 {
 	short v1, v2, v3;
 };
+
+bool operator==(const DelaunayTriangle &a, const DelaunayTriangle &other);
+bool operator!=(const DelaunayTriangle &a, const DelaunayTriangle &other);
+
+struct TwinTriangle
+{
+	DelaunayTriangle *left_triangle, *right_triangle;
+};
 //边
 struct DelaunayEdge
 {
 	short v1, v2;
 };
+//校正非法边
+//struct LegalEdge
+//{
+//	DelaunayEdge edge;
+//	short v3;
+//};
+
 bool operator ==(const DelaunayEdge &, const DelaunayEdge &other);
 bool operator >(const DelaunayEdge &, const DelaunayEdge &);
 bool operator < (const DelaunayEdge &, const DelaunayEdge &);
@@ -41,4 +56,12 @@ void rect_outerline_triangle(const cocos2d::Vec2 &origin,const cocos2d::Vec2 &ex
   *且其有效顶点的数据大于3个
 */
 void delaunay_triangulate_bowyer_washton(const std::vector<cocos2d::Vec2> &disper_points,std::vector<DelaunayTriangle> &triangle_sequence,int &real_size);
+/*
+  *计算离散点集的三角剖分
+  *使用随机算法
+  *其与输入相关的假设如上
+  *在该函数的第一版中,我们没有对算法的关键部分进行优化
+  *在第二版中,我么将会使用某些复杂的数据结构来优化三角形序列中点的快速定位算法步骤
+  */
+void delaunay_triangulate_random(const std::vector<cocos2d::Vec2> &disper_points, std::vector<DelaunayTriangle> &triangle_sequence, int &real_size);
 NS_GT_END

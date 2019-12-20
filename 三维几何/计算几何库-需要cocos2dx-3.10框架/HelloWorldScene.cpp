@@ -325,7 +325,7 @@ void HelloWorld::delaunayTriangulate()
 
 	float  length_l = 600.0f;
 	float length_w = 700;
-	const int array_size = 128;
+	const int array_size = 127;
 	//三角形平面
 	std::vector<Vec2>  points(array_size + 3);
 	std::vector<Sprite*>  sprite_array[array_size];
@@ -363,7 +363,8 @@ void HelloWorld::delaunayTriangulate()
 
 	std::vector<gt::DelaunayTriangle>   delaunay_trianges;
 	int real_size = 0;
-	gt::delaunay_triangulate_bowyer_washton(points, delaunay_trianges, real_size);
+	//gt::delaunay_triangulate_bowyer_washton(points, delaunay_trianges, real_size);
+	gt::delaunay_triangulate_random(points, delaunay_trianges, real_size);
 
 	for (int index_l = 0; index_l < real_size; ++index_l)
 	{
