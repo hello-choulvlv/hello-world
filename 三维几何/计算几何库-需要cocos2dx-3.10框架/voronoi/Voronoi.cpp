@@ -49,23 +49,21 @@ bool operator==(const DelaunayTriangle &a, const DelaunayTriangle &b)
 	return u1 == v1 && u2 == v2 && u3 == v3;
 }
 
-bool operator!=(const DelaunayTriangle &a, const DelaunayTriangle &b)
+bool operator==(const DelaunayNode &a, const DelaunayNode &b)
 {
 	short u1 = max_f(a.v1, a.v2);
 	short u2 = min_f(a.v1, a.v2);
 	short u3 = a.v3;
 	if (u3 > u1)
 	{
-		short t = u1;
-		u1 = u3;
-		u2 = t;
 		u3 = u2;
+		u2 = u1;
+		u1 = a.v3;
 	}
 	else if (u3 > u2)
 	{
-		short t = u2;
-		u2 = u3;
-		u3 = t;
+		u3 = u2;
+		u2 = a.v3;
 	}
 
 	short v1 = max_f(b.v1, b.v2);
@@ -73,18 +71,50 @@ bool operator!=(const DelaunayTriangle &a, const DelaunayTriangle &b)
 	short v3 = b.v3;
 	if (v3 > v1)
 	{
-		short t = v1;
-		v1 = v3;
-		v2 = t;
 		v3 = v2;
+		v2 = v1;
+		v1 = b.v3;
 	}
 	else if (v3 > v2)
 	{
-		short t = v2;
-		v2 = v3;
-		v3 = t;
+		v3 = v2;
+		v2 = b.v3;
 	}
-	return u1 != v1 || u2 != v2 || u3 != v3;
+	return u1 == v1 && u2 == v2 && u3 == v3;
+}
+
+bool operator==(const DelaunayNode &a, const DelaunayTriangle &b)
+{
+	short u1 = max_f(a.v1, a.v2);
+	short u2 = min_f(a.v1, a.v2);
+	short u3 = a.v3;
+	if (u3 > u1)
+	{
+		u3 = u2;
+		u2 = u1;
+		u1 = a.v3;
+	}
+	else if (u3 > u2)
+	{
+		u3 = u2;
+		u2 = a.v3;
+	}
+
+	short v1 = max_f(b.v1, b.v2);
+	short v2 = min_f(b.v1, b.v2);
+	short v3 = b.v3;
+	if (v3 > v1)
+	{
+		v3 = v2;
+		v2 = v1;
+		v1 = b.v3;
+	}
+	else if (v3 > v2)
+	{
+		v3 = v2;
+		v2 = b.v3;
+	}
+	return u1 == v1 && u2 == v2 && u3 == v3;
 }
 
 bool operator==(const DelaunayEdge &a, const DelaunayEdge &other)
@@ -113,6 +143,117 @@ bool operator >(const DelaunayEdge &a, const DelaunayEdge &other)
 
 	return u1 > w1 || u1 == w1 && u2 > w2;
 }
+
+bool triangle_contains_point(const std::vector<cocos2d::Vec2> &disper_points,const DelaunayNode *target_node,const Vec2 &target_point)
+{
+	const Vec2 &a = disper_points[target_node->v1];
+	const Vec2 &b = disper_points[target_node->v2];
+	const Vec2 &c = disper_points[target_node->v3];
+
+	float f1 = cross(target_point, a, b);
+	float f2 = cross(target_point, b, c);
+	float f3 = cross(target_point, c, a);
+	//包含关系
+	return f1 * f2 >= 0 && f2 * f3 >= 0;
+}
+
+DelaunayNode  *DelaunaySearch::insert(int point_index)
+{
+	DelaunayNode  *target_node = lookup(point_index);
+	//分裂成为三个三角形
+	DelaunayTriangle  delaunay_triangle = {short(point_index),target_node->v1,target_node->v2};
+	target_node->lchild = new DelaunayNode(delaunay_triangle);
+
+	delaunay_triangle.v2 = target_node->v2;
+	delaunay_triangle.v3 = target_node->v3;
+	target_node->mchild = new DelaunayNode(delaunay_triangle);
+
+	delaunay_triangle.v2 = target_node->v3;
+	delaunay_triangle.v3 = target_node->v1;
+	target_node->rchild = new DelaunayNode(delaunay_triangle);
+
+	node_size += 3;
+	return target_node;
+}
+
+void DelaunaySearch::merge(DelaunayNode *target,DelaunayNode *left, DelaunayNode *right)
+{
+	//assert(!target->lchild && !target->mchild);
+	target->lchild = left;
+	target->mchild = right;
+
+	++left->ref;
+	++right->ref;
+
+	node_size += 2;
+	//assert(!target->rchild);
+}
+#define delaunay_not_leaf(node) (node->lchild || node->mchild || node->rchild)
+DelaunayNode  *DelaunaySearch::lookup(int point_index)
+{
+	DelaunayNode  *target_node = &root;
+	const Vec2 &target_point = disper_points[point_index];
+
+	while (delaunay_not_leaf(target_node))
+	{
+		if (triangle_contains_point(disper_points, target_node->lchild, target_point))
+			target_node = target_node->lchild;
+		else if (triangle_contains_point(disper_points, target_node->mchild, target_point))
+			target_node = target_node->mchild;
+		else //if (target_node->rchild && triangle_contains_point(disper_points, target_node->rchild, target_point))
+			target_node = target_node->rchild;
+	}
+	//assert(triangle_contains_point(disper_points, target_node, target_point));
+	return target_node;
+}
+
+void DelaunaySearch::destroy(std::set<DelaunayNode *> &nodes_array)
+{
+
+}
+
+void DelaunaySearch::visit(std::set<DelaunayNode *> &nodes_array,bool visit_leaf)
+{
+	//需要一次层序遍历
+	std::list<DelaunayNode*> layer_visit_queue;
+	DelaunayNode *delaunay_node = &root;
+	//std::set<DelaunayNode*>   visit_map;
+
+	layer_visit_queue.push_back(delaunay_node);
+	while (layer_visit_queue.size())
+	{
+		DelaunayNode *node = layer_visit_queue.front();
+		layer_visit_queue.pop_front();
+
+		if (delaunay_not_leaf(node))
+		{
+			if (nodes_array.find(node->lchild) == nodes_array.end())
+				layer_visit_queue.push_back(node->lchild), nodes_array.insert(node->lchild);
+
+			if (nodes_array.find(node->mchild) == nodes_array.end())
+				layer_visit_queue.push_back(node->mchild), nodes_array.insert(node->mchild);
+		}
+
+		if (node->rchild && nodes_array.find(node->rchild) == nodes_array.end())
+			layer_visit_queue.push_back(node->rchild), nodes_array.insert(node->rchild);
+
+		//if (!visit_leaf || !node->lchild && !node->mchild && !node->rchild)
+			nodes_array.insert(node);
+	}
+}
+
+DelaunaySearch::~DelaunaySearch()
+{
+	//std::set<DelaunayNode *>  visit_nodes_array;
+	//visit(visit_nodes_array,nullptr);
+	//for (auto it = visit_nodes_array.begin(); it != visit_nodes_array.end(); ++it)
+	//{
+	//	DelaunayNode *node = *it;
+	//	if(node != &root)
+	//		delete node;
+	//}
+}
+#undef delaunay_not_leaf
 
 void rect_outerline_triangle(const cocos2d::Vec2 &origin, const cocos2d::Vec2 &extent, cocos2d::Vec2 triangle[3])
 {
@@ -285,82 +426,64 @@ void delaunay_triangulate_random(const std::vector<cocos2d::Vec2> &disper_points
 	const int array_size = disper_points.size();
 	DelaunayTriangle  delaunay_triangle = {short(array_size -3),short(array_size-2),short(array_size-1)};
 	//记录所有的三角形行列表
-	std::list<DelaunayTriangle>		undetermine_triangles;
-	undetermine_triangles.push_back(delaunay_triangle);
+	DelaunaySearch   delaunay_search(disper_points,delaunay_triangle);
 
 	DelaunayEdge  delaunay_edge = {short(array_size-3),short(array_size-2)};
 	//记录边与三角形之间的关系,可以用该数据结构快速定位相关的三角形
-	std::map<DelaunayEdge, TwinTriangle>  double_connect_map;
-	TwinTriangle  twin_triangle = { &undetermine_triangles.front(),nullptr};
-	double_connect_map[delaunay_edge] = twin_triangle;
+	std::map<DelaunayEdge, TwinNode>  double_connect_map;
+	TwinNode  twin_node = { &delaunay_search.root,nullptr};
+	double_connect_map[delaunay_edge] = twin_node;
 
 	delaunay_edge.v1 = array_size - 2;
 	delaunay_edge.v2 = array_size - 1;
-	double_connect_map[delaunay_edge] = twin_triangle;
+	double_connect_map[delaunay_edge] = twin_node;
 
 	delaunay_edge.v1 = array_size - 1;
 	delaunay_edge.v2 = array_size - 3;
-	double_connect_map[delaunay_edge] = twin_triangle;
+	double_connect_map[delaunay_edge] = twin_node;
 
 	for (int index_l = 0; index_l < array_size - 3; ++index_l)
 	{
 		//查找相关的三角形
-		const DelaunayTriangle *target_triangle = check_triangle_contains_point(disper_points,undetermine_triangles, disper_points[index_l]);
+		DelaunayNode *target_node = delaunay_search.insert(index_l);// check_triangle_contains_point(disper_points, undetermine_triangles, disper_points[index_l]);
 		//分别连接当前点与三角形的三个点形成三个新的三角形,删除原来的,并重置新三角形与原来的三角形邻接三角形之间的关系
 		delaunay_triangle.v1 = index_l;
-		delaunay_triangle.v2 = target_triangle->v1;
-		delaunay_triangle.v3 = target_triangle->v2;
 
-		undetermine_triangles.push_front(delaunay_triangle);
-		DelaunayTriangle *t1 = &undetermine_triangles.front();
-
-		delaunay_triangle.v1 = index_l;
-		delaunay_triangle.v2 = target_triangle->v2;
-		delaunay_triangle.v3 = target_triangle->v3;
-
-		undetermine_triangles.push_front(delaunay_triangle);
-		DelaunayTriangle *t2 = &undetermine_triangles.front();
-
-		delaunay_triangle.v1 = index_l;
-		delaunay_triangle.v2 = target_triangle->v3;
-		delaunay_triangle.v3 = target_triangle->v1;
-
-		undetermine_triangles.push_front(delaunay_triangle);
-		DelaunayTriangle *t3 = &undetermine_triangles.front();
+		DelaunayNode *t1 = target_node->lchild;//index_l,v1,v2
+		DelaunayNode *t2 = target_node->mchild;//index_l,v2,v3
+		DelaunayNode *t3 = target_node->rchild;//index_l,v3,v1
 
 		std::list<DelaunayEdge>	adjust_edge_queue;
 		//删除掉原来的三角形,并调整当前的三个三角形与原邻接三角形之间的关系
 #define insert_delaunay_edge_map(av1,av2,tx) {\
 		delaunay_edge.v1 = av1;delaunay_edge.v2 = av2;\
 		auto it = double_connect_map.find(delaunay_edge);\
-		if(it->second.left_triangle == target_triangle)it->second.left_triangle = tx;else it->second.right_triangle = tx;\
+		if(it->second.left_node == target_node)it->second.left_node = tx;else it->second.right_node = tx;\
 		}
-		insert_delaunay_edge_map(target_triangle->v1, target_triangle->v2,t1);
+		insert_delaunay_edge_map(target_node->v1, target_node->v2,t1);
 		adjust_edge_queue.push_front(delaunay_edge);
 
 		//BC
-		insert_delaunay_edge_map(target_triangle->v2, target_triangle->v3, t2);
+		insert_delaunay_edge_map(target_node->v2, target_node->v3, t2);
 		adjust_edge_queue.push_front(delaunay_edge);
 
 		//CA
-		insert_delaunay_edge_map(target_triangle->v3, target_triangle->v1, t3);
+		insert_delaunay_edge_map(target_node->v3, target_node->v1, t3);
 		adjust_edge_queue.push_front(delaunay_edge);
 
 #define insert_twin_edge_map(av1,av2,twin1,twin2){\
 			delaunay_edge.v1 = av1,delaunay_edge.v2 = av2;\
-			twin_triangle.left_triangle = twin1;twin_triangle.right_triangle = twin2;\
-			double_connect_map[delaunay_edge] = twin_triangle;\
+			twin_node.left_node = twin1;twin_node.right_node = twin2;\
+			double_connect_map[delaunay_edge] = twin_node;\
 		}
 		//RA
-		insert_twin_edge_map(index_l, target_triangle->v1,t3,t1);
-		insert_twin_edge_map(index_l,target_triangle->v2,t1,t2);
-		insert_twin_edge_map(index_l,target_triangle->v3,t2,t3);
+		insert_twin_edge_map(index_l, target_node->v1,t3,t1);
+		insert_twin_edge_map(index_l, target_node->v2,t1,t2);
+		insert_twin_edge_map(index_l, target_node->v3,t2,t3);
 
 #undef insert_twin_edge_map
 #undef insert_delaunay_edge_map
-		//删除原来的三角形
-		undetermine_triangles.remove(*target_triangle);
-		//针对以上新的三角形,逐个的调整他们之间的关系
+		//原来的三角形不会被干掉,针对以上新的三角形,逐个的调整他们之间的关系
 		while (adjust_edge_queue.size())
 		{
 			DelaunayEdge  adjust_edge = adjust_edge_queue.front();
@@ -371,10 +494,10 @@ void delaunay_triangulate_random(const std::vector<cocos2d::Vec2> &disper_points
 			//判断该边的邻接三角形是否的对角顶点是否在在三点的外接圆之内
 			auto it = double_connect_map.find(adjust_edge);
 			//有可能已经达到了边界,因此需要作出判断
-			if (it->second.left_triangle && it->second.right_triangle)
+			if (it->second.left_node && it->second.right_node)
 			{
-				DelaunayTriangle *left_triangle = *it->second.left_triangle == delaunay_triangle ?it->second.left_triangle:it->second.right_triangle;
-				DelaunayTriangle *right_triangle = it->second.left_triangle != left_triangle ? it->second.left_triangle:it->second.right_triangle;
+				DelaunayNode *left_triangle = *it->second.left_node == delaunay_triangle ?it->second.left_node :it->second.right_node;
+				DelaunayNode *right_triangle = it->second.left_node != left_triangle ? it->second.left_node :it->second.right_node;
 				short v1 = adjust_edge.v1, v2 = adjust_edge.v2;
 				//找到第三个点
 				short v3 = right_triangle->v1 != v1 && right_triangle->v1 != v2? right_triangle->v1:(right_triangle->v2 != v1 && right_triangle->v2 != v2 ? right_triangle->v2: right_triangle->v3);
@@ -385,70 +508,76 @@ void delaunay_triangulate_random(const std::vector<cocos2d::Vec2> &disper_points
 				{
 					delaunay_triangle.v2 = v3;
 					delaunay_triangle.v3 = v1;
-					undetermine_triangles.push_front(delaunay_triangle);
-					DelaunayTriangle *t1 = &undetermine_triangles.front();
+					DelaunayNode  *tf1 = new DelaunayNode(delaunay_triangle);
 
 					delaunay_triangle.v2 = v3;
 					delaunay_triangle.v3 = v2;
-					undetermine_triangles.push_front(delaunay_triangle);
-					DelaunayTriangle *t2 = &undetermine_triangles.front();
+					DelaunayNode *tf2 = new DelaunayNode(delaunay_triangle);
+
+					delaunay_search.merge(left_triangle, tf1, tf2);
+					delaunay_search.merge(right_triangle,tf1,tf2);
 
 					//删除原来的边与三角形之间的对应关系
 					double_connect_map.erase(adjust_edge);
 					adjust_edge.v1 = index_l;
 					adjust_edge.v2 = v3;
 
-					twin_triangle.left_triangle = t1;
-					twin_triangle.right_triangle = t2;
-					double_connect_map[adjust_edge] = twin_triangle;
+					twin_node.left_node = tf1;
+					twin_node.right_node = tf2;
+					double_connect_map[adjust_edge] = twin_node;
 					//修正正新边与三角形之间的对应关系,一共有额外的四条边
 					delaunay_edge.v1 = v2;
 					delaunay_edge.v2 = index_l;
 					auto it1 = double_connect_map.find(delaunay_edge);
-					if (it1->second.left_triangle == left_triangle)
-						it1->second.left_triangle = t2;
+					if (it1->second.left_node == left_triangle)
+						it1->second.left_node = tf2;
 					else
-						it1->second.right_triangle = t2;
+						it1->second.right_node = tf2;
 
 					delaunay_edge.v1 = index_l;
 					delaunay_edge.v2 = v1;
 					auto it2 = double_connect_map.find(delaunay_edge);
-					if (it2->second.left_triangle == left_triangle)
-						it2->second.left_triangle = t1;
+					if (it2->second.left_node == left_triangle)
+						it2->second.left_node = tf1;
 					else
-						it2->second.right_triangle = t1;
+						it2->second.right_node = tf1;
 					//3
 					delaunay_edge.v1 = v1;
 					delaunay_edge.v2 = v3;
 					auto it3 = double_connect_map.find(delaunay_edge);
-					if (it3->second.left_triangle == right_triangle)
-						it3->second.left_triangle = t1;
+					if (it3->second.left_node == right_triangle)
+						it3->second.left_node = tf1;
 					else
-						it3->second.right_triangle = t1;
+						it3->second.right_node = tf1;
 					adjust_edge_queue.push_front(delaunay_edge);
 					//4
 					delaunay_edge.v1 = v3;
 					delaunay_edge.v2 = v2;
 					auto it4 = double_connect_map.find(delaunay_edge);
-					if (it4->second.left_triangle == right_triangle)
-						it4->second.left_triangle = t2;
+					if (it4->second.left_node == right_triangle)
+						it4->second.left_node = tf2;
 					else
-						it4->second.right_triangle = t2;
+						it4->second.right_node = tf2;
 					adjust_edge_queue.push_front(delaunay_edge);
-					//删除原来的三角形
-					undetermine_triangles.remove(*left_triangle);
-					undetermine_triangles.remove(*right_triangle);
 				}
 			}
 		}
 	}
-	//将所有获得的三角形序列写入到数组里面
+	//将所有获得的三角形序列写入到数组里面,注意，下面的代码并没有经过优化
 	int boundary_l = array_size - 3;
-	for (auto it = undetermine_triangles.begin(); it != undetermine_triangles.end(); ++it)
+	std::set<DelaunayNode *> nodes_array;
+	delaunay_search.visit(nodes_array,true);
+	for (auto it = nodes_array.begin(); it != nodes_array.end(); ++it)
 	{
-		auto &delaunay_triangle = *it;
-		if(delaunay_triangle.v1 < boundary_l && delaunay_triangle.v2 < boundary_l && delaunay_triangle.v3 < boundary_l)
-			vector_fast_push_back(triangle_sequence, *it);
+		auto delaunay_node = *it;
+		int f = long(delaunay_node->lchild) + long(delaunay_node->mchild) + long(delaunay_node->rchild);
+		if (!f && delaunay_node->v1 < boundary_l && delaunay_node->v2 < boundary_l && delaunay_node->v3 < boundary_l)
+		{
+			delaunay_triangle.v1 = delaunay_node->v1, delaunay_triangle.v2 = delaunay_node->v2, delaunay_triangle.v3 = delaunay_node->v3;
+			vector_fast_push_back(triangle_sequence, delaunay_triangle);
+		}
+		if (delaunay_node != &delaunay_search.root)
+			delete delaunay_node;
 	}
 	real_size = triangle_sequence.size();
 }

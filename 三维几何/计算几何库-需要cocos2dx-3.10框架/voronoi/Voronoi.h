@@ -8,6 +8,7 @@
 #include "gt_common/geometry_types.h"
 #include "math/Vec2.h"
 #include "math/CCGeometry.h"
+#include<set>
 
 NS_GT_BEGIN
 struct Cycle;
@@ -20,7 +21,7 @@ struct DelaunayTriangle
 };
 
 bool operator==(const DelaunayTriangle &a, const DelaunayTriangle &other);
-bool operator!=(const DelaunayTriangle &a, const DelaunayTriangle &other);
+//bool operator!=(const DelaunayTriangle &a, const DelaunayTriangle &other);
 
 struct TwinTriangle
 {
@@ -31,16 +32,63 @@ struct DelaunayEdge
 {
 	short v1, v2;
 };
-//校正非法边
-//struct LegalEdge
-//{
-//	DelaunayEdge edge;
-//	short v3;
-//};
-
 bool operator ==(const DelaunayEdge &, const DelaunayEdge &other);
 bool operator >(const DelaunayEdge &, const DelaunayEdge &);
 bool operator < (const DelaunayEdge &, const DelaunayEdge &);
+/*
+  *Delaunay三角形快速查找结构
+ */
+struct DelaunayNode
+{
+	short v1, v2, v3,ref;
+	DelaunayNode *lchild, *mchild, *rchild;
+
+	DelaunayNode(const DelaunayTriangle &triangle,int ref_count = 0):v1(triangle.v1),v2(triangle.v2),v3(triangle.v3),ref(ref_count),lchild(nullptr),mchild(nullptr),rchild(nullptr) {};
+};
+bool operator==(const DelaunayNode &a, const DelaunayNode &other);
+bool operator==(const DelaunayNode &a, const DelaunayTriangle &other);
+//bool operator!=(const DelaunayNode &a, const DelaunayNode &other);
+
+//双边
+struct TwinNode
+{
+	DelaunayNode *left_node, *right_node;
+};
+
+struct DelaunaySearch
+{
+	const std::vector<cocos2d::Vec2>  &disper_points;
+	DelaunayNode   root;
+	int node_size;
+
+	DelaunaySearch(const std::vector<cocos2d::Vec2> &adisper_points, DelaunayTriangle &init_triangle) :disper_points(adisper_points), root(init_triangle), node_size(1){ root.ref = 2; };
+	/*
+	  *向三角形序列中插入一个顶点
+	  *此时会引起三角形的分裂
+	 */
+	DelaunayNode   *insert(int point_index);
+	/*
+	  *查询三角形所在的节点
+	 */
+	DelaunayNode   *lookup(int point_index);
+	/*
+	  *两个相邻的三角形合并,注意合并的过程中，函数不会检查其到底是否真的邻接,在这个需要使用者自己保证
+	  *target是查找过程中生成的,left/right是在外部生成的
+	 */
+	void  merge(DelaunayNode *target,DelaunayNode *left,DelaunayNode *right);
+	/*
+	  *遍历节点
+	 */
+	void visit(std::set<DelaunayNode*> &,bool visit_leaf);
+	/*
+	  *destroy
+	 */
+	void destroy(std::set<DelaunayNode *> &);
+	/*
+	  *销毁
+	 */
+	~DelaunaySearch();
+};
 
 void static_create_cycle_by_triangle(Cycle &cycle, const std::vector<cocos2d::Vec2> &disper_points, const DelaunayTriangle &delaunay_triangle);
 /*

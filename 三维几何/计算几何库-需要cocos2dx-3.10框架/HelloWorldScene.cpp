@@ -325,7 +325,7 @@ void HelloWorld::delaunayTriangulate()
 
 	float  length_l = 600.0f;
 	float length_w = 700;
-	const int array_size = 127;
+	const int array_size = 512;
 	//三角形平面
 	std::vector<Vec2>  points(array_size + 3);
 	std::vector<Sprite*>  sprite_array[array_size];
@@ -363,8 +363,17 @@ void HelloWorld::delaunayTriangulate()
 
 	std::vector<gt::DelaunayTriangle>   delaunay_trianges;
 	int real_size = 0;
-	//gt::delaunay_triangulate_bowyer_washton(points, delaunay_trianges, real_size);
-	gt::delaunay_triangulate_random(points, delaunay_trianges, real_size);
+	timeval   time_val1, time_val2;
+	gettimeofday(&time_val1,nullptr);
+	//256==>cost time---->72.971
+	//512==>cost time---->160.276
+	//gt::delaunay_triangulate_bowyer_washton(points, delaunay_trianges, real_size);//
+
+	//256==>cost time---->231.057==>cost time---->147.405
+	//512==>cost time---->311.903
+	gt::delaunay_triangulate_random(points, delaunay_trianges, real_size);//
+	gettimeofday(&time_val2,nullptr);
+	CCLOG("cost time---->%.3f",(time_val2.tv_sec - time_val1.tv_sec) * 1000.0f + (time_val2.tv_usec - time_val1.tv_usec )/1000.0f);
 
 	for (int index_l = 0; index_l < real_size; ++index_l)
 	{
