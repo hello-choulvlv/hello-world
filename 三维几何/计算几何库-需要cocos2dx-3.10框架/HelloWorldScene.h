@@ -123,6 +123,8 @@ public:
 	void twoPolygonTangentLine();
 	//计算离散点集的三角剖分算法测试
 	void delaunayTriangulate();
+	//计算离散点集的Voronoi子区域划分
+	void voronoiAreaPartion();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

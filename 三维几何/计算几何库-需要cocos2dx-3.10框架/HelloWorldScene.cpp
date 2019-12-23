@@ -101,7 +101,8 @@ bool HelloWorld::init()
 	//simplePolygonYDecompose();
 	//twoDimensionLinearlyProgram();
 	//twoPolygonTangentLine();
-	delaunayTriangulate();
+	//delaunayTriangulate();
+	voronoiAreaPartion();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -371,6 +372,8 @@ void HelloWorld::delaunayTriangulate()
 
 	//256==>cost time---->231.057==>cost time---->147.405
 	//512==>cost time---->311.903
+	//512==>cost time---->224.056
+	//512==>cost time---->223.063
 	gt::delaunay_triangulate_random(points, delaunay_trianges, real_size);//
 	gettimeofday(&time_val2,nullptr);
 	CCLOG("cost time---->%.3f",(time_val2.tv_sec - time_val1.tv_sec) * 1000.0f + (time_val2.tv_usec - time_val1.tv_usec )/1000.0f);
@@ -387,6 +390,64 @@ void HelloWorld::delaunayTriangulate()
 		//gt::Cycle cycle;
 		//gt::cycle_create(points[delaunay.v1], points[delaunay.v2], points[delaunay.v3], cycle);
 		//draw_node->drawCircle(cycle.center, cycle.radius,360.0f,2.0f * M_PI * cycle.radius/4.0f,false,color);
+	}
+
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::voronoiAreaPartion()
+{
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+
+	float  length_l = 600.0f;
+	float length_w = 700;
+	const int array_size = 127;
+	//三角形平面
+	std::vector<Vec2>  points(array_size + 3);
+	std::vector<Sprite*>  sprite_array[array_size];
+	//生成随机离散点,并计算boundingbox
+	Vec2 origin(FLT_MAX, FLT_MAX), bottom(-FLT_MAX, -FLT_MAX);
+	for (int index_j = 0; index_j < array_size; ++index_j)
+	{
+		points[index_j] = Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+
+		origin.x = fminf(origin.x, points[index_j].x);
+		origin.y = fminf(origin.y, points[index_j].y);
+
+		bottom.x = fmaxf(bottom.x, points[index_j].x);
+		bottom.y = fmaxf(bottom.y, points[index_j].y);
+
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(points[index_j]);
+		root_node->addChild(sprite);
+		sprite_array[index_j];
+	}
+	//计算离散点集的boundingbox的外接三角形
+	Vec2 triangle[3];
+
+	gt::rect_outerline_triangle(origin, bottom - origin, triangle);
+
+	points[array_size] = triangle[0];
+	points[array_size + 1] = triangle[1];
+	points[array_size + 2] = triangle[2];
+
+	std::vector<Vec2>   edge_points;
+	std::vector<int>      ray_edge_array, normal_edge_array;
+	gt::voronoi_delaunay_triangle(points, edge_points, normal_edge_array, ray_edge_array);//
+
+	for (int index_l = 0; index_l < normal_edge_array.size(); index_l += 2)
+	{
+		Color4F color(gt::random(), gt::random(), gt::random(), 1.0f);
+		draw_node->drawLine(edge_points[normal_edge_array[index_l]], edge_points[normal_edge_array[index_l+1]], color);
+	}
+	for (int index_l = 0; index_l < ray_edge_array.size(); index_l +=2)
+	{
+		Vec2 &base_point = edge_points[ray_edge_array[index_l]];
+		draw_node->drawLine(base_point, base_point + edge_points[ray_edge_array[index_l +1]] * 400,Color4F::RED);
 	}
 
 	root_node->setCameraMask(s_CameraMask);

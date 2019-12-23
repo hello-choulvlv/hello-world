@@ -61,7 +61,7 @@ struct DelaunaySearch
 	DelaunayNode   root;
 	int node_size;
 
-	DelaunaySearch(const std::vector<cocos2d::Vec2> &adisper_points, DelaunayTriangle &init_triangle) :disper_points(adisper_points), root(init_triangle), node_size(1){ root.ref = 2; };
+	DelaunaySearch(const std::vector<cocos2d::Vec2> &adisper_points, DelaunayTriangle &init_triangle) :disper_points(adisper_points), root(init_triangle), node_size(1){ /*root.ref = 2;*/ };
 	/*
 	  *向三角形序列中插入一个顶点
 	  *此时会引起三角形的分裂
@@ -79,7 +79,7 @@ struct DelaunaySearch
 	/*
 	  *遍历节点
 	 */
-	void visit(std::set<DelaunayNode*> &,bool visit_leaf);
+	void visit(std::vector<DelaunayNode*> &,bool visit_leaf);
 	/*
 	  *destroy
 	 */
@@ -88,6 +88,20 @@ struct DelaunaySearch
 	  *销毁
 	 */
 	~DelaunaySearch();
+};
+/*
+  *Voronoi边的类型
+ */
+#define edge_type_segment 0
+#define edge_type_ray 1
+#define edge_type_line 2
+/*
+  *Voronoi边
+ */
+struct VoronoiEdge
+{
+	cocos2d::Vec2 origin,botttom;
+	short edge_type;
 };
 
 void static_create_cycle_by_triangle(Cycle &cycle, const std::vector<cocos2d::Vec2> &disper_points, const DelaunayTriangle &delaunay_triangle);
@@ -112,4 +126,10 @@ void delaunay_triangulate_bowyer_washton(const std::vector<cocos2d::Vec2> &dispe
   *在第二版中,我么将会使用某些复杂的数据结构来优化三角形序列中点的快速定位算法步骤
   */
 void delaunay_triangulate_random(const std::vector<cocos2d::Vec2> &disper_points, std::vector<DelaunayTriangle> &triangle_sequence, int &real_size);
+/*
+  *离散点集的Voronoi图
+  *该算法基于Delaunay三角剖分,并使用Bowyer-Washton算法实现
+  *返回离散的边,然而有一部分的边是射线,因此需要单独的指出来
+*/
+void voronoi_delaunay_triangle(const std::vector<cocos2d::Vec2> &disper_points,std::vector<cocos2d::Vec2> &edge_points,std::vector<int> &edge_index_array,std::vector<int> &other_ray_array);
 NS_GT_END

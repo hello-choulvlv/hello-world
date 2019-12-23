@@ -182,10 +182,10 @@ void DelaunaySearch::merge(DelaunayNode *target,DelaunayNode *left, DelaunayNode
 	target->lchild = left;
 	target->mchild = right;
 
-	++left->ref;
-	++right->ref;
+	//++left->ref;
+	//++right->ref;
 
-	node_size += 2;
+	node_size += 1;
 	//assert(!target->rchild);
 }
 #define delaunay_not_leaf(node) (node->lchild || node->mchild || node->rchild)
@@ -212,12 +212,13 @@ void DelaunaySearch::destroy(std::set<DelaunayNode *> &nodes_array)
 
 }
 
-void DelaunaySearch::visit(std::set<DelaunayNode *> &nodes_array,bool visit_leaf)
+void DelaunaySearch::visit(std::vector<DelaunayNode *> &nodes_array,bool visit_leaf)
 {
 	//需要一次层序遍历
 	std::list<DelaunayNode*> layer_visit_queue;
 	DelaunayNode *delaunay_node = &root;
-	//std::set<DelaunayNode*>   visit_map;
+	nodes_array.resize(node_size);
+	int base_j = 0;
 
 	layer_visit_queue.push_back(delaunay_node);
 	while (layer_visit_queue.size())
@@ -227,18 +228,19 @@ void DelaunaySearch::visit(std::set<DelaunayNode *> &nodes_array,bool visit_leaf
 
 		if (delaunay_not_leaf(node))
 		{
-			if (nodes_array.find(node->lchild) == nodes_array.end())
-				layer_visit_queue.push_back(node->lchild), nodes_array.insert(node->lchild);
+			if (!node->lchild->ref)
+				layer_visit_queue.push_back(node->lchild),node->lchild->ref = 1;
 
-			if (nodes_array.find(node->mchild) == nodes_array.end())
-				layer_visit_queue.push_back(node->mchild), nodes_array.insert(node->mchild);
+			if (!node->mchild->ref)
+				layer_visit_queue.push_back(node->mchild),node->mchild->ref=1;
 		}
 
-		if (node->rchild && nodes_array.find(node->rchild) == nodes_array.end())
-			layer_visit_queue.push_back(node->rchild), nodes_array.insert(node->rchild);
+		if (node->rchild && !node->rchild->ref)
+			layer_visit_queue.push_back(node->rchild),node->rchild->ref=1;
 
 		//if (!visit_leaf || !node->lchild && !node->mchild && !node->rchild)
-			nodes_array.insert(node);
+			//nodes_array.insert(node);
+		nodes_array.at(base_j++) = node;
 	}
 }
 
@@ -565,7 +567,7 @@ void delaunay_triangulate_random(const std::vector<cocos2d::Vec2> &disper_points
 	}
 	//将所有获得的三角形序列写入到数组里面,注意，下面的代码并没有经过优化
 	int boundary_l = array_size - 3;
-	std::set<DelaunayNode *> nodes_array;
+	std::vector<DelaunayNode *> nodes_array;
 	delaunay_search.visit(nodes_array,true);
 	for (auto it = nodes_array.begin(); it != nodes_array.end(); ++it)
 	{
@@ -580,6 +582,158 @@ void delaunay_triangulate_random(const std::vector<cocos2d::Vec2> &disper_points
 			delete delaunay_node;
 	}
 	real_size = triangle_sequence.size();
+}
+
+void voronoi_delaunay_triangle(const std::vector<cocos2d::Vec2> &disper_points, std::vector<cocos2d::Vec2> &edge_points, std::vector<int> &edge_index_array, std::vector<int> &other_ray_array)
+{
+	std::vector<DelaunayTriangle>  triangle_sequence;
+	int array_size = disper_points.size();
+	//第一步先对顶点的顺序进行排序
+	std::function<bool(const int, const int)> compare_func = [disper_points](const int la, const int lb)->bool {
+		return disper_points[la].x < disper_points[lb].x || disper_points[la].x == disper_points[lb].x && disper_points[la].y > disper_points[lb].y;
+	};
+
+	std::vector<int>  disper_index_array(array_size);
+	for (int j = 0; j < disper_points.size(); ++j)disper_index_array[j] = j;
+	quick_sort_origin_type<int>(disper_index_array.data(), array_size - 3, compare_func);
+
+	//计算目标三角形序列
+	struct DelaunayTriangle  delaunay_triangle = { short(array_size - 3),short(array_size - 2),short(array_size - 1) };
+	std::list<DelaunayTriangle>  triangle_queue;
+	triangle_queue.push_back(delaunay_triangle);
+	struct Cycle cycle;
+	DelaunayEdge   delaunay_edge;
+
+	for (int index_l = 0; index_l < array_size - 3; ++index_l)
+	{
+		int base_j = disper_index_array[index_l];
+		const Vec2 &target_point = disper_points[base_j];
+		//初始化边缓存,此缓存需要用到set
+		std::map<DelaunayEdge, int>  triangle_edge_map;
+		//针对每一个待定的三角形,逐个的检测
+		for (auto it = triangle_queue.begin(); it != triangle_queue.end();)
+		{
+			//求三角形的外接圆
+			auto &check_triangle = *it;
+			static_create_cycle_by_triangle(cycle, disper_points, check_triangle);
+			//如果该点在圆的右侧,则说明目标三角形已经确定了.
+			if (target_point.x > cycle.center.x + cycle.radius)
+			{
+				vector_fast_push_back(triangle_sequence, check_triangle);
+				it = triangle_queue.erase(it);
+			}
+			else if (check_point_insideof_cycle(cycle, target_point))//此时点在相关的三角形内,需要再次分解三角形
+			{
+				delaunay_edge.v1 = check_triangle.v1, delaunay_edge.v2 = check_triangle.v2;
+				auto ft = triangle_edge_map.find(delaunay_edge);
+				if (ft == triangle_edge_map.end())
+					triangle_edge_map[delaunay_edge] = 0;
+				else
+					++ft->second;
+
+				delaunay_edge.v1 = check_triangle.v2, delaunay_edge.v2 = check_triangle.v3;
+				ft = triangle_edge_map.find(delaunay_edge);
+				if (ft == triangle_edge_map.end())
+					triangle_edge_map[delaunay_edge] = 0;
+				else
+					++ft->second;
+
+				delaunay_edge.v1 = check_triangle.v3, delaunay_edge.v2 = check_triangle.v1;
+				ft = triangle_edge_map.find(delaunay_edge);
+				if (ft == triangle_edge_map.end())
+					triangle_edge_map[delaunay_edge] = 0;
+				else
+					++ft->second;
+				it = triangle_queue.erase(it);
+			}
+			else
+				++it;
+		}
+		//针对所有的边,与目标点建立新的三角形
+		for (auto ft = triangle_edge_map.begin(); ft != triangle_edge_map.end(); ++ft)
+		{
+			if (!ft->second)
+			{
+				delaunay_triangle.v1 = base_j, delaunay_triangle.v2 = ft->first.v1, delaunay_triangle.v3 = ft->first.v2;
+				triangle_queue.push_back(delaunay_triangle);
+			}
+		}
+	}
+	for (auto it = triangle_queue.begin(); it != triangle_queue.end(); ++it)
+		vector_fast_push_back(triangle_sequence, *it);
+	//最后一步,去除掉与外接三角形相关的边
+	int real_size = triangle_sequence.size();
+	real_size = 0;
+	int boundary_l = array_size - 3;
+	for (int index_l = 0; index_l < triangle_sequence.size(); ++index_l)
+	{
+		auto &triangle = triangle_sequence[index_l];
+		if (triangle.v1 < boundary_l && triangle.v2 < boundary_l && triangle.v3 < boundary_l)
+		{
+			if (index_l != real_size)
+				triangle_sequence[real_size] = triangle;
+			++real_size;
+		}
+	}
+	//针对新得出的没一个三角形,逐个的计算其外接圆的圆心,并奖相关的离散点存入到数组中
+	std::map<DelaunayEdge, TwinTriangle>  edge_triangle_map;
+	TwinTriangle twin_triangle;
+#define insert_triangle_map(t_v1,t_v2)\
+{\
+	delaunay_edge.v1 = t_v1, delaunay_edge.v2 = t_v2;\
+\
+	auto it = edge_triangle_map.find(delaunay_edge);\
+	if (it != edge_triangle_map.end())\
+	{\
+		if (it->second.left_triangle != triangle)\
+			it->second.right_triangle = triangle;\
+	}\
+	else\
+	{\
+		twin_triangle.left_triangle = triangle;\
+		twin_triangle.right_triangle = nullptr;\
+		edge_triangle_map[delaunay_edge] = twin_triangle;\
+	}}
+
+	for (int index_l = 0; index_l < real_size; ++index_l)
+	{
+		DelaunayTriangle *triangle = &triangle_sequence[index_l];
+		insert_triangle_map(triangle->v1, triangle->v2);
+		insert_triangle_map(triangle->v2,triangle->v3);
+		insert_triangle_map(triangle->v3,triangle->v1);
+
+		Cycle cycle;
+		static_create_cycle_by_triangle(cycle, disper_points, *triangle);
+		vector_fast_push_back(edge_points,cycle.center);
+	}
+#undef insert_triangle_map
+	//遍历每一个三角形形的每一条边
+	DelaunayTriangle *base_triangle = triangle_sequence.data();
+	const Vec2 *base_point = disper_points.data();
+	for (auto it = edge_triangle_map.begin(); it != edge_triangle_map.end();++it)
+	{
+		auto &triangle_edge = it->first;
+		auto &twin_triangle = it->second;
+		//检查是否该三角形的某一条边只有一个邻接三角形
+		DelaunayTriangle *left_triangle = twin_triangle.left_triangle;
+		DelaunayTriangle *right_triangle = twin_triangle.right_triangle;
+		if (left_triangle && right_triangle)
+		{
+			vector_fast_push_back(edge_index_array,left_triangle - base_triangle);
+			vector_fast_push_back(edge_index_array,right_triangle - base_triangle);
+		}
+		else
+		{
+			DelaunayTriangle *t = left_triangle ? left_triangle : right_triangle;
+			short v3 = t->v1 != triangle_edge.v1 && t->v1 != triangle_edge.v2?t->v1:(t->v2 !=triangle_edge.v1 && t->v2!= triangle_edge.v2?t->v2:t->v3);
+			Vec2 normal = normalize(base_point[triangle_edge.v1] - base_point[triangle_edge.v2]);
+			float sign_f = cross(base_point[triangle_edge.v1],base_point[triangle_edge.v2],base_point[v3]) > 0?-1:1;
+			vector_fast_push_back(edge_points,Vec2(normal.y * sign_f,-normal.x *sign_f));
+
+			vector_fast_push_back(other_ray_array,t - base_triangle);
+			vector_fast_push_back(other_ray_array,edge_points.size() - 1);
+		}
+	}
 }
 
 NS_GT_END
