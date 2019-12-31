@@ -119,6 +119,17 @@ cocos2d::Vec2 normalize(const Vec2 &v)
 	return Vec2(v.x * d,v.y *d);
 }
 
+cocos2d::Vec2 normalize(const cocos2d::Vec2 &v, const cocos2d::Vec2 &u)
+{
+	float x = u.x - v.x;
+	float y = u.y - v.y;
+
+	float d = x * x + y *y;
+	d = d != 0 ? 1.0f / sqrtf(d) : 0.0f;
+
+	return Vec2(x * d, y *d);
+}
+
 float cross(const cocos2d::Vec2 &a, const cocos2d::Vec2 &b)
 {
 	return a.x * b.y - a.y * b.x;

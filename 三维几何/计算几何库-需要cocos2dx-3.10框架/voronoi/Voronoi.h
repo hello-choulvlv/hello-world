@@ -1,6 +1,6 @@
 /*
   *Voronoi图算法+平面点集的三角剖分算法
-  *因为该算法系列比较庞大而且复杂,并且有着多种的完全不同的思路,两者之间有着密切的关系
+  *因为该算法系列比较庞大而且复杂,并且有着多种的完全不同实现,两者之间有着密切的关系
   *因此需要单独抽取出来形成一个文件.
   *2019年12月12日
   *@author:xiaoxiong
@@ -96,12 +96,33 @@ struct DelaunaySearch
 #define edge_type_ray 1
 #define edge_type_line 2
 /*
+  *如果是射线,因为其表达方式比较特殊
+  *因此需要记录其正整个多边形中的走向
+ */
+#define edge_ray_reverse_ccw 0//逆时针,正序
+#define edge_ray_reverse_cw 1//顺时针,反序
+/*
   *Voronoi边
  */
+struct VoronoiSite;
 struct VoronoiEdge
 {
-	cocos2d::Vec2 origin,botttom;
-	short edge_type;
+	cocos2d::Vec2  origin, bottom;
+	short		            line_type,reverse_type;
+	VoronoiSite     *owner_site;
+	VoronoiEdge   *next, *prev,*twin;
+
+	VoronoiEdge(VoronoiSite *owner):owner_site(owner),next(nullptr),prev(nullptr),twin(nullptr) {};
+	VoronoiEdge(VoronoiSite *owner, const cocos2d::Vec2 &start_point, const cocos2d::Vec2 &final_point):owner_site(owner),origin(start_point),bottom(final_point),next(nullptr),prev(nullptr),twin(nullptr) {};
+};
+
+struct VoronoiSite
+{
+	const cocos2d::Vec2   *location;//该location将引用函数输入的离散点集
+	VoronoiEdge  *head, *tail;
+
+	VoronoiSite(const cocos2d::Vec2 &site_location) :location(&site_location), head(nullptr), tail(nullptr) {};
+	VoronoiSite() :location(nullptr), head(nullptr), tail(nullptr) {};
 };
 
 void static_create_cycle_by_triangle(Cycle &cycle, const std::vector<cocos2d::Vec2> &disper_points, const DelaunayTriangle &delaunay_triangle);
@@ -132,4 +153,11 @@ void delaunay_triangulate_random(const std::vector<cocos2d::Vec2> &disper_points
   *返回离散的边,然而有一部分的边是射线,因此需要单独的指出来
 */
 void voronoi_delaunay_triangle(const std::vector<cocos2d::Vec2> &disper_points,std::vector<cocos2d::Vec2> &edge_points,std::vector<int> &edge_index_array,std::vector<int> &other_ray_array);
+/*
+  *Voronoi图算法,增量式策略实现.
+  *本算法将不再使用传统的边界限定策略,在使用了各种复杂的策略之后,作者意识到,逐点的遍历将会使得算法的整体流程
+  *变得异常晦涩,难以理解,因此将直接使用边界逆时针遍历法,直接计算某些边界单元的单边界
+  *第一版只实现基本的功能,在稍后的版本中,我们将改进内存管理方式,增加一个内存分配管理器
+ */
+void voronoi_increament_policy(const std::vector<cocos2d::Vec2> &disper_points,std::vector<VoronoiSite> &voronoi_sites);
 NS_GT_END

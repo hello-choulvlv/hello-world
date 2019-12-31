@@ -102,7 +102,8 @@ bool HelloWorld::init()
 	//twoDimensionLinearlyProgram();
 	//twoPolygonTangentLine();
 	//delaunayTriangulate();
-	voronoiAreaPartion();
+	//voronoiAreaPartion();
+	voronoiAreaPartion2();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -448,6 +449,63 @@ void HelloWorld::voronoiAreaPartion()
 	{
 		Vec2 &base_point = edge_points[ray_edge_array[index_l]];
 		draw_node->drawLine(base_point, base_point + edge_points[ray_edge_array[index_l +1]] * 400,Color4F::RED);
+	}
+
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::voronoiAreaPartion2()
+{
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+
+	float  length_l = 600.0f;
+	float length_w = 700;
+	const int array_size = 127;
+	//三角形平面
+	std::vector<Vec2>  points(array_size + 2);
+	std::vector<Sprite*>  sprite_array[array_size];
+	//生成随机离散点,并计算boundingbox
+	Vec2 origin(FLT_MAX, FLT_MAX), bottom(-FLT_MAX, -FLT_MAX);
+	float boundary = 1000.0f;
+	for (int index_j = 0; index_j < array_size; ++index_j)
+	{
+		points[index_j] = Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+
+		origin.x = fminf(origin.x, points[index_j].x - boundary);
+		origin.y = fminf(origin.y, points[index_j].y - boundary);
+
+		bottom.x = fmaxf(bottom.x, points[index_j].x + boundary);
+		bottom.y = fmaxf(bottom.y, points[index_j].y + boundary);
+
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(points[index_j]);
+		root_node->addChild(sprite);
+		sprite_array[index_j];
+	}
+	//计算离散点集的boundingbox的外接四边形
+	points[array_size] = origin;
+	points[array_size + 1] = bottom;
+
+	std::vector<gt::VoronoiSite>   sites_array;
+	gt::voronoi_increament_policy(points, sites_array);
+	//针对每一个Voronoi单元,遍历
+	//srand(19);
+	int link_size = 0;
+	for (int index_l = 0; index_l < sites_array.size(); ++index_l)
+	{
+		Color4F color(gt::random(), gt::random(), gt::random(), 1.0f);
+		gt::VoronoiSite &site = sites_array[index_l];
+		gt::VoronoiEdge *head = site.head;
+		do
+		{
+			draw_node->drawLine(head->origin, head->bottom, color);
+			head = head->next;
+			link_size += 1;
+		} while (head != site.head);
 	}
 
 	root_node->setCameraMask(s_CameraMask);

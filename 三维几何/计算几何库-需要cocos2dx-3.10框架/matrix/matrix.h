@@ -63,6 +63,7 @@ float cross(const cocos2d::Vec2 &base,const cocos2d::Vec2 &fc1,const cocos2d::Ve
 cocos2d::Vec3  normalize(const cocos2d::Vec3 &v);
 cocos2d::Vec3 normalize(float x, float y, float z);
 cocos2d::Vec2 normalize(const cocos2d::Vec2 &v);
+cocos2d::Vec2 normalize(const cocos2d::Vec2 &u, const cocos2d::Vec2 &v);
 cocos2d::Vec2 normalize(float x,float y);
 /*
   *3x3矩阵变换
@@ -174,6 +175,15 @@ void quick_sort_origin_type(TM *source, int tk_num, std::function<bool(const TM 
 		memcpy(source, t1, sizeof(TM) * tk_num);
 
 	delete[] bubble;
+}
+/*
+  *翻转vector中的元素
+ */
+template<typename VT>
+void vector_reverse(std::vector<VT> &param_v) {
+	VT *data_array = param_v.data();
+	for (int left_l = 0, right_l = param_v.size() - 1; left_l < right_l; ++left_l, --right_l)
+		std::swap(data_array[left_l],data_array[right_l]);
 }
 NS_GT_END
 #endif

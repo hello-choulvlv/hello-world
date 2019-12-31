@@ -125,6 +125,8 @@ public:
 	void delaunayTriangulate();
 	//计算离散点集的Voronoi子区域划分
 	void voronoiAreaPartion();
+	//计算离散点集的Voronoi区域划分
+	void voronoiAreaPartion2();
 };
 
 #endif // __HELLOWORLD_SCENE_H__
