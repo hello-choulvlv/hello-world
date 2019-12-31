@@ -470,7 +470,7 @@ void HelloWorld::voronoiAreaPartion2()
 	std::vector<Sprite*>  sprite_array[array_size];
 	//生成随机离散点,并计算boundingbox
 	Vec2 origin(FLT_MAX, FLT_MAX), bottom(-FLT_MAX, -FLT_MAX);
-	float boundary = 1000.0f;
+	float boundary = 8000.0f;
 	for (int index_j = 0; index_j < array_size; ++index_j)
 	{
 		points[index_j] = Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());

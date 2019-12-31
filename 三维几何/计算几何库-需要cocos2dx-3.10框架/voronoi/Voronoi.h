@@ -108,7 +108,6 @@ struct VoronoiSite;
 struct VoronoiEdge
 {
 	cocos2d::Vec2  origin, bottom;
-	short		            line_type,reverse_type;
 	VoronoiSite     *owner_site;
 	VoronoiEdge   *next, *prev,*twin;
 
@@ -123,6 +122,21 @@ struct VoronoiSite
 
 	VoronoiSite(const cocos2d::Vec2 &site_location) :location(&site_location), head(nullptr), tail(nullptr) {};
 	VoronoiSite() :location(nullptr), head(nullptr), tail(nullptr) {};
+};
+/*
+  *内存管理器
+  *只针对Voronoi图算法
+ */
+struct VoronoiMemorySlab
+{
+	VoronoiEdge *slab_head;
+	int                    size;
+	int                    capacity;
+	VoronoiMemorySlab(int asize = 0x7FFFFFF) :slab_head(nullptr), size(0), capacity(asize) {};
+	~VoronoiMemorySlab();
+
+	VoronoiEdge *apply(VoronoiSite *target_site, const cocos2d::Vec2 &start_point, const cocos2d::Vec2 &final_point);
+	void release(VoronoiEdge  *edge);
 };
 
 void static_create_cycle_by_triangle(Cycle &cycle, const std::vector<cocos2d::Vec2> &disper_points, const DelaunayTriangle &delaunay_triangle);

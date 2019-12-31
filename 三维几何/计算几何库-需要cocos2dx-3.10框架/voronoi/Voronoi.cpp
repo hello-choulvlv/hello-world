@@ -257,6 +257,50 @@ DelaunaySearch::~DelaunaySearch()
 }
 #undef delaunay_not_leaf
 
+VoronoiEdge *VoronoiMemorySlab::apply(VoronoiSite *target_site, const cocos2d::Vec2 &start_point, const cocos2d::Vec2 &final_point)
+{
+	VoronoiEdge  *edge = nullptr;
+	if (slab_head)
+	{
+		edge = slab_head;
+		slab_head = slab_head->next;
+		--size;
+		edge->twin = edge->prev = edge->next = nullptr;
+		edge->origin = start_point;
+		edge->bottom = final_point;
+		edge->owner_site = target_site;
+	}
+	else
+		edge = new VoronoiEdge(target_site,start_point,final_point);
+	return edge;
+}
+
+void VoronoiMemorySlab::release(VoronoiEdge *edge)
+{
+	if (size + 1 < capacity)
+	{
+		edge->next = slab_head;
+		slab_head = edge;
+		++size;
+	}
+	else
+		delete edge;
+}
+
+VoronoiMemorySlab::~VoronoiMemorySlab()
+{
+	VoronoiEdge *edge = slab_head;
+	while (edge != nullptr)
+	{
+		VoronoiEdge *other = edge;
+		edge = edge->next;
+		delete other;
+	}
+	slab_head = nullptr;
+	size = 0;
+	edge = nullptr;
+}
+
 void rect_outerline_triangle(const cocos2d::Vec2 &origin, const cocos2d::Vec2 &extent, cocos2d::Vec2 triangle[3])
 {
 	float delta_h = extent.y > 200 ?extent.y * 0.2: 10;
@@ -665,8 +709,7 @@ bool static_ray_segment_intersect(const Vec2 &origin, const Vec2 &normal, const 
 	if (f1 * f2 < 0) return false;
 	float f = f1 / (f1 + f2);
 	intersect_point = start_point + (final_point - start_point) * f;
-	float d = dot(intersect_point - origin, normal);
-	return d >= 0.0f;
+	return dot(intersect_point - origin, normal) >= 0.0f;
 }
 /*
   *目标射线与边界的四条线段相交测试,返回第一条
@@ -806,7 +849,7 @@ void create_voronoi3(const std::vector<cocos2d::Vec2> &disper_points,const Vec2 
   *注意,遍历周围单元内部的时候是沿着顺时针的,
   *上面所说的顺时针是指就整体遍历周围的单元的相对方向
  */
-VoronoiEdge *static_voronoi_rotate_left(VoronoiEdge *secondary_edge,VoronoiEdge *edge2,VoronoiSite &site_x,const Vec2 &target_location,Vec2 &last_origin,/*std::vector<Vec2> &interval_points,*/VoronoiEdge **final_edge)
+VoronoiEdge *static_voronoi_rotate_left(VoronoiMemorySlab &mem_slab,VoronoiEdge *secondary_edge,VoronoiEdge *edge2,VoronoiSite &site_x,const Vec2 &target_location,Vec2 &last_origin,/*std::vector<Vec2> &interval_points,*/VoronoiEdge **final_edge)
 {
 	VoronoiEdge *last_new_edge = *final_edge;
 	while (secondary_edge && secondary_edge != edge2)
@@ -816,15 +859,19 @@ VoronoiEdge *static_voronoi_rotate_left(VoronoiEdge *secondary_edge,VoronoiEdge 
 		VoronoiEdge  *tripple_edge = secondary_edge->prev;//此时为顺时针遍历
 		Vec2 intersect_point3;
 		while (!static_ray_segment_intersect(last_origin, ray, tripple_edge->origin, tripple_edge->bottom, intersect_point3))
+		{
+			VoronoiEdge *internal_edge = tripple_edge;
 			tripple_edge = tripple_edge->prev;
+			mem_slab.release(internal_edge);
+		}
 		//将以前的局部线段截断
 		secondary_edge->origin = last_origin;
 		tripple_edge->bottom = intersect_point3;
-		VoronoiEdge *new_edge0 = new VoronoiEdge(&site_x, last_origin, intersect_point3);
+		VoronoiEdge *new_edge0 = mem_slab.apply(&site_x,last_origin,intersect_point3);// new VoronoiEdge(&site_x, last_origin, intersect_point3);
 		last_new_edge->next = new_edge0;
 		new_edge0->prev = last_new_edge;
 		//Twin
-		VoronoiEdge *twin_edge = new VoronoiEdge(secondary_edge->owner_site, intersect_point3, last_origin);
+		VoronoiEdge *twin_edge = mem_slab.apply(secondary_edge->owner_site,intersect_point3,last_origin);// new VoronoiEdge(secondary_edge->owner_site, intersect_point3, last_origin);
 		twin_edge->prev = tripple_edge;
 		twin_edge->next = secondary_edge;
 
@@ -848,7 +895,7 @@ VoronoiEdge *static_voronoi_rotate_left(VoronoiEdge *secondary_edge,VoronoiEdge 
   *沿着原来的Voronoi单元向周围的邻接单元顺时针旋转
   *单元内部是逆时针旋转
  */
-VoronoiEdge *static_voronoi_rotate_right(VoronoiEdge *secondary_edge, VoronoiEdge *edge, VoronoiSite &site_x, const Vec2 &target_location, Vec2 &last_origin, VoronoiEdge **final_edge)
+VoronoiEdge *static_voronoi_rotate_right(VoronoiMemorySlab &mem_slab,VoronoiEdge *secondary_edge, VoronoiEdge *edge, VoronoiSite &site_x, const Vec2 &target_location, Vec2 &last_origin, VoronoiEdge **final_edge)
 {
 	VoronoiEdge *last_new_edge = *final_edge;
 	while (secondary_edge && secondary_edge != edge)
@@ -859,15 +906,19 @@ VoronoiEdge *static_voronoi_rotate_right(VoronoiEdge *secondary_edge, VoronoiEdg
 		Vec2 intersect_point3;
 		//在循环之前,可能得需要把公共边干掉
 		while (!static_ray_segment_intersect(last_origin, ray, tripple_edge->origin, tripple_edge->bottom, intersect_point3))
+		{
+			VoronoiEdge *internal_edge = tripple_edge;
 			tripple_edge = tripple_edge->next;
+			mem_slab.release(internal_edge);
+		}
 		//将以前的局部线段截断
 		secondary_edge->bottom = last_origin;
 		tripple_edge->origin = intersect_point3;
-		VoronoiEdge *new_edge0 = new VoronoiEdge(&site_x, intersect_point3, last_origin);
+		VoronoiEdge *new_edge0 = mem_slab.apply(&site_x,intersect_point3,last_origin);// new VoronoiEdge(&site_x, intersect_point3, last_origin);
 		last_new_edge->prev = new_edge0;
 		new_edge0->next = last_new_edge;
 		//Twin
-		VoronoiEdge *twin_edge = new VoronoiEdge(secondary_edge->owner_site, last_origin, intersect_point3);
+		VoronoiEdge *twin_edge = mem_slab.apply(secondary_edge->owner_site,last_origin,intersect_point3);// new VoronoiEdge(secondary_edge->owner_site, last_origin, intersect_point3);
 		twin_edge->next = tripple_edge;
 		twin_edge->prev = secondary_edge;
 
@@ -892,7 +943,7 @@ VoronoiEdge *static_voronoi_rotate_right(VoronoiEdge *secondary_edge, VoronoiEdg
   *顶点的索引为target_index
   *Voronoi图的单元为:index_v
  */
-void static_voronoi_insert(const std::vector<cocos2d::Vec2> &disper_points, const Vec2 *points_stride[5], std::vector<VoronoiSite> &voronoi_sites,int index_v,int target_index)
+void static_voronoi_insert(VoronoiMemorySlab &mem_slab,const std::vector<cocos2d::Vec2> &disper_points, const Vec2 *points_stride[5], std::vector<VoronoiSite> &voronoi_sites,int index_v,int target_index)
 {
 	const int array_size = disper_points.size();
 	const Vec2 *points_array = disper_points.data();
@@ -908,7 +959,7 @@ void static_voronoi_insert(const std::vector<cocos2d::Vec2> &disper_points, cons
 	Vec2 normal2(-normal.x,-normal.y);//相反方向的射线
 	Vec2 origin = (*site_now.location + target_location) * 0.5f;
 	//逆时针扫过当前的Voronoi单元,扫过的区域就是被分割的区域
-	VoronoiEdge  *edge = site_now.head;
+	VoronoiEdge  *edge = site_now.head,*internal_edge = nullptr;
 	Vec2 intersect_point,intersect_point2,intersect_point3, intersect_point4;
 	//查找第一个相交的边
 	while (!static_ray_segment_intersect(origin, normal, edge->origin, edge->bottom, intersect_point))
@@ -916,12 +967,16 @@ void static_voronoi_insert(const std::vector<cocos2d::Vec2> &disper_points, cons
 	//查找第二条相交的边
 	VoronoiEdge *edge2 = edge->next;
 	while (!static_ray_segment_intersect(origin, normal2, edge2->origin, edge2->bottom, intersect_point2))
+	{
+		internal_edge = edge2;
 		edge2 = edge2->next;
+		mem_slab.release(internal_edge);
+	}
 	//针对新建立的Voronoi单元,创建第一条边
-	VoronoiEdge *new_edge = new VoronoiEdge(&site_x,intersect_point2,intersect_point);
+	VoronoiEdge *new_edge = mem_slab.apply(&site_x,intersect_point2,intersect_point);// new VoronoiEdge(&site_x, intersect_point2, intersect_point);
 	site_x.head = new_edge;
 
-	VoronoiEdge *twin_old = new VoronoiEdge(&site_now,intersect_point,intersect_point2);
+	VoronoiEdge *twin_old = mem_slab.apply(&site_now,intersect_point,intersect_point2);// new VoronoiEdge(&site_now, intersect_point, intersect_point2);
 	new_edge->twin = twin_old; twin_old->twin = new_edge;
 
 	twin_old->prev = edge;
@@ -933,8 +988,6 @@ void static_voronoi_insert(const std::vector<cocos2d::Vec2> &disper_points, cons
 	site_now.head = twin_old;
 	site_now.tail = edge;
 	//需要更新原来的数据结构VoronoiSite,因为可能在中间遍历的过程中,原来的某些数据已经被清理掉了
-	//site_now.head = twin_old;
-	//site_now.tail = edge;
 	//从交点intersect_point开始逆时针遍历,直到再次遇到边edge2,注意后面我们将会拆分周围的邻接单元,此过程比较复杂
 	VoronoiEdge *secondary_edge = edge->twin;
 	VoronoiEdge  *last_new_edge = new_edge;
@@ -942,7 +995,7 @@ void static_voronoi_insert(const std::vector<cocos2d::Vec2> &disper_points, cons
 	if (secondary_edge != nullptr)
 	{
 		Vec2 last_origin = intersect_point;//记录射线上次的起点
-		secondary_edge = static_voronoi_rotate_left(secondary_edge,edge2, site_x, target_location, last_origin,&last_new_edge);
+		secondary_edge = static_voronoi_rotate_left(mem_slab,secondary_edge,edge2, site_x, target_location, last_origin,&last_new_edge);
 		if (!secondary_edge)
 		{
 			//需要再次访问左侧
@@ -950,7 +1003,7 @@ void static_voronoi_insert(const std::vector<cocos2d::Vec2> &disper_points, cons
 			secondary_edge = edge2->twin;
 			last_origin = intersect_point2;
 			//此时的函数调用返回值必然为空,因此可以不用理会
-			static_voronoi_rotate_right(secondary_edge, edge, site_x, target_location, last_origin, &tripple_edge);
+			static_voronoi_rotate_right(mem_slab,secondary_edge, edge, site_x, target_location, last_origin, &tripple_edge);
 			//求出当前last_new_edge与四个周边相交的索引
 			//左侧
 			int l0 = static_ray_segments_intersect(last_new_edge->origin, normalize(last_new_edge->origin,last_new_edge->bottom),points_stride,intersect_point3);
@@ -960,7 +1013,7 @@ void static_voronoi_insert(const std::vector<cocos2d::Vec2> &disper_points, cons
 			while (l0 != l1)
 			{
 				int l2 = (l0 + 1)%4;
-				VoronoiEdge *n0 = new VoronoiEdge(&site_x, *lst_pos,*points_stride[l2]);
+				VoronoiEdge *n0 = mem_slab.apply(&site_x,*lst_pos,*points_stride[l2]);// new VoronoiEdge(&site_x, *lst_pos, *points_stride[l2]);
 				last_new_edge->next = n0; n0->prev = last_new_edge;
 				last_new_edge = n0;
 
@@ -968,7 +1021,7 @@ void static_voronoi_insert(const std::vector<cocos2d::Vec2> &disper_points, cons
 				l0 = l2;
 			}
 
-			VoronoiEdge *nl = new VoronoiEdge(&site_x,*lst_pos, intersect_point4);
+			VoronoiEdge *nl = mem_slab.apply(&site_x, *lst_pos, intersect_point4);// new VoronoiEdge(&site_x, *lst_pos, intersect_point4);
 			last_new_edge->next = nl; nl->prev = last_new_edge;
 			last_new_edge = nl;
 			
@@ -976,14 +1029,12 @@ void static_voronoi_insert(const std::vector<cocos2d::Vec2> &disper_points, cons
 
 			site_x.head = tripple_edge;
 		}
-		else
-			site_x.head = new_edge;
 	}
 	else if(edge2->twin != nullptr)//该处理过程相对于上面的选择分支要稍微简单一些
 	{
 		secondary_edge = edge2->twin;
 		Vec2 last_origin = intersect_point2;//记录射线上次的起点
-		secondary_edge = static_voronoi_rotate_right(secondary_edge, edge, site_x, target_location, last_origin, &last_new_edge);
+		secondary_edge = static_voronoi_rotate_right(mem_slab,secondary_edge, edge, site_x, target_location, last_origin, &last_new_edge);
 		//if (!secondary_edge)//此时必然为空值
 		assert(!secondary_edge);
 		{
@@ -995,14 +1046,14 @@ void static_voronoi_insert(const std::vector<cocos2d::Vec2> &disper_points, cons
 			while(l1 != l0)
 			{
 				int l2 = (l1 - 1 + 4)%4;
-				VoronoiEdge *n0 = new VoronoiEdge(&site_x, *points_stride[l1] ,*start_point);
+				VoronoiEdge *n0 = mem_slab.apply(&site_x, *points_stride[l1], *start_point);// new VoronoiEdge(&site_x, *points_stride[l1], *start_point);
 				n0->next = last_new_edge; last_new_edge->prev = n0;
 				last_new_edge = n0;
 
 				start_point = points_stride[l1];
 				l1 = l2;
 			}
-			VoronoiEdge *l3 = new VoronoiEdge(&site_x, intersect_point3,*start_point);
+			VoronoiEdge *l3 = mem_slab.apply(&site_x, intersect_point3, *start_point);// new VoronoiEdge(&site_x, intersect_point3, *start_point);
 			l3->next = last_new_edge; last_new_edge->prev = l3;
 			last_new_edge = l3;
 		}
@@ -1012,10 +1063,10 @@ void static_voronoi_insert(const std::vector<cocos2d::Vec2> &disper_points, cons
 	}
 	else//此时只可能有两条额外的边
 	{
-		VoronoiEdge  *a2 = new VoronoiEdge(&site_x, new_edge->bottom, edge->bottom);
+		VoronoiEdge  *a2 = mem_slab.apply(&site_x, new_edge->bottom, edge->bottom);// new VoronoiEdge(&site_x, new_edge->bottom, edge->bottom);
 		new_edge->next = a2; a2->prev = new_edge;
 
-		VoronoiEdge *a3 = new VoronoiEdge(&site_x,edge->bottom,new_edge->origin);
+		VoronoiEdge *a3 = mem_slab.apply(&site_x, edge->bottom, new_edge->origin);// new VoronoiEdge(&site_x, edge->bottom, new_edge->origin);
 		a3->prev = a2;a2->next = a3;
 
 		last_new_edge = a3;
@@ -1043,6 +1094,7 @@ void voronoi_increament_policy(const std::vector<cocos2d::Vec2> &disper_points, 
 	const Vec2 *points_stride[5] = { &left_bottom,&right_bottom,&right_top,&left_top,&left_bottom };
 	const VoronoiSite *sites_array = voronoi_sites.data();
 
+	VoronoiMemorySlab  mem_slab;
 	//首先生成前三个Voronoi图
 	create_voronoi3(disper_points, points_stride, voronoi_sites);
 	for (int index_l = 3; index_l < array_size - 2; ++index_l)
@@ -1060,7 +1112,7 @@ void voronoi_increament_policy(const std::vector<cocos2d::Vec2> &disper_points, 
 			}
 		}
 		//将顶点disper_points[index_l]插入到base_j的Voronoi图中
-		static_voronoi_insert(disper_points, points_stride,voronoi_sites, base_j, index_l);
+		static_voronoi_insert(mem_slab,disper_points, points_stride,voronoi_sites, base_j, index_l);
 	}
 }
 NS_GT_END
