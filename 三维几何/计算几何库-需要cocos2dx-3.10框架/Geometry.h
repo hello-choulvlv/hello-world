@@ -11,5 +11,6 @@
 #include "line/line.h"
 #include "triangle/triangle.h"
 #include "voronoi/Voronoi.h"
+#include "rotate_jam/rotate_jam.h"
 
 #endif

@@ -257,6 +257,23 @@ DelaunaySearch::~DelaunaySearch()
 }
 #undef delaunay_not_leaf
 
+VoronoiSite::~VoronoiSite()
+{
+	VoronoiEdge  *edge = head;
+	//首先断裂原来的键
+	if (edge)
+	{
+		do
+		{
+			VoronoiEdge  *edge2 = edge;
+			edge = edge->next;
+			delete edge2;
+		} while (edge != head);
+	}
+	head = nullptr;
+	tail = nullptr;
+}
+
 VoronoiEdge *VoronoiMemorySlab::apply(VoronoiSite *target_site, const cocos2d::Vec2 &start_point, const cocos2d::Vec2 &final_point)
 {
 	VoronoiEdge  *edge = nullptr;
@@ -269,6 +286,7 @@ VoronoiEdge *VoronoiMemorySlab::apply(VoronoiSite *target_site, const cocos2d::V
 		edge->origin = start_point;
 		edge->bottom = final_point;
 		edge->owner_site = target_site;
+		++apply_time;
 	}
 	else
 		edge = new VoronoiEdge(target_site,start_point,final_point);
@@ -1114,5 +1132,7 @@ void voronoi_increament_policy(const std::vector<cocos2d::Vec2> &disper_points, 
 		//将顶点disper_points[index_l]插入到base_j的Voronoi图中
 		static_voronoi_insert(mem_slab,disper_points, points_stride,voronoi_sites, base_j, index_l);
 	}
+	float x = 0;
+	float y = 0;
 }
 NS_GT_END

@@ -31,7 +31,7 @@ void segment_create(Segment &segment, const cocos2d::Vec3 &a, const cocos2d::Vec
 
 void ray_create(Ray &ray, const cocos2d::Vec3 &origin, const cocos2d::Vec3 &direction)
 {
-	ray.origin = origin;
+	ray.start_point = origin;
 	ray.direction = normalize(direction);
 }
 
@@ -52,6 +52,21 @@ void plane_create(Plane &plane, const cocos2d::Vec3 &normal, float d)
 	float length = normal.length();
 	plane.distance = d / length;
 	plane.normal = normal / length;
+}
+
+bool ray_line_intersect(const cocos2d::Vec2 &ray_start, const cocos2d::Vec2 &ray_normal, const cocos2d::Vec2 &line_start, const cocos2d::Vec2 &line_direction, cocos2d::Vec2 &intersect_point)
+{
+	//首先判断是否平行
+	float f = cross(ray_normal,line_direction);
+	if (fabsf(f) < 0.01f) return fabsf(-line_direction.y * (ray_start.x - line_start.x) + line_direction.x * (ray_start.y - line_start.y)) < 0.01f;
+	float rx = ray_start.x - line_start.x;
+	float ry = ray_start.y - line_start.y;
+	//使用行列式算法
+	float d = line_direction.x * ray_normal.y - ray_normal.x * line_direction.y;
+
+	float r = (rx * line_direction.y - line_direction.x * ry) / d;
+	intersect_point = ray_start + ray_normal * r;
+	return r >= 0.0f;
 }
 
 float line_line_minimum_distance(const Line &Q1, const Line &Q2,cocos2d::Vec3 &intersect_apoint, cocos2d::Vec3 & intersect_bpoint)
@@ -151,7 +166,7 @@ float line_point_minimum_distance(const cocos2d::Vec3 &point, const Segment &seg
 
 bool ray_sphere_intersect_test(const Ray &ray, const Sphere &sphere,cocos2d::Vec3 &intersect_point)
 {
-	const Vec3 c = ray.origin - sphere.center;
+	const Vec3 c = ray.start_point - sphere.center;
 	float r2 = sphere.radius * sphere.radius;
 	float b = dot(c,ray.direction);
 	float a = length2(c);
@@ -165,7 +180,7 @@ bool ray_sphere_intersect_test(const Ray &ray, const Sphere &sphere,cocos2d::Vec
 	float s = -b - sqrtf(t);
 	if (s < 0)
 		s = 0;
-	intersect_point = ray.origin + ray.direction * s;
+	intersect_point = ray.start_point + ray.direction * s;
 	return true;
 }
 
@@ -197,14 +212,14 @@ bool ray_aabb_intersect_test(const Ray &ray, const AABB &aabb)
 	//x
 	if (ray.direction.x == 0)
 	{
-		if (ray.origin.x < aabb.bb_max.x || ray.origin.x > aabb.bb_max.x)
+		if (ray.start_point.x < aabb.bb_max.x || ray.start_point.x > aabb.bb_max.x)
 			return false;
 	}
 	else
 	{
 		float d = 1.0f / ray.direction.x;
-		float f1 = (aabb.bb_min.x - ray.origin.x) * d;
-		float f2 = (aabb.bb_max.x - ray.origin.x) * d;
+		float f1 = (aabb.bb_min.x - ray.start_point.x) * d;
+		float f2 = (aabb.bb_max.x - ray.start_point.x) * d;
 
 		max_f = fminf(max_f,fmaxf(f1,f2));
 		min_f = fmaxf(min_f,fminf(f1,f2));
@@ -214,14 +229,14 @@ bool ray_aabb_intersect_test(const Ray &ray, const AABB &aabb)
 	//y
 	if (ray.direction.y == 0)
 	{
-		if (ray.origin.y < aabb.bb_max.y || ray.origin.y > aabb.bb_max.y)
+		if (ray.start_point.y < aabb.bb_max.y || ray.start_point.y > aabb.bb_max.y)
 			return false;
 	}
 	else
 	{
 		float d = 1.0f / ray.direction.y;
-		float f1 = (aabb.bb_min.y - ray.origin.y) * d;
-		float f2 = (aabb.bb_max.y - ray.origin.y) * d;
+		float f1 = (aabb.bb_min.y - ray.start_point.y) * d;
+		float f2 = (aabb.bb_max.y - ray.start_point.y) * d;
 
 		float t1 = fmaxf(f1,f2);
 		float t2 = fminf(f1,f2);
@@ -234,14 +249,14 @@ bool ray_aabb_intersect_test(const Ray &ray, const AABB &aabb)
 	//z
 	if (ray.direction.z == 0)
 	{
-		if (ray.origin.z < aabb.bb_min.z || ray.origin.z > aabb.bb_max.z)
+		if (ray.start_point.z < aabb.bb_min.z || ray.start_point.z > aabb.bb_max.z)
 			return false;
 	}
 	else
 	{
 		float d = 1.0f / ray.direction.z;
-		float f1 = (aabb.bb_min.z - ray.origin.z) *d;
-		float f2 = (aabb.bb_max.z - ray.origin.z) * d;
+		float f1 = (aabb.bb_min.z - ray.start_point.z) *d;
+		float f2 = (aabb.bb_max.z - ray.start_point.z) * d;
 
 		float t1 = fmaxf(f1,f2);
 		float t2 = fminf(f1,f2);
@@ -264,9 +279,9 @@ bool ray_obb_intersect_test(const Ray &ray, const OBB &obb)
 	aabb_create(aabb,- obb.extent,obb.extent);
 
 	//变换到OBB的局部坐标系中
-	Vec3 origin = ray.origin - obb.center;
+	Vec3 start_point = ray.start_point - obb.center;
 	gt::Ray  secondary_ray = {
-		Vec3(origin.dot(obb.xaxis), origin.dot(obb.yaxis),origin.dot(obb.zaxis)),
+		Vec3(start_point.dot(obb.xaxis), start_point.dot(obb.yaxis),start_point.dot(obb.zaxis)),
 		Vec3(ray.direction.dot(obb.xaxis),ray.direction.dot(obb.yaxis),ray.direction.dot(obb.zaxis)),
 	};
 
@@ -811,6 +826,45 @@ bool segment_segment_intersect_test(const Segment2D &a, const Segment2D &b,Vec2 
 
 	return false;
 }
+
+bool segment_line_intersect(const Segment2D &a, const Line2D &b, cocos2d::Vec2 &intersect_point)
+{
+	float f1 = cross(a.start_point - b.start_point,b.direction);
+	float f2 = cross(b.direction,a.final_point - b.start_point);
+
+	if (f1 * f2 >= 0.0f)
+	{
+		intersect_point = a.start_point + (a.final_point - a.start_point) * (f1/(f1+f2));
+		return true;
+	}
+	return false;
+}
+
+bool segment_ray_intersect(const Segment2D &a, const Ray2D &b, cocos2d::Vec2 &intersect_point)
+{
+	float f1 = cross(a.start_point - b.start_point, b.direction);
+	float f2 = cross(b.direction,a.final_point - b.start_point);
+
+	if (f1 * f2 >= 0.0f)
+	{
+		intersect_point = a.start_point + (a.final_point - a.start_point) * (f1 / (f1 + f2));
+		return dot(intersect_point - b.start_point,b.direction) >=0.0f;
+	}
+	return false;
+}
+
+bool segment_ray_intersect(const cocos2d::Vec2 &start_point, const cocos2d::Vec2 &final_point, const cocos2d::Vec2 &ray_origin, const cocos2d::Vec2 &ray_normal,cocos2d::Vec2 &intersect_point)
+{
+	float f1 = cross(start_point - ray_origin , ray_normal);
+	float f2 = cross(ray_normal, final_point - ray_origin);
+
+	if (f1 * f2 >= 0.0f)
+	{
+		intersect_point = start_point + (final_point - start_point) * (f1 / (f1 + f2));
+		return dot(intersect_point - ray_origin, ray_normal) >= 0.0f;
+	}
+	return false;
+}
 /*
   *线段端点的类型
  */
@@ -1070,6 +1124,29 @@ bool line_line_intersect_point(const Line2D &line1, const Line2D &line2, cocos2d
 	float r = (rx * d2.y - d2.x * ry)/d;
 	intersect_point = line1.start_point + d1 * r;
 	return true;
+}
+
+bool ray_ray_intersect_test(const cocos2d::Vec2 &raya_start, const cocos2d::Vec2 &raya_normal, const cocos2d::Vec2 &rayb_start, const cocos2d::Vec2 &rayb_normal,cocos2d::Vec2 &intersect_point)
+{
+	float f = cross(raya_normal, rayb_normal);
+	if (fabsf(f) <= 0.001f)
+		return false;
+	float rx = raya_start.x - rayb_start.x;
+	float ry = raya_start.y - rayb_start.y;
+	//使用行列式算法
+	auto &d1 = raya_normal;
+	auto &d2 = rayb_normal;
+	float d = d2.x * d1.y - d1.x * d2.y;
+
+	float r = (rx * d2.y - d2.x * ry) / d;
+	float g = (rx * d1.y - d1.x * ry)/d;
+
+	if (r >= 0 && g >= 0)
+	{
+		intersect_point = raya_start + d1 * r;
+		return true;
+	}
+	return false;
 }
 
 bool check_target_point_feasible(const Vec2 &target_point,const Line2D *lines_array,int array_size,int ax,int bx)

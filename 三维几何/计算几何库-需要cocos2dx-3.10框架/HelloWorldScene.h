@@ -127,6 +127,12 @@ public:
 	void voronoiAreaPartion();
 	//计算离散点集的Voronoi区域划分
 	void voronoiAreaPartion2();
+	//半平面求教算法实现
+	void halfPlaneIntersectTest();
+	//旋转卡壳算法-->凸包直径算法测试
+	void rotateHullMaxDistanceTest();
+	//旋转卡壳算法->求凸多边形的宽度
+	void rotateHullWidthTest();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

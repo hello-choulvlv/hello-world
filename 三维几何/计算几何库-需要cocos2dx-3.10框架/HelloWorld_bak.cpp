@@ -2050,3 +2050,123 @@ void HelloWorld::twoDimensionLinearlyProgram()
 
 	root_node->setCameraMask(s_CameraMask);
 }
+
+void HelloWorld::halfPlaneIntersectTest()
+{
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+
+	float  length_l = 600.0f;
+	float length_w = 700;
+	const int array_size = 6;
+	////超直线相交测试 6种
+	//gt::SuperLine2D	aline, bline;
+	//Vec2 intersect_point;
+	////直线与直线的相交测试
+	//aline.line_type = gt::LineType_Line;
+	//aline.start_point = Vec2(555.9709f,-369.5364);// Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+	////aline.unknown = gt::normalize(aline.start_point,Vec2(length_w * gt::randomf10(), length_l * gt::randomf10()));
+	//aline.unknown = gt::normalize(-0.4820f,0.8761f);// Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+
+	//bline.line_type = gt::LineType_Ray;
+	//bline.start_point = Vec2(-504.3671f,119.364f);// Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+	//bline.unknown = gt::normalize(-0.5754f,-0.8184f);// Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());// gt::normalize(aline.start_point, Vec2(length_w * gt::randomf10(), length_l * gt::randomf10()));
+	////bline.unknown = gt::normalize(aline.start_point, Vec2(length_w * gt::randomf10(), length_l * gt::randomf10()));
+
+	//bool b = gt::superline_intersect_test(aline, bline, intersect_point);
+	//const Color4F &color = b ? Color4F::RED:Color4F::GREEN;
+
+	////draw_node->drawLine(aline.start_point, aline.start_point + aline.unknown * 800, color);
+	////draw_node->drawLine(aline.start_point, aline.unknown, color);
+	//draw_node->drawLine(aline.start_point - aline.unknown * 400,aline.start_point + aline.unknown * 400,color);
+
+	////draw_node->drawLine(bline.start_point - bline.unknown * 400, bline.start_point + bline.unknown * 400, color);
+	//draw_node->drawLine(bline.start_point, bline.start_point + bline.unknown * 800, color);
+	////draw_node->drawLine(bline.start_point, bline.unknown, color);
+
+	//Sprite *sprite = Sprite::create("llk_yd.png");
+	//sprite->setPosition(bline.start_point);
+	//sprite->setColor(Color3B::RED);
+	//root_node->addChild(sprite);
+
+	////sprite = Sprite::create("llk_yd.png");
+	////sprite->setPosition(bline.unknown);
+	////sprite->setColor(Color3B::RED);
+	////root_node->addChild(sprite);
+
+	////sprite = Sprite::create("llk_yd.png");
+	////sprite->setPosition(aline.start_point);
+	////sprite->setColor(Color3B::RED);
+	////root_node->addChild(sprite);
+
+	////sprite = Sprite::create("llk_yd.png");
+	////sprite->setPosition(aline.unknown);
+	////sprite->setColor(Color3B::RED);
+	////root_node->addChild(sprite);
+
+	//if (b)
+	//{
+	//	Sprite *sprite = Sprite::create("llk_yd.png");
+	//	sprite->setPosition(intersect_point);
+	//	root_node->addChild(sprite);
+	//}
+	//
+	std::vector<gt::Line2D>  lines(array_size);
+
+	for (int index_j = 0; index_j < array_size; ++index_j)
+	{
+		gt::Line2D &line = lines[index_j];
+		line.start_point = Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+
+		const Vec2 final_point(length_w * gt::randomf10(), length_l * gt::randomf10());
+		line.direction = gt::normalize(line.start_point, final_point);
+	}
+	//
+	int boundary_array[2];
+	std::vector<gt::SuperLine2D> selected_planes;
+	std::vector<Vec2>   polygon_points;
+	gt::HalfResultType   result_type = gt::half_planes_intersect(lines, selected_planes);
+	const Color4F &color = result_type == gt::ResultType_Polygon ? Color4F::RED : Color4F::GREEN;
+
+	//先画出直线,然后画出离散点集
+	for (int index_l = 0; index_l < array_size; ++index_l)
+	{
+		auto &line = lines[index_l];
+		const Vec2 start_point = line.start_point - line.direction * 1200;
+		const Vec2 final_point = line.start_point + line.direction * 1200;
+		draw_node->drawLine(start_point, final_point, color);
+		//画出法线
+		const Vec2 normal(-line.direction.y, line.direction.x);
+		draw_node->drawLine(line.start_point, line.start_point + normal * 100, Color4F::BLUE);
+	}
+	//画出离散点集
+	for (int index_l = 0; result_type == gt::ResultType_Polygon && index_l < selected_planes.size(); ++index_l)
+	{
+		auto &super_line = selected_planes[index_l];
+		if (super_line.line_type == gt::LineType_Ray)
+		{
+			draw_node->drawLine(super_line.start_point, super_line.start_point + super_line.unknown * 800.0f, Color4F::WHITE);
+			Sprite *sprite = Sprite::create("llk_yd.png");
+			sprite->setPosition(super_line.start_point);
+			root_node->addChild(sprite);
+		}
+		else if (super_line.line_type == gt::LineType_Segment)
+		{
+			draw_node->drawLine(super_line.start_point, super_line.unknown, Color4F::WHITE);
+			Sprite *sprite = Sprite::create("llk_yd.png");
+			sprite->setPosition(super_line.start_point);
+			root_node->addChild(sprite);
+
+			sprite = Sprite::create("llk_yd.png");
+			sprite->setPosition(super_line.unknown);
+			root_node->addChild(sprite);
+		}
+		else
+			assert(false);
+	}
+
+	root_node->setCameraMask(s_CameraMask);
+}

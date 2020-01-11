@@ -122,6 +122,7 @@ struct VoronoiSite
 
 	VoronoiSite(const cocos2d::Vec2 &site_location) :location(&site_location), head(nullptr), tail(nullptr) {};
 	VoronoiSite() :location(nullptr), head(nullptr), tail(nullptr) {};
+	~VoronoiSite();
 };
 /*
   *内存管理器
@@ -132,7 +133,8 @@ struct VoronoiMemorySlab
 	VoronoiEdge *slab_head;
 	int                    size;
 	int                    capacity;
-	VoronoiMemorySlab(int asize = 0x7FFFFFF) :slab_head(nullptr), size(0), capacity(asize) {};
+	int                    apply_time;//统计内存分配的次数
+	VoronoiMemorySlab(int asize = 0x7FFFFFF) :slab_head(nullptr), size(0), capacity(asize), apply_time(0){};
 	~VoronoiMemorySlab();
 
 	VoronoiEdge *apply(VoronoiSite *target_site, const cocos2d::Vec2 &start_point, const cocos2d::Vec2 &final_point);

@@ -47,6 +47,10 @@ float random();
 *针对二维点的测试,有符号面积
 */
 float sign_area(const cocos2d::Vec2 &db, const cocos2d::Vec2 &dc);
+/*
+  *点到直线的距离
+ */
+float line_point_distance(const cocos2d::Vec2 &start_point,const cocos2d::Vec2 &direction,const cocos2d::Vec2 &point);
 //向量与矩阵之间的乘法,以下函数多用于旋转矩阵与3维向量之间的变换
 void  vec3_transfrom_mat3(const cocos2d::Vec3 &t,const mat3x3 &mat,cocos2d::Vec3 &dst);
 void  mat3_transform_vec3(const mat3x3 &mat,const cocos2d::Vec3 &t,cocos2d::Vec3 &dst);

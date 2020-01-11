@@ -159,6 +159,14 @@ float random()
 {
 	return 1.0f * rand() / RAND_MAX;
 }
+
+float line_point_distance(const cocos2d::Vec2 &start_point, const cocos2d::Vec2 &direction, const cocos2d::Vec2 &point)
+{
+	float d_x = point.x - start_point.x;
+	float d_y = point.y - start_point.y;
+
+	return -direction.y * d_x + direction.x * d_y;
+}
 //////////////////////////æÿ’Û±‰ªª///////////////////////////////////
 void vec3_transfrom_mat3(const cocos2d::Vec3 &t, const mat3x3 &mat, cocos2d::Vec3 &dst)
 {

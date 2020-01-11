@@ -93,7 +93,7 @@ bool polygon_segment_intersect_test(const Polygon &polygon, const Segment &segme
 
 bool polygon_ray_intersect_test(const Polygon &polygon, const Ray &ray)
 {
-	return polygon_unkonwn_intersect_test(polygon,*(Vec2*)&ray.origin,*(Vec2*)&ray.direction,0,FLT_MAX);
+	return polygon_unkonwn_intersect_test(polygon,*(Vec2*)&ray.start_point,*(Vec2*)&ray.direction,0,FLT_MAX);
 }
 
 bool polygon_contains_point(const Polygon &polygon, const cocos2d::Vec2 &point)

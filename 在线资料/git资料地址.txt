@@ -71,3 +71,6 @@ https://github.com/wolfgangfengel
 
 //高等数学
 https://oi-wiki.org/math/simplex/
+
+//程序设计基础知识学习网站
+https://oi-wiki.org/geometry/half-plane/

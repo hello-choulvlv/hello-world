@@ -31,7 +31,7 @@ bool HelloWorld::init()
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 	auto &winSize = _director->getWinSize();
-	int64_t seed = time(nullptr);//1572057392;
+	int64_t seed = time(nullptr);// 1578545857;// time(nullptr);//1572057392;
 	CCLOG("seed->%ld", seed);
 	srand(seed);//14,23,27
 
@@ -103,7 +103,10 @@ bool HelloWorld::init()
 	//twoPolygonTangentLine();
 	//delaunayTriangulate();
 	//voronoiAreaPartion();
-	voronoiAreaPartion2();
+	//voronoiAreaPartion2();
+	//halfPlaneIntersectTest();
+	//rotateHullMaxDistanceTest();
+	rotateHullWidthTest();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -507,6 +510,107 @@ void HelloWorld::voronoiAreaPartion2()
 			link_size += 1;
 		} while (head != site.head);
 	}
+
+	root_node->setCameraMask(s_CameraMask);
+}
+
+
+void HelloWorld::rotateHullMaxDistanceTest()
+{
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+
+	float  length_l = 600.0f;
+	float length_w = 700;
+	const int array_size = 127;
+	//三角形平面
+	std::vector<Vec2>  points(array_size + 3);
+	std::vector<Sprite*>  sprite_array[array_size];
+	//生成随机离散点,并计算boundingbox
+	Vec2 origin(FLT_MAX, FLT_MAX), bottom(-FLT_MAX, -FLT_MAX);
+	for (int index_j = 0; index_j < array_size; ++index_j)
+	{
+		points[index_j] = Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(points[index_j]);
+		root_node->addChild(sprite);
+	}
+	//求离散点集的凸包
+	std::vector<Vec2> polygon;
+	gt::polygon_compute_minimum(points, polygon);
+	//画出多边形的边界
+	for (int index_l = 0; index_l < polygon.size(); ++index_l)
+	{
+		int secondary_l = (index_l + 1) % polygon.size();
+		draw_node->drawLine(polygon[index_l], polygon[secondary_l],Color4F::GREEN);
+	}
+
+	int start_index = 0, final_index = 0;
+	float distance = gt::rotate_hull_max_distance(polygon, start_index, final_index);
+	draw_node->drawLine(polygon[start_index],polygon[final_index],Color4F::RED);
+	//手工验证一下
+	float f = 0.0f;
+
+	int la, lb;
+	for (int index_l = 0; index_l < polygon.size() - 1; ++index_l)
+	{
+		for (int secondary_l = index_l + 1; secondary_l < polygon.size(); ++secondary_l)
+		{
+			float l = gt::length(polygon[index_l], polygon[secondary_l]);
+			if (l > f)
+			{
+				f = l;
+				la = index_l;
+				lb = secondary_l;
+			}
+		}
+	}
+	assert(fabsf(f - distance) <= 0.01f);
+
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::rotateHullWidthTest()
+{
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+
+	float  length_l = 600.0f;
+	float length_w = 700;
+	const int array_size = 33;
+	//三角形平面
+	std::vector<Vec2>  points(array_size);
+	std::vector<Sprite*>  sprite_array[array_size];
+	//生成随机离散点,并计算boundingbox
+	Vec2 origin(FLT_MAX, FLT_MAX), bottom(-FLT_MAX, -FLT_MAX);
+	for (int index_j = 0; index_j < array_size; ++index_j)
+	{
+		points[index_j] = Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(points[index_j]);
+		root_node->addChild(sprite);
+	}
+	//求离散点集的凸包
+	std::vector<Vec2> polygon;
+	gt::polygon_compute_minimum(points, polygon);
+	//画出多边形的边界
+	for (int index_l = 0; index_l < polygon.size(); ++index_l)
+	{
+		int secondary_l = (index_l + 1) % polygon.size();
+		draw_node->drawLine(polygon[index_l], polygon[secondary_l], Color4F::GREEN);
+	}
+
+	Vec2 start_point, final_point;
+	float distance = gt::rotate_hull_width(polygon, start_point, final_point);
+	draw_node->drawLine(start_point, final_point, Color4F::RED);
 
 	root_node->setCameraMask(s_CameraMask);
 }

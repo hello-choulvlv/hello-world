@@ -46,8 +46,13 @@ struct Segment2D
  */
 struct Ray
 {
-	cocos2d::Vec3 origin;
+	cocos2d::Vec3 start_point;
 	cocos2d::Vec3 direction;
+};
+struct Ray2D
+{
+	cocos2d::Vec2 start_point;
+	cocos2d::Vec2 direction;
 };
 /*
   *平面方程
@@ -71,6 +76,10 @@ void segment_create(Segment  &segment,const cocos2d::Vec3 &a,const cocos2d::Vec3
   *射线
  */
 void ray_create(Ray &ray,const cocos2d::Vec3 &origin,const cocos2d::Vec3 &direction);
+/*
+  *直线与射线相交测试
+ */
+bool ray_line_intersect(const cocos2d::Vec2 &ray_start,const cocos2d::Vec2 &ray_normal,const cocos2d::Vec2 &line_start,const cocos2d::Vec2 &line_direction,cocos2d::Vec2 &intersect_point);
 /*
   *创建平面
  */
@@ -162,6 +171,9 @@ bool segments2d_N_intersect_test(const Segment2D  *line_array,int line_size);
  */
 bool segment_segment_intersect_test(const Segment2D &a,const Segment2D &b);
 bool segment_segment_intersect_test(const Segment2D &a, const Segment2D &b, cocos2d::Vec2 &intersect_point);
+bool segment_line_intersect(const Segment2D &a,const Line2D &b,cocos2d::Vec2 &intersect_point);
+bool segment_ray_intersect(const Segment2D &a,const Ray2D &b,cocos2d::Vec2 &intersect_point);
+bool segment_ray_intersect(const cocos2d::Vec2 &start_point,const cocos2d::Vec2 &final_point,const cocos2d::Vec2 &ray_origin,const cocos2d::Vec2 &ray_normal,cocos2d::Vec2 &intersect_point);
 /*
   *判断一个点是否在一个线段的左侧,如果刚好处于线段上,也将视为左侧
  */
@@ -178,6 +190,13 @@ int   segment_n_intersect_point(const std::vector<Segment2D> &segments,std::vect
   *求两2d直线的交点
  */
 bool line_line_intersect_point(const Line2D &line1,const Line2D &line2,cocos2d::Vec2 &intersect_point);
+/*
+  *射线与射线相交测试
+ */
+bool ray_ray_intersect_test(const cocos2d::Vec2 &raya_start,const cocos2d::Vec2 &raya_normal,const cocos2d::Vec2 &rayb_start,const cocos2d::Vec2 &rayb_normal, cocos2d::Vec2 &intersect_point);
+/*
+  *n条线段相交测试
+ */
 int segment_n_intersect_prim(const std::vector<Segment2D> &segments, std::vector<cocos2d::Vec2> &intersect_points);
 /*
   *二维线性规划问题,函数约定,直线的左侧为半平面区域
