@@ -133,6 +133,12 @@ public:
 	void rotateHullMaxDistanceTest();
 	//旋转卡壳算法->求凸多边形的宽度
 	void rotateHullWidthTest();
+	//旋转卡壳算法->凸多边形之间的最大距离
+	void rotateHullTwoMaxDistanceTest();
+	//旋转卡壳算法->求两分离的凸多边形的最短距离
+	void rotateHullTwoMinDistanceTest();
+	//旋转恰克算法->求多边形的最小面积外接矩形
+	void rotateHullMinAreaTest();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

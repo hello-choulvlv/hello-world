@@ -26,6 +26,8 @@ struct mat4x4
 */
 float  dot(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b);
 float  dot(const cocos2d::Vec2 &a, const cocos2d::Vec2 &b);
+float  dot(const cocos2d::Vec2 &a,const cocos2d::Vec2 &b,const cocos2d::Vec2 &c);
+float  dot(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b, const cocos2d::Vec3 &c);
 float  dot_abs(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b);
 
 float  length2(const cocos2d::Vec3 &a);
@@ -64,7 +66,7 @@ float cross(const cocos2d::Vec2 &base,const cocos2d::Vec2 &fc1,const cocos2d::Ve
 /*
 *向量规范化
 */
-cocos2d::Vec3  normalize(const cocos2d::Vec3 &v);
+cocos2d::Vec3 normalize(const cocos2d::Vec3 &v);
 cocos2d::Vec3 normalize(float x, float y, float z);
 cocos2d::Vec2 normalize(const cocos2d::Vec2 &v);
 cocos2d::Vec2 normalize(const cocos2d::Vec2 &u, const cocos2d::Vec2 &v);

@@ -51,5 +51,23 @@ float rotate_hull_max_distance(const std::vector<cocos2d::Vec2> &hull_points,int
   *旋转卡壳-->求凸多边形的宽度
  */
 float rotate_hull_width(const std::vector<cocos2d::Vec2> &hull_points,cocos2d::Vec2 &start_point,cocos2d::Vec2 &final_point);
+/*
+  *求两个凸多边形之间的最大距离
+ */
+float rotate_hull_max_between(const std::vector<cocos2d::Vec2> &hull_points1,const std::vector<cocos2d::Vec2> &hull_points2,int &ahull_index,int &bhull_index);
+/*
+  *求两个分离的凸多边形之间的最小距离
+  *注意,该两个多边形之间一定不能相交
+  *否则计算的结果将会不正确
+  *如果想要精确计算是否相交,请参考GJK算法实现,在point_polygon.cpp文件中
+ */
+float rotate_hull_min_between(const std::vector<cocos2d::Vec2> &hull_points1, const std::vector<cocos2d::Vec2> &hull_points2, cocos2d::Vec2 &ahull_point,cocos2d::Vec2 &bhull_point);
+/*
+  *求凸多边形的最小面积外接矩形
+  *最终的坐标点结果将写入到rect_points种
+  *算法的核心思想是,使用两队旋转平行线逐点测试
+  *算法的复杂度为O(n)
+ */
+float rotate_hull_min_area(const std::vector<cocos2d::Vec2> &hull_points,cocos2d::Vec2 rect_points[4]);
 NS_GT_END
 #endif

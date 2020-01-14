@@ -207,4 +207,159 @@ float rotate_hull_width(const std::vector<cocos2d::Vec2> &hull_points, cocos2d::
 	return distance;
 }
 
+float rotate_hull_max_between(const std::vector<cocos2d::Vec2> &hull_points1, const std::vector<cocos2d::Vec2> &hull_points2, int &ahull_index, int &bhull_index)
+{
+	const int array_size1 = hull_points1.size();
+	const int array_size2 = hull_points2.size();
+	float distance = 0.0f;
+
+	int base_j = 0;
+	for (int index_l = 0; index_l < array_size1; ++index_l)
+	{
+		int secondary_l = (index_l +1)%array_size1;
+		int tripple_l = (base_j + 1) % array_size2;
+
+		while (cross(hull_points1[index_l], hull_points1[secondary_l], hull_points2[base_j]) < cross(hull_points1[index_l], hull_points1[secondary_l], hull_points2[tripple_l]))
+		{
+			base_j = tripple_l;
+			tripple_l = (tripple_l+1)%array_size2;
+		}
+		float f = length(hull_points1[secondary_l],hull_points2[base_j]);
+		if (f > distance)
+		{
+			distance = f;
+			ahull_index = secondary_l;
+			bhull_index = base_j;
+		}
+	}
+	return distance;
+}
+
+float rotate_hull_min_between(const std::vector<cocos2d::Vec2> &hull_points1, const std::vector<cocos2d::Vec2> &hull_points2, cocos2d::Vec2 &ahull_point, cocos2d::Vec2 &bhull_point)
+{
+	const int array_size1 = hull_points1.size();
+	const int array_size2 = hull_points2.size();
+	Vec2 aintersect_point, bintersect_point;
+	float distance = FLT_MAX;
+	int base_j = 0;
+	/*
+	  *第一步先定位到离目标边最远的顶点,注意因为该距离可能为负数,因此
+	  *如果直接使用上面的算法模式,则可能会出现不正确的结果.
+	 */
+	int past_l = array_size2-1;
+	while (cross(hull_points1[0], hull_points1[1], hull_points2[base_j]) < cross(hull_points1[0], hull_points1[1], hull_points2[past_l]))
+	{
+		base_j = past_l;
+		past_l = (past_l -1 + array_size2)%array_size2;
+	}
+
+	Segment2D a = { hull_points1[0],hull_points1[1] }, b = { hull_points2[base_j],hull_points2[(base_j +1)%array_size2] };
+	distance = segment_segment_minimum_distance(a,b,ahull_point,bhull_point);
+	//另一侧
+	b.start_point = hull_points2[past_l];
+	b.final_point = hull_points2[base_j];
+	float f = segment_segment_minimum_distance(a, b, aintersect_point, bintersect_point);
+	if (f < distance)
+	{
+		distance = f;
+		ahull_point = aintersect_point;
+		bhull_point = bintersect_point;
+	}
+
+	for (int index_l = 1; index_l < array_size1; ++index_l)
+	{
+		int secondary_l = (index_l+1)%array_size1;
+		int tripple_l = (base_j +1)%array_size2;
+		while (cross(hull_points1[index_l], hull_points1[secondary_l], hull_points2[base_j]) < cross(hull_points1[index_l], hull_points1[secondary_l], hull_points2[tripple_l]))
+		{
+			base_j = tripple_l;
+			tripple_l = (tripple_l + 1)%array_size2;
+		}
+		Segment2D a = { hull_points1[index_l],hull_points1[secondary_l] }, b = {hull_points2[base_j],hull_points2[tripple_l]};
+		float f = segment_segment_minimum_distance(a, b, aintersect_point, bintersect_point);
+		if (f < distance)
+		{
+			ahull_point = aintersect_point;
+			bhull_point = bintersect_point;
+			distance = f;
+		}
+		b.start_point = hull_points2[(base_j - 1 + array_size2)%array_size2];
+		b.final_point = hull_points2[base_j];
+		f = segment_segment_minimum_distance(a, b, aintersect_point, bintersect_point);
+		if (f < distance)
+		{
+			ahull_point = aintersect_point;
+			bhull_point = bintersect_point;
+			distance = f;
+		}
+	}
+	return distance;
+}
+
+float rotate_hull_min_area(const std::vector<cocos2d::Vec2> &hull_points, cocos2d::Vec2 rect_points[4])
+{
+	const int array_size = hull_points.size();
+	int left = 0, right=1, up=0;
+	int l=0, r=0, b=0,u=0;
+	float area = FLT_MAX;
+
+	for (int index_l = 0; index_l < array_size; ++index_l)
+	{
+		int secondary_l = (index_l+1)%array_size;
+		const Vec2 &start_point = hull_points[index_l];
+		const Vec2 &final_point = hull_points[secondary_l];
+		//右
+		int tripple_l = (right+1)%array_size;
+		while(dot(start_point, final_point, hull_points[right]) < dot(start_point, final_point, hull_points[tripple_l]))
+		{
+			right = tripple_l;
+			tripple_l = (tripple_l + 1) % array_size;
+		}
+		if (!index_l)
+			up = right;
+		//上
+		tripple_l = (up+1)%array_size;
+		while (cross(start_point, final_point, hull_points[up]) < cross(start_point, final_point, hull_points[tripple_l]))
+		{
+			up = tripple_l;
+			tripple_l = (tripple_l+1)%array_size;
+		}
+		//左
+		if (!index_l)
+			left = up;
+		tripple_l = (left+1)%array_size;
+		while (dot(final_point, start_point, hull_points[left]) < dot(final_point, start_point, hull_points[tripple_l]))
+		{
+			left = tripple_l;
+			tripple_l = (tripple_l + 1)%array_size;
+		}
+		//计算当前形成的外接矩形的面积
+		float h = cross(start_point,final_point,hull_points[up])/length(start_point,final_point);//注意该行代码的含义
+		Vec2 stride = hull_points[right] - hull_points[left];
+		float w = dot(stride,normalize(start_point,final_point));
+		float f = w * h;
+		if (f < area)
+		{
+			area = f;
+			l = left; r = right; b = index_l; u = up;
+		}
+	}
+	//计算相关的外接矩形
+	int secondary_l = (b+1)%array_size;
+	float h = cross(hull_points[b],hull_points[secondary_l],hull_points[u])/length(hull_points[b],hull_points[secondary_l]);
+	Vec2 stride = hull_points[r] - hull_points[l];
+	Vec2 normal = normalize(hull_points[b],hull_points[secondary_l]);
+	float w = dot(stride,normal);
+
+	float step_left = dot(hull_points[l] - hull_points[b],normal);
+	rect_points[0] = hull_points[b] + normal * step_left;
+	rect_points[1] = rect_points[0] + normal * w;
+
+	Vec2 up_normal(-normal.y,normal.x);
+	rect_points[2] = rect_points[1] + up_normal * h;
+	rect_points[3] = rect_points[0] + up_normal * h;
+
+	return area;
+}
+
 NS_GT_END

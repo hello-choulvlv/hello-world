@@ -95,6 +95,7 @@ float  line_line_minimum_distance(const Line  &a,const Line &b,cocos2d::Vec3 &in
   *并同时给出最近距离的两个点
 */
 float  segment_segment_minimum_distance(const Segment  &a, const Segment &b, cocos2d::Vec3 &intersect_apoint, cocos2d::Vec3 & intersect_bpoint);
+float segment_segment_minimum_distance(const Segment2D &a,const Segment2D &b,cocos2d::Vec2 &aintersect_point,cocos2d::Vec2 &bintersect_point);
 /*
   *求点到平面的正交投影点,以及相关的距离
  */

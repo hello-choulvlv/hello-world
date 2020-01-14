@@ -16,6 +16,16 @@ float dot(const cocos2d::Vec2 &a, const cocos2d::Vec2 &b)
 	return a.x * b.x + a.y * b.y;
 }
 
+float dot(const cocos2d::Vec2 &a, const cocos2d::Vec2 &b,const cocos2d::Vec2 &c)
+{
+	return (b.x - a.x) * (c.x - a.x) + (b.y - a.y) * (c.y - a.y);
+}
+
+float  dot(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b, const cocos2d::Vec3 &c)
+{
+	return (b.x - a.x) * (c.x - a.x) + (b.y - a.y) * (c.y - a.y) + (b.z - a.z) * (c.z - a.z);
+}
+
 float dot_abs(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b)
 {
 	return fabsf(a.x * b.x) + fabsf(a.y * b.y) + fabsf(a.z * b.z);

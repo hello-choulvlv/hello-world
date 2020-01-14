@@ -129,6 +129,42 @@ float segment_segment_minimum_distance(const Segment &l1, const Segment &l2, coc
 	return (intersect_apoint - intersect_bpoint).length();
 }
 
+float segment_segment_minimum_distance(const Segment2D &a, const Segment2D &b, cocos2d::Vec2 &aintersect_point, cocos2d::Vec2 &bintersect_point)
+{
+	//其算法思想跟直线的最近点求法类似,但是实现的过程要复杂很多
+	Vec2 d1 = a.final_point - a.start_point;
+	Vec2 d2 = b.final_point - b.start_point;
+	Vec2 r = a.start_point - b.start_point;
+
+	float da = dot(d1, d1);
+	float de = dot(d2, d2);
+	float db = dot(d1, d2);
+	float df = dot(d2, r);
+
+	float s = 0, t = 0;
+	//按直线之间的最近距离计算最近点
+	float dc = dot(r, d1);
+	float denom = da * de - db * db;
+	if (denom != 0)
+		s = clampf(0, 1, (db * df - dc * de) / denom);
+	t = (s * db + df) / de;
+	//求边界
+	if (t < 0.0f)
+	{
+		t = 0.0f;
+		s = clampf(0, 1, -dc / da);
+	}
+	else if (t > 1.0f)
+	{
+		t = 1.0f;
+		s = clampf(0, 1, (db - dc) / da);
+	}
+	//求目标点以及距离
+	aintersect_point = a.start_point + d1 * s;
+	bintersect_point = b.start_point + d2 * t;
+	return length(aintersect_point,bintersect_point);
+}
+
 float Plane::distanceTo(const cocos2d::Vec3 &point)const
 {
 	return gt::dot(normal,point) - distance;
