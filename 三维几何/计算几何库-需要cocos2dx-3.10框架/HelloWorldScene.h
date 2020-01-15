@@ -137,8 +137,14 @@ public:
 	void rotateHullTwoMaxDistanceTest();
 	//旋转卡壳算法->求两分离的凸多边形的最短距离
 	void rotateHullTwoMinDistanceTest();
-	//旋转恰克算法->求多边形的最小面积外接矩形
+	//旋转卡壳算法->求多边形的最小面积外接矩形
 	void rotateHullMinAreaTest();
+	//旋转卡壳算法->求多边形的最小周长外接矩形
+	void rotateHullMinPerimeterTest();
+	//旋转卡壳算法->求离散点集的洋葱三角分解
+	void rotateHullOnionDecomposition();
+	//旋转卡壳算法->求离散点集的螺旋三角剖分
+	void rotateHullSpiralDecomposition();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

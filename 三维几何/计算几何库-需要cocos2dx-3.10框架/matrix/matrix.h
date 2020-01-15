@@ -72,6 +72,11 @@ cocos2d::Vec2 normalize(const cocos2d::Vec2 &v);
 cocos2d::Vec2 normalize(const cocos2d::Vec2 &u, const cocos2d::Vec2 &v);
 cocos2d::Vec2 normalize(float x,float y);
 /*
+  *向量运算
+  *求从向量a旋转到b经过的弧度
+ */
+float radian_from(const cocos2d::Vec2 &a,const cocos2d::Vec2 &b);
+/*
   *3x3矩阵变换
  */
 //加载单位矩阵
@@ -190,6 +195,25 @@ void vector_reverse(std::vector<VT> &param_v) {
 	VT *data_array = param_v.data();
 	for (int left_l = 0, right_l = param_v.size() - 1; left_l < right_l; ++left_l, --right_l)
 		std::swap(data_array[left_l],data_array[right_l]);
+}
+/*
+  *使用数组填充相关vector
+ */
+template<typename VT>
+void vector_fill_with(std::vector<VT> &param_v,VT *vt_array,int array_size)
+{
+	param_v.resize(array_size);
+	memcpy(param_v.data(),vt_array,sizeof(VT) *array_size);
+}
+/*
+  *将vector相关的地址写入到指定的数组中
+ */
+template<typename VT>
+void vector_copy_const_ptr(std::vector<const VT*> &param_vt,const std::vector<VT> &target_vt)
+{
+	param_vt.resize(target_vt.size());
+	for (int index_l = 0; index_l < target_vt.size(); ++index_l)
+		param_vt[index_l] = target_vt.data() + index_l;
 }
 NS_GT_END
 #endif

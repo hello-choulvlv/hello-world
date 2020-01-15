@@ -109,7 +109,10 @@ bool HelloWorld::init()
 	//rotateHullWidthTest();
 	//rotateHullTwoMaxDistanceTest();
 	//rotateHullTwoMinDistanceTest();
-	rotateHullMinAreaTest();
+	//rotateHullMinAreaTest();
+	//rotateHullMinPerimeterTest();
+	//rotateHullOnionDecomposition();
+	rotateHullSpiralDecomposition();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -829,6 +832,122 @@ void HelloWorld::rotateHullMinAreaTest()
 	draw_node->drawLine(rect_points[1], rect_points[2], Color4F::RED);
 	draw_node->drawLine(rect_points[2], rect_points[3], Color4F::RED);
 	draw_node->drawLine(rect_points[3], rect_points[0], Color4F::RED);
+
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::rotateHullMinPerimeterTest()
+{
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+
+	float  length_l = 600.0f;
+	float length_w = 700;
+	const int array_size = 33;
+	//三角形平面
+	std::vector<Vec2>  points(array_size);
+	std::vector<Sprite*>  sprite_array[array_size];
+	//生成随机离散点,并计算boundingbox
+	Vec2 origin(FLT_MAX, FLT_MAX), bottom(-FLT_MAX, -FLT_MAX);
+	for (int index_j = 0; index_j < array_size; ++index_j)
+	{
+		points[index_j] = Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(points[index_j]);
+		root_node->addChild(sprite);
+	}
+	//求离散点集的凸包
+	std::vector<Vec2> polygon;
+	gt::polygon_compute_minimum(points, polygon);
+	//画出多边形的边界
+	for (int index_l = 0; index_l < polygon.size(); ++index_l)
+	{
+		int secondary_l = (index_l + 1) % polygon.size();
+		draw_node->drawLine(polygon[index_l], polygon[secondary_l], Color4F::GREEN);
+	}
+
+	Vec2 rect_points[4];
+	float distance = gt::rotate_hull_min_perimeter(polygon, rect_points);
+
+	draw_node->drawLine(rect_points[0], rect_points[1], Color4F::RED);
+	draw_node->drawLine(rect_points[1], rect_points[2], Color4F::RED);
+	draw_node->drawLine(rect_points[2], rect_points[3], Color4F::RED);
+	draw_node->drawLine(rect_points[3], rect_points[0], Color4F::RED);
+
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::rotateHullOnionDecomposition()
+{
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+
+	float  length_l = 600.0f;
+	float length_w = 500;
+	const int array_size = 17;
+	//三角形平面
+	std::vector<Vec2>  points(array_size);
+	std::vector<Sprite*>  sprite_array[array_size];
+	//生成随机离散点,并计算boundingbox
+	Vec2 origin(FLT_MAX, FLT_MAX), bottom(-FLT_MAX, -FLT_MAX);
+	for (int index_j = 0; index_j < array_size; ++index_j)
+	{
+		points[index_j] = Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(points[index_j]);
+		root_node->addChild(sprite);
+	}
+
+	std::vector<const Vec2 *> triangle_edges;
+	gt::rotate_hull_onion_decomposite(points, triangle_edges);
+	//画出三角形边
+	for (int index_l = 0; index_l < triangle_edges.size(); index_l +=2)
+		draw_node->drawLine(*triangle_edges[index_l],*triangle_edges[index_l+1],Color4F::GREEN);
+
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::rotateHullSpiralDecomposition()
+{
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+
+	float  length_l = 600.0f;
+	float length_w = 500;
+	const int array_size = 33;
+	//三角形平面
+	std::vector<Vec2>  points(array_size);
+	std::vector<Sprite*>  sprite_array[array_size];
+	//生成随机离散点,并计算boundingbox
+	Vec2 origin(FLT_MAX, FLT_MAX), bottom(-FLT_MAX, -FLT_MAX);
+	for (int index_j = 0; index_j < array_size; ++index_j)
+	{
+		points[index_j] = Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(points[index_j]);
+		root_node->addChild(sprite);
+	}
+
+	std::vector<const Vec2 *> triangle_edges;
+	gt::rotate_hull_spiral_line(points, triangle_edges);
+	//画出三角形边
+	for (int index_l = 0; index_l < triangle_edges.size() - 1; index_l += 1)
+	{
+		if (triangle_edges[index_l] && triangle_edges[index_l + 1])
+			draw_node->drawLine(*triangle_edges[index_l], *triangle_edges[index_l + 1], Color4F::GREEN);
+	}
 
 	root_node->setCameraMask(s_CameraMask);
 }

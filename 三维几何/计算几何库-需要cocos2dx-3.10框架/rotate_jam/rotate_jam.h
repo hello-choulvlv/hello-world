@@ -69,5 +69,27 @@ float rotate_hull_min_between(const std::vector<cocos2d::Vec2> &hull_points1, co
   *算法的复杂度为O(n)
  */
 float rotate_hull_min_area(const std::vector<cocos2d::Vec2> &hull_points,cocos2d::Vec2 rect_points[4]);
+/*
+  *求凸多边形的最小周长
+  *算法的核心思想与上面的算法相同
+  *区别只在于求的目标不同,
+  *另外,一般情况下两者的计算结果相同
+  *然而,如果出现连续平行边时,计算结果将出现差异
+ */
+float rotate_hull_min_perimeter(const std::vector<cocos2d::Vec2> &hull_points,cocos2d::Vec2 rect_points[4]);
+/*
+  *洋葱三角剖分算法实现
+  *再第一版中,我们只实现基本的算法目标
+  *第二版中我们将使用Chazelle的Convex Layer算法来优化算法的实现
+ */
+void rotate_hull_onion_decomposite(const std::vector<cocos2d::Vec2> &points,std::vector<const cocos2d::Vec2*> &triangle_edges);
+/*
+  *计算离散点集的螺旋线
+ */
+void rotate_hull_spiral_line(const std::vector<cocos2d::Vec2> &points,std::vector<const cocos2d::Vec2*> &spiral_points);
+/*
+  *离散点集的螺旋三角剖分
+ */
+void rotate_hull_spiral_decomposite(const std::vector<cocos2d::Vec2> &points, std::vector<const cocos2d::Vec2*> &triangle_edges);
 NS_GT_END
 #endif

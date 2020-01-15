@@ -140,6 +140,17 @@ cocos2d::Vec2 normalize(const cocos2d::Vec2 &v, const cocos2d::Vec2 &u)
 	return Vec2(x * d, y *d);
 }
 
+float radian_from(const cocos2d::Vec2 &a, const cocos2d::Vec2 &b)
+{
+	float angle_a = atan2f(a.y,a.x);
+	float angle_b = atan2f(b.y,b.x);
+
+	if (angle_a < 0.0f) angle_a += 2.0f * M_PI;
+	if (angle_b < 0.0f)angle_b += 2.0f * M_PI;
+
+	return angle_b - angle_a;
+}
+
 float cross(const cocos2d::Vec2 &a, const cocos2d::Vec2 &b)
 {
 	return a.x * b.y - a.y * b.x;
