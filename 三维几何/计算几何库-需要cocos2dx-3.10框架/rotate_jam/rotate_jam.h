@@ -86,7 +86,7 @@ void rotate_hull_onion_decomposite(const std::vector<cocos2d::Vec2> &points,std:
 /*
   *计算离散点集的螺旋线
  */
-void rotate_hull_spiral_line(const std::vector<cocos2d::Vec2> &points,std::vector<const cocos2d::Vec2*> &spiral_points);
+int rotate_hull_spiral_line(const std::vector<cocos2d::Vec2> &points,std::vector<const cocos2d::Vec2*> &spiral_points);
 /*
   *离散点集的螺旋三角剖分
  */

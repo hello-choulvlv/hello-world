@@ -627,7 +627,7 @@ void rotate_hull_base_method(const cocos2d::Vec2 **points, int array_size,int er
 	}
 }
 
-void rotate_hull_spiral_line(const std::vector<cocos2d::Vec2> &points, std::vector<const cocos2d::Vec2 *> &spiral_points)
+int rotate_hull_spiral_line(const std::vector<cocos2d::Vec2> &points, std::vector<const cocos2d::Vec2 *> &spiral_points)
 {
 	auto *array_ptr = points.data();
 	const int array_size = points.size();
@@ -644,7 +644,7 @@ void rotate_hull_spiral_line(const std::vector<cocos2d::Vec2> &points, std::vect
 	for (int index_l = 0; index_l < points.size(); ++index_l)
 		tmp_array[index_l] = array_ptr + index_l;
 
-	int base_j = 0,remind_count = array_size;
+	int base_j = 0,remind_count = array_size,corner_index = 0;
 	int erase_index = compare_base - array_ptr;
 	const Vec2 *base_ptr = nullptr;
 
@@ -654,6 +654,8 @@ void rotate_hull_spiral_line(const std::vector<cocos2d::Vec2> &points, std::vect
 		rotate_hull_base_method(tmp_array.data(),remind_count, erase_index,!base_j?Vec2::UNIT_Y:normalize(*compare_base,*base_ptr),polygon);
 
 		memcpy(spiral_points.data()+base_j,polygon.data(),sizeof(Vec2*)*polygon.size());
+		//记录下第一次转弯的索引
+		if (!corner_index)corner_index = polygon.size() - 1;
 
 		//移动数据
 		int base_l = 0, compare_index = 0;
@@ -680,6 +682,118 @@ void rotate_hull_spiral_line(const std::vector<cocos2d::Vec2> &points, std::vect
 			if (cross(*base_ptr, *compare_base, *tmp_array[index_l]) < 0.0f)
 				compare_base = tmp_array[index_l], erase_index = index_l;
 		}
+	}
+	//如果有剩下的点,则需要单独的处理,其处理过程形式上类似,但是又有所不同
+	if (remind_count == 2)
+	{
+		//对剩下的两个顶点排序,排序的原则与上面一样
+		if (cross(*base_ptr, *tmp_array[0], *tmp_array[1]) >= 0.0f)
+		{
+			spiral_points[base_j] = tmp_array[0];
+			spiral_points[base_j + 1] = tmp_array[1];
+		}
+		else
+		{
+			spiral_points[base_j] = tmp_array[1];
+			spiral_points[base_j + 1] = tmp_array[0];
+		}
+		base_j += 2;
+	}
+	else if (remind_count > 0)
+	{
+		spiral_points[base_j] = tmp_array[0];
+		base_j += 1;
+	}
+	return corner_index;
+}
+
+void rotate_hull_spiral_decomposite(const std::vector<cocos2d::Vec2> &points, std::vector<const cocos2d::Vec2 *> &triangle_edges)
+{
+	std::vector<const Vec2*> spiral_line_points;
+	//首先计算离散点集的螺旋线
+	int  split_index = rotate_hull_spiral_line(points, spiral_line_points);
+	//根据索引split_index,将螺旋线划分为外侧以及内侧,另外需要计算内侧的终止索引
+	int array_size = spiral_line_points.size();
+	int start_index = array_size - 3;
+	for (int index_l = 0; index_l < spiral_line_points.size()- 1; ++index_l)
+	{
+		vector_fast_push_back(triangle_edges,spiral_line_points[index_l]);
+		vector_fast_push_back(triangle_edges,spiral_line_points[index_l+1]);
+	}
+
+	const Vec2 &start_point = *spiral_line_points[array_size-2];
+	const Vec2 normal = normalize(start_point,*spiral_line_points[array_size-1]);
+	Vec2 intersect_point;
+	while (start_index && !segment_ray_intersect(*spiral_line_points[start_index], *spiral_line_points[start_index - 1], start_point, normal, intersect_point))
+		--start_index;
+	int inner_outer_index = start_index - 1;
+	//对螺旋线进行三角剖分,分解算法的核心思想仍然是旋转平行线
+	int outer_start_index = 0;
+	int inner_start_index = split_index;
+
+	const Vec2 *p = spiral_line_points[outer_start_index];
+	const Vec2 *q = spiral_line_points[inner_start_index];
+
+	vector_fast_push_back(triangle_edges,p);
+	vector_fast_push_back(triangle_edges,q);
+
+	while (outer_start_index < inner_outer_index && inner_start_index < array_size-1)
+	{
+		const Vec2 *a = spiral_line_points[outer_start_index +1];
+		const Vec2 *b = spiral_line_points[inner_start_index +1];
+
+		float f = cross(*a - *p,*b - *q);
+		if (f > 0.0f)
+		{
+			vector_fast_push_back(triangle_edges,a);
+			vector_fast_push_back(triangle_edges,q);
+
+			p = a;
+			++outer_start_index;
+		}
+		else if (f < 0.0f)
+		{
+			vector_fast_push_back(triangle_edges,b);
+			vector_fast_push_back(triangle_edges,p);
+
+			q = b;
+			++inner_start_index;
+		}
+		else
+		{
+			vector_fast_push_back(triangle_edges,b);
+			vector_fast_push_back(triangle_edges,p);
+
+			p = a;
+			q = b;
+			++outer_start_index; ++inner_start_index;
+		}
+	}
+	//需要额外的连线
+	while (outer_start_index < inner_outer_index)
+	{
+		vector_fast_push_back(triangle_edges, spiral_line_points[array_size-1]);
+		vector_fast_push_back(triangle_edges,spiral_line_points[outer_start_index] );
+
+		++outer_start_index;
+	}
+
+	while (inner_start_index < array_size - 1)
+	{
+		vector_fast_push_back(triangle_edges,spiral_line_points[inner_outer_index]);
+		vector_fast_push_back(triangle_edges,spiral_line_points[inner_start_index]);
+
+		++inner_start_index;
+	}
+
+	vector_fast_push_back(triangle_edges,spiral_line_points[array_size-1]);
+	vector_fast_push_back(triangle_edges,spiral_line_points[inner_outer_index]);
+	//针对剩余的点,将最后一点与从start_index-->array_size - 2的点逐个的连接即可
+	const Vec2 *center = spiral_line_points[array_size - 1];
+	for (int index_l = start_index; index_l < array_size - 2; ++index_l)
+	{
+		vector_fast_push_back(triangle_edges, center);
+		vector_fast_push_back(triangle_edges, spiral_line_points[index_l]);
 	}
 }
 

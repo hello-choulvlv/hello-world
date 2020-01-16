@@ -31,7 +31,7 @@ bool HelloWorld::init()
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 	auto &winSize = _director->getWinSize();
-	int64_t seed = time(nullptr);// 1578545857;// time(nullptr);//1572057392;
+	int64_t seed = 1579146875;// time(nullptr); //1579139246;// time(nullptr);// 1578545857;// time(nullptr);//1572057392;
 	CCLOG("seed->%ld", seed);
 	srand(seed);//14,23,27
 
@@ -941,12 +941,13 @@ void HelloWorld::rotateHullSpiralDecomposition()
 	}
 
 	std::vector<const Vec2 *> triangle_edges;
-	gt::rotate_hull_spiral_line(points, triangle_edges);
+	//gt::rotate_hull_spiral_line(points, triangle_edges);
+	gt::rotate_hull_spiral_decomposite(points, triangle_edges);
 	//»­³öÈý½ÇÐÎ±ß
-	for (int index_l = 0; index_l < triangle_edges.size() - 1; index_l += 1)
+	for (int index_l = 0; index_l < triangle_edges.size() - 1; index_l += 2)// 2)
 	{
-		if (triangle_edges[index_l] && triangle_edges[index_l + 1])
-			draw_node->drawLine(*triangle_edges[index_l], *triangle_edges[index_l + 1], Color4F::GREEN);
+		//if (triangle_edges[index_l] && triangle_edges[index_l + 1])
+		draw_node->drawLine(*triangle_edges[index_l], *triangle_edges[index_l + 1], Color4F::GREEN);
 	}
 
 	root_node->setCameraMask(s_CameraMask);
