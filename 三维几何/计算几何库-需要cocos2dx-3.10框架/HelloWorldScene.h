@@ -145,6 +145,8 @@ public:
 	void rotateHullOnionDecomposition();
 	//旋转卡壳算法->求离散点集的螺旋三角剖分
 	void rotateHullSpiralDecomposition();
+	//下旋转卡壳算法->合并两个凸多边形
+	void rotateHullPolygonUnion();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

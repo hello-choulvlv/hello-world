@@ -91,5 +91,9 @@ int rotate_hull_spiral_line(const std::vector<cocos2d::Vec2> &points,std::vector
   *离散点集的螺旋三角剖分
  */
 void rotate_hull_spiral_decomposite(const std::vector<cocos2d::Vec2> &points, std::vector<const cocos2d::Vec2*> &triangle_edges);
+/*
+  *求凸多边形的并
+ */
+void rotate_hull_polygon_union(const std::vector<cocos2d::Vec2> &polygon1,const std::vector<cocos2d::Vec2> &polygon2,std::vector<cocos2d::Vec2> &polygon_union);
 NS_GT_END
 #endif
