@@ -31,7 +31,7 @@ bool HelloWorld::init()
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 	auto &winSize = _director->getWinSize();
-	int64_t seed = 1579328846;// time(nullptr); //1579139246;// time(nullptr);// 1578545857;// time(nullptr);//1572057392;
+	int64_t seed = time(nullptr); //1579139246;// time(nullptr);// 1578545857;// time(nullptr);//1572057392;
 	CCLOG("seed->%ld", seed);
 	srand(seed);//14,23,27
 
@@ -113,7 +113,8 @@ bool HelloWorld::init()
 	//rotateHullMinPerimeterTest();
 	//rotateHullOnionDecomposition();
 	//rotateHullSpiralDecomposition();
-	rotateHullPolygonUnion();
+	//rotateHullPolygonUnion();
+	rotateHullPolygonIntersect();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -1011,6 +1012,71 @@ void HelloWorld::rotateHullPolygonUnion()
 	for (int index_l = 0; index_l < polygon_union.size(); ++index_l)
 	{
 		draw_node->drawLine(polygon_union[index_l], polygon_union[index_l + 1 >= polygon_size ? 0 : index_l + 1], Color4F::RED);
+	}
+
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::rotateHullPolygonIntersect()
+{
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+
+	float  length_l = 400.0f;
+	float length_w = 300;
+	const int array_size = 33;
+	std::vector<Vec2>  points(array_size);
+	//生成随机离散点,并计算boundingbox
+	Vec2 origin(FLT_MAX, FLT_MAX), bottom(-FLT_MAX, -FLT_MAX);
+	for (int index_j = 0; index_j < array_size; ++index_j)
+	{
+		points[index_j] = Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(points[index_j]);
+		root_node->addChild(sprite);
+		bottom.x = fmaxf(points[index_j].x, bottom.x);
+	}
+
+	std::vector<Vec2>  points2(array_size);
+	for (int index_j = 0; index_j < array_size; ++index_j)
+	{
+		points2[index_j] = Vec2(length_w * gt::randomf10(),length_l * gt::randomf10());
+
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(points2[index_j]);
+		root_node->addChild(sprite);
+	}
+	//求离散点集的凸包
+	std::vector<Vec2> polygon;
+	gt::polygon_compute_minimum(points, polygon);
+	//画出多边形的边界
+	for (int index_l = 0; index_l < polygon.size(); ++index_l)
+	{
+		int secondary_l = (index_l + 1) % polygon.size();
+		draw_node->drawLine(polygon[index_l], polygon[secondary_l], Color4F::GREEN);
+	}
+
+	std::vector<Vec2> polygon2;
+	gt::polygon_compute_minimum(points2, polygon2);
+	for (int index_l = 0; index_l < polygon2.size(); ++index_l)
+	{
+		int secondary_l = (index_l + 1) % polygon2.size();
+		draw_node->drawLine(polygon2[index_l], polygon2[secondary_l], Color4F::GREEN);
+	}
+
+	std::vector<Vec2> polygon_intersect;
+	bool b = gt::rotate_hull_polygon_intersect(polygon, polygon2, polygon_intersect);
+	if (b)
+	{
+		int polygon_size = polygon_intersect.size();
+		for (int index_l = 0; index_l < polygon_intersect.size(); ++index_l)
+		{
+			draw_node->drawLine(polygon_intersect[index_l], polygon_intersect[index_l + 1 >= polygon_size ? 0 : index_l + 1], Color4F::RED);
+		}
 	}
 
 	root_node->setCameraMask(s_CameraMask);

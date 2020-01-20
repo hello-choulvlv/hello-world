@@ -95,5 +95,11 @@ void rotate_hull_spiral_decomposite(const std::vector<cocos2d::Vec2> &points, st
   *求凸多边形的并
  */
 void rotate_hull_polygon_union(const std::vector<cocos2d::Vec2> &polygon1,const std::vector<cocos2d::Vec2> &polygon2,std::vector<cocos2d::Vec2> &polygon_union);
+/*
+  *求凸多边形的交
+  *注意多边形的交的求解算法比较复杂,包含的情况比较多
+  *交集为空,或者只有一个点,或者只是一个线段
+ */
+bool rotate_hull_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const std::vector<cocos2d::Vec2> &polygon2, std::vector<cocos2d::Vec2> &polygon_intersect);
 NS_GT_END
 #endif

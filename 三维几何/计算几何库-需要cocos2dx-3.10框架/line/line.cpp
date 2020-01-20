@@ -862,6 +862,26 @@ bool segment_segment_intersect_test(const Segment2D &a, const Segment2D &b,Vec2 
 
 	return false;
 }
+bool segment_segment_intersect_test(const cocos2d::Vec2 &astart_point, const cocos2d::Vec2 &afinal_point, const cocos2d::Vec2 &bstart_point, const cocos2d::Vec2 &bfinal_point, cocos2d::Vec2 &intersect_point)
+{
+	Vec2 a1 = bstart_point - astart_point;
+	Vec2 a2 = bfinal_point - astart_point;
+
+	Vec2 d1 = afinal_point - astart_point;
+	Vec2 d2 = bfinal_point - bstart_point;
+
+	float fa = cross(a1, d1);
+	float fb = cross(d1, a2);
+	float f2 = cross(d2, a1) * cross(d2, afinal_point - bstart_point);
+
+	if (fa * fb >= 0 && f2 >= 0)
+	{
+		intersect_point = bstart_point + d2 * (fa / (fa + fb));
+		return true;
+	}
+
+	return false;
+}
 
 bool segment_line_intersect(const Segment2D &a, const Line2D &b, cocos2d::Vec2 &intersect_point)
 {

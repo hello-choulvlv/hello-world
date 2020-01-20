@@ -172,6 +172,7 @@ bool segments2d_N_intersect_test(const Segment2D  *line_array,int line_size);
  */
 bool segment_segment_intersect_test(const Segment2D &a,const Segment2D &b);
 bool segment_segment_intersect_test(const Segment2D &a, const Segment2D &b, cocos2d::Vec2 &intersect_point);
+bool segment_segment_intersect_test(const cocos2d::Vec2 &astart_point,const cocos2d::Vec2 &afinal_point,const cocos2d::Vec2 &bstart_point,const cocos2d::Vec2 &bfinal_point,cocos2d::Vec2 &intersect_point);
 bool segment_line_intersect(const Segment2D &a,const Line2D &b,cocos2d::Vec2 &intersect_point);
 bool segment_ray_intersect(const Segment2D &a,const Ray2D &b,cocos2d::Vec2 &intersect_point);
 bool segment_ray_intersect(const cocos2d::Vec2 &start_point,const cocos2d::Vec2 &final_point,const cocos2d::Vec2 &ray_origin,const cocos2d::Vec2 &ray_normal,cocos2d::Vec2 &intersect_point);

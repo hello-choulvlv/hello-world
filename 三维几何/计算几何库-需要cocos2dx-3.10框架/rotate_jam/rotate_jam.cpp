@@ -859,8 +859,8 @@ void rotate_hull_polygon_union(const std::vector<cocos2d::Vec2> &polygon1, const
 	a_index = a_select_index;
 	b_index = b_select_index;
 	//求下一个公切线,需要交替的交换公切线形成的顺序
-	bool need_exchange = true,need_loop = true;
-	while (need_loop)
+	bool need_exchange = true;
+	do
 	{
 		a_next_tangent = (a_next_tangent + need_exchange)%array_size1;
 		b_next_tangent = (b_next_tangent + (need_exchange ^1))%array_size2;
@@ -907,10 +907,205 @@ void rotate_hull_polygon_union(const std::vector<cocos2d::Vec2> &polygon1, const
 
 		a_index = a_next_tangent;
 		b_index = b_next_tangent;
-
-		need_loop = a_next_tangent != a_select_index || b_next_tangent != b_select_index;
 		need_exchange ^= 1;
+	} while (a_next_tangent != a_select_index || b_next_tangent != b_select_index);
+}
+/*
+  *辅助函数
+  *是否线段b在线段a所形成的直线的同一侧
+ */
+bool static_rotate_hull_segment_same_side(const Vec2 &astart_point,const Vec2 &afinal_point,const Vec2 &bstart_point,const Vec2 &bfinal_point)
+{
+	return cross(astart_point,afinal_point,bstart_point) * cross(astart_point,afinal_point,bfinal_point) > 0.0f;
+}
+/*
+  *辅助函数
+  *求离最近的公切线最近的两个相交线段
+ */
+bool static_rotate_polygon_near_segment(const std::vector<Vec2> &polygon1,const std::vector<Vec2> &polygon2,int a_select_index,int b_select_index,int &a_near_index,int &b_near_index)
+{
+	int array_size1 = polygon1.size();
+	int array_size2 = polygon2.size();
+	int a_index =0,b_index = 0;
+	bool b_found = false;
+	int a_compare_index = a_select_index, b_compare_index = b_select_index;
+	while (!b_found && (a_index < array_size1 || b_index < array_size2))
+	{
+		int a_next_index = (a_compare_index + 1) % array_size1;
+		int b_next_index = (b_compare_index - 1 + array_size2) % array_size2;
+
+		if (b_index < array_size2)
+		{
+			bool b1 = static_rotate_hull_segment_same_side(polygon1[a_compare_index], polygon1[a_next_index], polygon2[b_compare_index], polygon2[b_next_index]);
+			if (b1)
+			{
+				b_index += 1;
+				b_compare_index = (b_compare_index - 1 + array_size2) % array_size2;
+			}
+			else if (static_rotate_hull_segment_same_side(polygon2[b_compare_index], polygon2[b_next_index], polygon1[a_compare_index], polygon1[a_next_index]))
+			{
+				a_index += 1;
+				a_compare_index = (a_compare_index + 1) % array_size1;
+			}
+			else
+				b_found = true;
+		}
+		else
+		{
+			bool b1 = static_rotate_hull_segment_same_side(polygon2[b_compare_index], polygon2[b_next_index], polygon1[a_compare_index], polygon1[a_next_index]);
+			if (b1)
+			{
+				a_index += 1;
+				a_compare_index = (a_compare_index + 1) % array_size1;
+			}
+			else if (static_rotate_hull_segment_same_side(polygon1[a_compare_index], polygon1[a_next_index], polygon2[b_compare_index], polygon2[b_next_index]))
+			{
+				b_index += 1;
+				b_compare_index = (b_compare_index - 1 + array_size2) % array_size2;
+			}
+			else
+				b_found = true;
+		}
 	}
+	a_near_index = a_compare_index;
+	b_near_index = b_compare_index;
+	return b_found;
 }
 
+bool rotate_hull_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const std::vector<cocos2d::Vec2> &polygon2, std::vector<cocos2d::Vec2> &polygon_intersect)
+{
+	int array_size1 = polygon1.size();
+	int array_size2 = polygon2.size();
+	//计算第一个公切线
+	int a_index = 0, b_index = 0;
+	int a_select_index = 0, b_select_index = 0;
+	bool b_found = false;
+
+	while (!b_found && (a_index < array_size1 || b_index < array_size2))
+	{
+		int a_next = (a_select_index + 1) % array_size1;
+		int a_prev = (a_select_index - 1 + array_size1) % array_size1;
+
+		int b_next = (b_select_index + 1) % array_size2;
+		int b_prev = (b_select_index - 1 + array_size2) % array_size2;
+		//需要动态选择分支类型,原因是可能会出现A嵌套于B,或者B嵌套于A中的情况,如果只有一种,程序将限于死循环
+		//虽然有动态选择,但是总的运行时间仍然是O(m+n)
+		if (b_index < array_size2)
+		{
+			if (cross(polygon1[a_select_index], polygon2[b_select_index], polygon2[b_next]) < 0.0f)
+				b_select_index = b_next, ++b_index;
+			else if (cross(polygon1[a_select_index], polygon2[b_select_index], polygon2[b_prev]) < 0.0f)
+				b_select_index = b_prev, ++b_index;
+			else if (cross(polygon1[a_select_index], polygon2[b_select_index], polygon1[a_next]) < 0.0f)
+				a_select_index = a_next, ++a_index;
+			else if (cross(polygon1[a_select_index], polygon2[b_select_index], polygon1[a_prev]) < 0.0f)
+				a_select_index = a_prev, ++a_index;
+			else
+				b_found = true;
+		}
+		else
+		{
+			if (cross(polygon1[a_select_index], polygon2[b_select_index], polygon1[a_next]) < 0.0f)
+				a_select_index = a_next, ++a_index;
+			else if (cross(polygon1[a_select_index], polygon2[b_select_index], polygon1[a_prev]) < 0.0f)
+				a_select_index = a_prev, ++a_index;
+			else if (cross(polygon1[a_select_index], polygon2[b_select_index], polygon2[b_next]) < 0.0f)
+				b_select_index = b_next, ++b_index;
+			else if (cross(polygon1[a_select_index], polygon2[b_select_index], polygon2[b_prev]) < 0.0f)
+				b_select_index = b_prev, ++b_index;
+			else
+				b_found = true;
+		}
+	}
+	//使用上面计算出的结果进一步去判断是否一个多边形包含另一个
+	if (!b_found)
+	{
+		if (cross(polygon1[0], polygon1[1], polygon2[0]) > 0.0f)
+			polygon_intersect = polygon2;
+		else
+			polygon_intersect = polygon1;
+		return true;
+	}
+	//如果找到了公切线,此时就需要判断两多边形是否存在交点
+	a_index = b_index = 0;
+	int a_compare_index = a_select_index, b_compare_index = b_select_index;
+	b_found = static_rotate_polygon_near_segment(polygon1, polygon2, a_select_index, b_select_index,a_compare_index,b_compare_index);
+	//此时交集为空
+	if (!b_found)return false;
+	//接下来,逐个的求公切线,并计算相关的交点
+	int a_next_tangent = a_select_index;
+	int b_next_tangent = b_select_index;
+	//
+	a_index = a_select_index;
+	b_index = b_select_index;
+	//求下一个公切线,需要交替的交换公切线形成的顺序
+	bool need_exchange = true;
+	cocos2d::Vec2  intersect_point,intersect_point2;
+	do
+	{
+		a_next_tangent = (a_next_tangent + need_exchange) % array_size1;
+		b_next_tangent = (b_next_tangent + (need_exchange ^ 1)) % array_size2;
+
+		b_found = false;
+		while (!b_found)
+		{
+			const Vec2 &start_point = need_exchange ? polygon2[b_next_tangent] : polygon1[a_next_tangent];
+			const Vec2 &middle_point = need_exchange ? polygon1[a_next_tangent] : polygon2[b_next_tangent];
+
+			int a_next = (a_next_tangent + 1) % array_size1;
+			int b_next = (b_next_tangent + 1) % array_size2;
+			//注意处理选择语句的时候优先级是动态的
+			if (need_exchange)
+			{
+				if (cross(start_point, middle_point, polygon1[a_next]) < 0.0f)
+					a_next_tangent = a_next;
+				else if (cross(start_point, middle_point, polygon2[b_next]) < 0.0f)
+					b_next_tangent = b_next;
+				else b_found = true;
+			}
+			else
+			{
+				if (cross(start_point, middle_point, polygon2[b_next]) < 0.0f)
+					b_next_tangent = b_next;
+				else if (cross(start_point, middle_point, polygon1[a_next]) < 0.0f)
+					a_next_tangent = a_next;
+				else b_found = true;
+			}
+		}
+		//此时需要将中间的顶点写入到数组中,至于如何选择,则有着相当严格的区别方法
+		int a_new_index = 0, b_new_index = 0;
+		if (need_exchange)
+		{
+			bool b = segment_segment_intersect_test(polygon1[a_compare_index], polygon1[(a_compare_index + 1) % array_size1], polygon2[b_compare_index], polygon2[(b_compare_index - 1 + array_size2) % array_size2], intersect_point);
+			assert(b);
+			vector_fast_push_back(polygon_intersect, intersect_point);
+
+			bool b_intersect = static_rotate_polygon_near_segment(polygon2, polygon1, b_next_tangent, a_next_tangent, b_new_index, a_new_index);
+			assert(b_intersect);
+			//求当前的线段交点的索引
+			for (int index_l = (a_compare_index + 1)%array_size1; index_l != a_new_index; index_l = (index_l + 1) % array_size1)
+				vector_fast_push_back(polygon_intersect, polygon1[index_l]);
+		}
+		else
+		{
+			bool b = segment_segment_intersect_test(polygon2[b_compare_index], polygon2[(b_compare_index + 1) % array_size2], polygon1[a_compare_index], polygon1[(a_compare_index - 1 + array_size1) % array_size1], intersect_point);
+			assert(b);
+			vector_fast_push_back(polygon_intersect, intersect_point);
+
+			bool b_intersect = static_rotate_polygon_near_segment(polygon1,polygon2,a_next_tangent,b_next_tangent,a_new_index,b_new_index);
+			assert(b_intersect);
+
+			for (int index_l = (b_compare_index + 1)%array_size2; index_l != b_new_index; index_l = (index_l + 1) % array_size2)
+				vector_fast_push_back(polygon_intersect, polygon2[index_l]);
+		}
+
+		a_compare_index = a_new_index;
+		b_compare_index = b_new_index;
+
+		a_index = a_next_tangent;
+		b_index = b_next_tangent;
+		need_exchange ^= 1;
+	} while (a_next_tangent != a_select_index || b_next_tangent != b_select_index);
+	return true;
+}
 NS_GT_END
