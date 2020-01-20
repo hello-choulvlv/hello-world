@@ -101,5 +101,11 @@ void rotate_hull_polygon_union(const std::vector<cocos2d::Vec2> &polygon1,const 
   *交集为空,或者只有一个点,或者只是一个线段
  */
 bool rotate_hull_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const std::vector<cocos2d::Vec2> &polygon2, std::vector<cocos2d::Vec2> &polygon_intersect);
+/*
+  *求凸多边形的内公切线,该算法并没有假设两个多边形的关系
+  *外公切线已经在另一个文件line.cpp中实现了
+  *该算法的设计思想非常简单
+ */
+bool rotate_hull_inner_tangent(const std::vector<cocos2d::Vec2> &polygon1,const std::vector<cocos2d::Vec2> &polygon2,cocos2d::Vec2 tangent[4]);
 NS_GT_END
 #endif

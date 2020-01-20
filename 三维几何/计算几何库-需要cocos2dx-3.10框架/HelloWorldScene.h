@@ -149,6 +149,8 @@ public:
 	void rotateHullPolygonUnion();
 	//旋转卡壳算法->求两凸多边形的交
 	void rotateHullPolygonIntersect();
+	//旋转卡壳算法->求两个凸多边形的内公切线
+	void rotateHullPolygonInnerTangent();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

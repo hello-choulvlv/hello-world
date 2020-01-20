@@ -1108,4 +1108,99 @@ bool rotate_hull_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, c
 	} while (a_next_tangent != a_select_index || b_next_tangent != b_select_index);
 	return true;
 }
+
+bool rotate_hull_inner_tangent(const std::vector<cocos2d::Vec2> &polygon1, const std::vector<cocos2d::Vec2> &polygon2, cocos2d::Vec2 tangent[4])
+{
+	int array_size1 = polygon1.size();
+	int array_size2 = polygon2.size();
+
+	int a_detect_index = 0, b_detect_index = 0;
+	int a_index = 0, b_index = 0;
+	bool b_found = false;
+	while (!b_found && (a_index < array_size1 || b_index < array_size2))
+	{
+		const Vec2 &start_point = polygon1[a_detect_index];
+		const Vec2 &final_point = polygon2[b_detect_index];
+
+		int a_next_index = (a_detect_index+1)%array_size1;
+		int a_prev_index = (a_detect_index-1+array_size1)%array_size1;
+
+		int b_next_index = (b_detect_index+1)%array_size2;
+		int b_prev_index = (b_detect_index-1+array_size2)%array_size2;
+
+		if (a_index < array_size1)
+		{
+			if (cross(start_point, final_point, polygon1[a_next_index]) < 0.0f)
+				a_detect_index = a_next_index, ++a_index;
+			else if (cross(start_point, final_point, polygon1[a_prev_index]) < 0.0f)
+				a_detect_index = a_prev_index, ++a_index;
+			else if (cross(start_point, final_point, polygon2[b_next_index]) > 0.0f)
+				b_detect_index = b_next_index, ++b_index;
+			else if (cross(start_point, final_point, polygon2[b_prev_index]) > 0.0f)
+				b_detect_index = b_prev_index, ++b_index;
+			else b_found = true;
+		}
+		else
+		{
+			if (cross(start_point, final_point, polygon2[b_next_index]) > 0.0f)
+				b_detect_index = b_next_index, ++b_index;
+			else if (cross(start_point, final_point, polygon2[b_prev_index]) > 0.0f)
+				b_detect_index = b_prev_index, ++b_index;
+			else if (cross(start_point, final_point, polygon1[a_next_index]) < 0.0f)
+				a_detect_index = a_next_index, ++a_index;
+			else if (cross(start_point, final_point, polygon1[a_prev_index]) < 0.0f)
+				a_detect_index = a_prev_index, ++a_index;
+			else b_found = true;
+		}
+	}
+	//需要进一步的判断是否存在内公切线
+	if (!b_found)return false;
+	//否则必定存在两条
+	tangent[0] = polygon1[a_detect_index];
+	tangent[1] = polygon2[b_detect_index];
+	a_index = b_index = 0;
+
+	int a_new_tangent = a_detect_index, b_new_tangent = (b_detect_index  +1)%array_size2;
+	b_found = false;
+
+	while (!b_found && (a_index < array_size1 || b_index < array_size2))
+	{
+		const Vec2 &start_point = polygon2[b_new_tangent];
+		const Vec2 &final_point = polygon1[a_new_tangent];
+
+		int a_next = (a_new_tangent+1)%array_size1;
+		int b_next = (b_new_tangent+1)%array_size2;
+
+		int a_prev = (a_new_tangent - 1+array_size1)%array_size1;
+		int b_prev = (b_new_tangent-1+array_size2)%array_size2;
+
+		if (b_index < array_size2)
+		{
+			if (cross(start_point, final_point, polygon2[b_next]) > 0.0f)
+				b_new_tangent = b_next, ++b_index;
+			else if (cross(start_point, final_point, polygon2[b_prev]) > 0.0f)
+				b_new_tangent = b_prev, ++b_index;
+			else if (cross(start_point, final_point, polygon1[a_next]) < 0.0f)
+				a_new_tangent = a_next, ++a_index;
+			else if (cross(start_point, final_point, polygon1[a_prev]) < 0.0f)
+				a_new_tangent = a_prev, ++a_index;
+			else b_found = true;
+		}
+		else
+		{
+			if (cross(start_point, final_point, polygon1[a_next]) < 0.0f)
+				a_new_tangent = a_next, ++a_index;
+			else if (cross(start_point, final_point, polygon1[a_prev]) < 0.0f)
+				a_new_tangent = a_prev, ++a_index;
+			else if (cross(start_point, final_point, polygon2[b_next]) > 0.0f)
+				b_new_tangent = b_next, ++b_index;
+			else if (cross(start_point, final_point, polygon2[b_prev]) > 0.0f)
+				b_new_tangent = b_prev, ++b_index;
+			else b_found = true;
+		}
+	}
+	tangent[2] = polygon2[b_new_tangent];
+	tangent[3] = polygon1[a_new_tangent];
+	return true;
+}
 NS_GT_END
