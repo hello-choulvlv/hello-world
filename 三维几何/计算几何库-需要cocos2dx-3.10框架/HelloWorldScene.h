@@ -151,6 +151,8 @@ public:
 	void rotateHullPolygonIntersect();
 	//旋转卡壳算法->求两个凸多边形的内公切线
 	void rotateHullPolygonInnerTangent();
+	//旋转卡壳算法->求凸多边形的Minkowski和
+	void rotateHullPolygonMinkowski();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

@@ -107,5 +107,14 @@ bool rotate_hull_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, c
   *该算法的设计思想非常简单
  */
 bool rotate_hull_inner_tangent(const std::vector<cocos2d::Vec2> &polygon1,const std::vector<cocos2d::Vec2> &polygon2,cocos2d::Vec2 tangent[4]);
+/*
+  *求凸多边形的Minkowski和
+  *算法已经假设输入的多边形顶点在第0位置已经取得了y坐标最小点
+ */
+void rotate_hull_polygon_minkowski(const std::vector<cocos2d::Vec2> &polygon1,const std::vector<cocos2d::Vec2> &polygon2,std::vector<cocos2d::Vec2> &polygon_mink);
+/*
+  *Minkowski和的朴素算法
+ */
+void rotate_hull_polygon_minkowski_prim(const std::vector<cocos2d::Vec2> &polygon1, const std::vector<cocos2d::Vec2> &polygon2, std::vector<cocos2d::Vec2> &polygon_mink);
 NS_GT_END
 #endif

@@ -5,6 +5,7 @@
  */
 #include "rotate_jam.h"
 #include "matrix/matrix.h"
+#include "point_polygon/point_polygon.h"
 #include <functional>
 #include <math.h>
 
@@ -1202,5 +1203,57 @@ bool rotate_hull_inner_tangent(const std::vector<cocos2d::Vec2> &polygon1, const
 	tangent[2] = polygon2[b_new_tangent];
 	tangent[3] = polygon1[a_new_tangent];
 	return true;
+}
+
+void rotate_hull_polygon_minkowski(const std::vector<cocos2d::Vec2> &polygon1, const std::vector<cocos2d::Vec2> &polygon2, std::vector<cocos2d::Vec2> &polygon_mink)
+{
+	int array_size1 = polygon1.size();
+	int array_size2 = polygon2.size();
+
+	int a_detect_index = 0, b_detect_index = 0;
+	int a_index = 0, b_index = 0;
+
+	while (a_index < array_size1 || b_index < array_size2)
+	{
+		int a_next = (a_detect_index+1)%array_size1;
+		int b_next = (b_detect_index+1)%array_size2;
+
+		float f = cross(polygon1[a_next] - polygon1[a_detect_index],polygon2[b_next] - polygon2[b_detect_index]);
+		if (f > 0.0f)//此时polygon2的相关向量方向在polygon1的左侧
+		{
+			a_index += 1;
+			a_detect_index = a_next;
+			vector_fast_push_back(polygon_mink,polygon1[a_next] + polygon2[b_detect_index]);
+		}
+		else if (f < 0.0f)
+		{
+			b_index += 1;
+			b_detect_index = b_next;
+			vector_fast_push_back(polygon_mink,polygon1[a_detect_index]+polygon2[b_next]);
+		}
+		else
+		{
+			a_index += 1;
+			b_index += 1;
+			a_detect_index = a_next;
+			b_detect_index = b_next;
+			vector_fast_push_back(polygon_mink,polygon1[a_next] + polygon2[b_next]);
+		}
+	}
+}
+
+void rotate_hull_polygon_minkowski_prim(const std::vector<cocos2d::Vec2> &polygon1, const std::vector<cocos2d::Vec2> &polygon2, std::vector<cocos2d::Vec2> &polygon_mink)
+{
+	int array_size1 = polygon1.size();
+	int array_size2 = polygon2.size();
+	int base_j = 0;
+
+	std::vector<Vec2> polygon_mix(array_size1 * array_size2);
+	for (int index_a = 0; index_a < array_size1; ++index_a)
+	{
+		for (int index_b = 0; index_b < array_size2; ++index_b)
+			polygon_mix[base_j++] = polygon1[index_a] + polygon2[index_b];
+	}
+	polygon_compute_minimum(polygon_mix, polygon_mink);
 }
 NS_GT_END
