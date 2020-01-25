@@ -153,6 +153,8 @@ public:
 	void rotateHullPolygonInnerTangent();
 	//旋转卡壳算法->求凸多边形的Minkowski和
 	void rotateHullPolygonMinkowski();
+	//最佳横截带算法实现
+	void rotateHullPolygonsNarrowSurface();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

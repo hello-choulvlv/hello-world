@@ -116,5 +116,13 @@ void rotate_hull_polygon_minkowski(const std::vector<cocos2d::Vec2> &polygon1,co
   *Minkowski和的朴素算法
  */
 void rotate_hull_polygon_minkowski_prim(const std::vector<cocos2d::Vec2> &polygon1, const std::vector<cocos2d::Vec2> &polygon2, std::vector<cocos2d::Vec2> &polygon_mink);
+/*
+  *计算N个凸多边形之间的最佳横截面
+  *函数已经假设多边形的第一个顶点的y坐标最小,这样就可以简化代码
+  *返回两条直线的标准表达式
+  *该算法将是最后一个旋转卡壳算法
+  *算法的运行时间为O(n0 + n1 + n2 + n3 + ... + nk),即具有线性的运算复杂度
+ */
+float rotate_hull_polygons_narrow_surface(const std::vector<cocos2d::Vec2> *polygon_array,int polygon_array_size,cocos2d::Vec2 surface[4]);
 NS_GT_END
 #endif

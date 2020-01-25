@@ -116,7 +116,8 @@ bool HelloWorld::init()
 	//rotateHullPolygonUnion();
 	//rotateHullPolygonIntersect();
 	//rotateHullPolygonInnerTangent();
-	rotateHullPolygonMinkowski();
+	//rotateHullPolygonMinkowski();
+	rotateHullPolygonsNarrowSurface();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -135,16 +136,24 @@ void  HelloWorld::updateCamera(float dt)
 		//提取方向向量
 		Vec3  direction_x(matrix_rotate.m[0], matrix_rotate.m[1], matrix_rotate.m[2]);
 		Vec3  direction_z(matrix_rotate.m[8], matrix_rotate.m[9], matrix_rotate.m[10]);
+		Vec3  direction_y(matrix_rotate.m[4], matrix_rotate.m[5], matrix_rotate.m[6]);
 		float speed = 6;
+		//AD
 		if (_keyMask & 0x1)
 			move_step -= direction_z * speed;
 		if (_keyMask & 0x2)
 			move_step += direction_z * speed;
 
+		//WS
 		if (_keyMask & 0x4)
 			move_step -= direction_x * speed;
 		if (_keyMask & 0x8)
 			move_step += direction_x * speed;
+		//EX
+		if (_keyMask & 0x10)
+			move_step += direction_y * speed;
+		if (_keyMask & 0x20)
+			move_step -= direction_y * speed;
 
 		Vec3 position = _flyCamera->getPosition3D();
 		_flyCamera->setPosition3D(move_step + position);
@@ -184,6 +193,10 @@ void HelloWorld::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, Event *ev
 		_keyMask |= 0x4;
 	else if (keyCode == EventKeyboard::KeyCode::KEY_D)
 		_keyMask |= 0x8;
+	else if (keyCode == EventKeyboard::KeyCode::KEY_E)
+		_keyMask |= 0x10;
+	else if (keyCode == EventKeyboard::KeyCode::KEY_X)
+		_keyMask |= 0x20;
 }
 
 void  HelloWorld::onKeyReleased(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event)
@@ -196,6 +209,10 @@ void  HelloWorld::onKeyReleased(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d
 		_keyMask &= ~0x4;
 	else if (keyCode == EventKeyboard::KeyCode::KEY_D)
 		_keyMask &= ~0x8;
+	else if (keyCode == EventKeyboard::KeyCode::KEY_E)
+		_keyMask &= ~0x10;
+	else if (keyCode == EventKeyboard::KeyCode::KEY_X)
+		_keyMask &= ~0x20;
 }
 
 void HelloWorld::menuCloseCallback(Ref* pSender)
@@ -592,5 +609,60 @@ void HelloWorld::rotateHullPolygonMinkowski()
 		draw_node->drawLine(polygon_mink2[index_l], polygon_mink2[index_l + 1 >= polygon_size2 ? 0 : index_l + 1], Color4F::BLUE);
 	}
 	assert(polygon_size == polygon_size2);
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::rotateHullPolygonsNarrowSurface()
+{
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+
+	float  length_l = 1334.0f/6;
+	float length_w = 750.0f/6.0f;
+	const int array_size = 33;
+	const Size &winSize = _director->getWinSize();
+
+	std::vector<Vec2>  points_array[6];
+	//网格划分
+	//生成随机离散点,并计算boundingbox
+	for (int base_j = 0; base_j < 6; ++base_j)
+	{
+		Vec2 base_location(1334 * gt::random(), 750 * gt::random());
+		std::vector<Vec2> &points = points_array[base_j];
+		points.resize(array_size);
+		for (int index_j = 0; index_j < array_size; ++index_j)
+		{
+			points[index_j] = base_location + Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+		}
+	}
+	//求离散点集的凸包
+	std::vector<Vec2> polygons[6];
+	for (int base_j = 0; base_j < 6; ++base_j)
+	{
+		gt::polygon_compute_minimum(points_array[base_j], polygons[base_j]);
+	}
+	//画出多边形的边界
+	for (int base_j = 0; base_j < 6; ++base_j)
+	{
+		const std::vector<Vec2> &polygon = polygons[base_j];
+		for (int index_l = 0; index_l < polygon.size(); ++index_l)
+		{
+			int secondary_l = (index_l + 1) % polygon.size();
+			draw_node->drawLine(polygon[index_l], polygon[secondary_l], Color4F::GREEN);
+		}
+	}
+	//最佳横截带
+	Vec2 surface[4];
+	float distance = gt::rotate_hull_polygons_narrow_surface(polygons, 6, surface);
+	//画出两条横截带
+	draw_node->drawLine(surface[0] - surface[1] * 600, surface[0] + surface[1] * 600,Color4F::RED);
+	draw_node->drawLine(surface[0], surface[0] + Vec2(-surface[1].y, surface[1].x) * 200.0f,Color4F::BLUE);
+
+	draw_node->drawLine(surface[2] - surface[3] * 600, surface[2] + surface[3] * 600.0f,Color4F::RED);
+	draw_node->drawLine(surface[2], surface[2] + Vec2(-surface[3].y, surface[3].x) * 200.0f,Color4F::BLUE);
+
 	root_node->setCameraMask(s_CameraMask);
 }

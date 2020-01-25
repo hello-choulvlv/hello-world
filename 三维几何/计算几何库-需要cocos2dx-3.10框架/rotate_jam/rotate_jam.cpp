@@ -1256,4 +1256,140 @@ void rotate_hull_polygon_minkowski_prim(const std::vector<cocos2d::Vec2> &polygo
 	}
 	polygon_compute_minimum(polygon_mix, polygon_mink);
 }
+
+float rotate_hull_polygons_narrow_surface(const std::vector<cocos2d::Vec2> *polygon_array, int polygon_array_size, cocos2d::Vec2 surface[4])
+{
+	//第一步计算所有多边形参考点
+	Vec2 location_ref(FLT_MAX,FLT_MAX);
+	int *compare_index_array = new int[polygon_array_size * 2];
+	int base_bottom = -1, base_top = -1;
+	Vec2 bottom_location = polygon_array[0][0];
+	Vec2 top_location = polygon_array[0][0];
+
+	for (int index_l = 0; index_l < polygon_array_size; ++index_l)
+	{
+		const std::vector<Vec2> &polygon = polygon_array[index_l];
+		//同时计算y坐标最大的顶点索引
+		int compare_max_index = 0,compare_min_index = 0;
+		for (int j = 0; j < polygon.size(); ++j)
+		{
+			const Vec2 &point = polygon[j];
+			location_ref.x = fminf(location_ref.x, point.x);
+			location_ref.y = fminf(location_ref.y, point.y);
+
+			if (polygon[compare_max_index].y < point.y || polygon[compare_max_index].y == point.y && polygon[compare_max_index].x < point.x)
+				compare_max_index = j;
+
+			if (polygon[compare_min_index].y > point.y || polygon[compare_min_index].y == point.y && polygon[compare_min_index].x > point.x)
+				compare_min_index = j;
+		}
+		compare_index_array[index_l * 2] = compare_min_index;//下顶点
+		compare_index_array[index_l * 2 + 1] = compare_max_index;//上顶点
+
+		if (base_bottom == -1 || bottom_location.y < polygon[compare_min_index].y)
+		{
+			bottom_location = polygon[compare_min_index];
+			base_bottom = index_l;
+		}
+
+		if (base_top == -1 || top_location.y > polygon[compare_max_index].y)
+		{
+			top_location = polygon[compare_max_index];
+			base_top = index_l;
+		}
+	}
+	location_ref.x -= 2000.0f;
+	location_ref.y -= 2000.0f;
+	//针对每一个凸多边形,计算其上顶点/下顶点
+	float distance = bottom_location.y - top_location.y;
+	Vec2 compare_normal = Vec2::UNIT_X;
+	surface[0] = bottom_location;
+	surface[1] = -Vec2::UNIT_X;
+
+	surface[2] = top_location;
+	surface[3] = Vec2::UNIT_X;
+
+	do
+	{
+		//针对每一个凸多边形,计算最小旋转角度
+		float rotate_angle = FLT_MAX;
+		int    polygon_index = 0,b_top = false;
+		Vec2 other_normal = -compare_normal, compare_new_normal;
+
+		for (int index_l = 0; index_l < polygon_array_size; ++index_l)
+		{
+			const std::vector<Vec2> &polygon = polygon_array[index_l];
+			int array_size = polygon.size();
+
+			int bottom_index = compare_index_array[index_l * 2];//下顶点
+			int top_index = compare_index_array[index_l * 2 + 1];//上顶点
+
+			int bottom_next = (bottom_index+1)%array_size;
+			int top_next = (top_index+1)%array_size;
+
+			float angle1 = radian_from(compare_normal,polygon[bottom_next] - polygon[bottom_index]);
+			float angle2 = radian_from(other_normal,polygon[top_next] - polygon[top_index]);
+
+			float angle = fminf(angle1,angle2);
+			if (rotate_angle > angle)
+			{
+				rotate_angle = angle;
+				polygon_index = index_l;
+				b_top = angle == angle2;
+				compare_new_normal = b_top ? -normalize(polygon[top_index],polygon[top_next]):normalize(polygon[bottom_index],polygon[bottom_next]);
+			}
+		}
+		//更新新的标准基准向量
+		compare_normal = compare_new_normal;
+		other_normal = -compare_new_normal;
+
+		if (compare_normal.y < 0.0f) break;
+
+		if (!b_top)
+			compare_index_array[polygon_index * 2] = (compare_index_array[polygon_index * 2] + 1) % polygon_array[polygon_index].size();
+		else
+			compare_index_array[polygon_index * 2 + 1] = (compare_index_array[polygon_index * 2 + 1] +1)%polygon_array[polygon_index].size();
+		//计算新的最大下顶点与最小上顶点,注意此时需要使用投影算法而非直接比较y坐标
+		const Vec2 direction(-compare_normal.y, compare_normal.x);
+
+		float max_y = -FLT_MAX,min_y = FLT_MAX;
+		for (int index_l = 0; index_l < polygon_array_size; ++index_l)
+		{
+			const std::vector<Vec2> &polygon = polygon_array[index_l];
+			int bottom_index = compare_index_array[index_l * 2];
+			int top_index = compare_index_array[index_l *2 +1];
+
+			float f1 = dot(polygon[bottom_index] - location_ref, direction);
+			float f2 = dot(polygon[top_index] - location_ref, direction);
+
+			if (max_y < f1)
+			{
+				max_y = f1;
+				bottom_location = polygon[bottom_index];
+			}
+
+			if (min_y > f2)
+			{
+				min_y = f2;
+				top_location = polygon[top_index];
+			}
+		}
+		float f = max_y - min_y;
+		//注意法线的方向需要动态计算
+		if (distance > f)
+		{
+			distance = f;
+			surface[0] = top_location;
+			surface[1] =f > 0.0f ?compare_normal:-compare_normal;
+
+			surface[2] = bottom_location;
+			surface[3] = f>0.0f?-compare_normal:compare_normal;
+		}
+	}while (compare_normal.y >=0.0f);
+
+	delete[] compare_index_array;
+	compare_index_array = nullptr;
+
+	return distance;
+}
 NS_GT_END
