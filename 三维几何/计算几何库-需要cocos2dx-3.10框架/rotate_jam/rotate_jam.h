@@ -1,7 +1,7 @@
 /*
   *旋转卡壳算法系列
   *@author:xiaohuaxiong
-  *@date:2020年1月8日
+  *@date:2020年1月8日----->2020/1/25日
  */
 #ifndef __ROTATE_JAM_H__
 #define __ROTATE_JAM_H__

@@ -34,19 +34,20 @@ private:
 	//比较函数,稍后读者将会发现最后面的一个参数是怎么来的
 	//int(*_compare_func)(const TW &a, const TW &b, const SV &l);
 public:
-	red_black_tree(int capacity_size = 8) :/*_compare_func(compare_func),*/ _root(nullptr), _cache_head(nullptr), _node_size(0), _cache_size(0), _cache_capacity(capacity_size) {
+	red_black_tree(int capacity_size = 0x7FFFFFFF) :/*_compare_func(compare_func),*/ _root(nullptr), _cache_head(nullptr), _node_size(0), _cache_size(0), _cache_capacity(capacity_size) {
 	};
 	~red_black_tree() {
 		if (_node_size)
 		{
-			internal_node   **node_array = new internal_node   *[_node_size];
+			internal_node   **node_array =new internal_node   *[_node_size];
 			internal_node  *child = find_minimum();
 			int  index_j = 0;
 			node_array[index_j++] = child;
-			while ((child = find_next(child)) != nullptr)
+			while (child = find_next(child))
 				node_array[index_j++] = child;
 			for (int index_l = 0; index_l < _node_size; ++index_l)
 				delete node_array[index_l];
+
 			delete[] node_array;
 		}
 		//_cache

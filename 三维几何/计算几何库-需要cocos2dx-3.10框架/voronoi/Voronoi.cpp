@@ -1132,7 +1132,5 @@ void voronoi_increament_policy(const std::vector<cocos2d::Vec2> &disper_points, 
 		//将顶点disper_points[index_l]插入到base_j的Voronoi图中
 		static_voronoi_insert(mem_slab,disper_points, points_stride,voronoi_sites, base_j, index_l);
 	}
-	float x = 0;
-	float y = 0;
 }
 NS_GT_END

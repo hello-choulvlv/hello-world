@@ -1,6 +1,6 @@
 /*
   *旋转卡壳算法系列实现
-  *@date:2020年1月8日
+  *@date:2020年1月8日----->2020/1/25日
   *@author:xiaohuaxiong
  */
 #include "rotate_jam.h"
