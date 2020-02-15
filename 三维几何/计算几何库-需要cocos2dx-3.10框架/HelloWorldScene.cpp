@@ -117,7 +117,8 @@ bool HelloWorld::init()
 	//rotateHullPolygonIntersect();
 	//rotateHullPolygonInnerTangent();
 	//rotateHullPolygonMinkowski();
-	rotateHullPolygonsNarrowSurface();
+	//rotateHullPolygonsNarrowSurface();
+	convexHull3dAlgorithm();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -309,8 +310,8 @@ void HelloWorld::twoPolygonTangentLine()
 	}
 
 	std::vector<Vec2> polygon_vector,polygon_vector2;
-	bool check_polygon = gt::polygon_compute_minimum(points, polygon_vector);
-	gt::polygon_compute_minimum(points2, polygon_vector2);
+	bool check_polygon = gt::polygon_compute_convex_hull(points, polygon_vector);
+	gt::polygon_compute_convex_hull(points2, polygon_vector2);
 	//建立sprite
 	for (int index_j = 0; index_j < point_num; ++index_j)
 	{
@@ -576,7 +577,7 @@ void HelloWorld::rotateHullPolygonMinkowski()
 	}
 	//求离散点集的凸包
 	std::vector<Vec2> polygon;
-	gt::polygon_compute_minimum(points, polygon);
+	gt::polygon_compute_convex_hull(points, polygon);
 	//画出多边形的边界
 	for (int index_l = 0; index_l < polygon.size(); ++index_l)
 	{
@@ -585,7 +586,7 @@ void HelloWorld::rotateHullPolygonMinkowski()
 	}
 
 	std::vector<Vec2> polygon2;
-	gt::polygon_compute_minimum(points2, polygon2);
+	gt::polygon_compute_convex_hull(points2, polygon2);
 	for (int index_l = 0; index_l < polygon2.size(); ++index_l)
 	{
 		int secondary_l = (index_l + 1) % polygon2.size();
@@ -642,7 +643,7 @@ void HelloWorld::rotateHullPolygonsNarrowSurface()
 	std::vector<Vec2> polygons[6];
 	for (int base_j = 0; base_j < 6; ++base_j)
 	{
-		gt::polygon_compute_minimum(points_array[base_j], polygons[base_j]);
+		gt::polygon_compute_convex_hull(points_array[base_j], polygons[base_j]);
 	}
 	//画出多边形的边界
 	for (int base_j = 0; base_j < 6; ++base_j)
@@ -664,5 +665,50 @@ void HelloWorld::rotateHullPolygonsNarrowSurface()
 	draw_node->drawLine(surface[2] - surface[3] * 600, surface[2] + surface[3] * 600.0f,Color4F::RED);
 	draw_node->drawLine(surface[2], surface[2] + Vec2(-surface[3].y, surface[3].x) * 200.0f,Color4F::BLUE);
 
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::convexHull3dAlgorithm()
+{
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode3D  *draw_node = DrawNode3D::create();
+	root_node->addChild(draw_node);
+
+	float  length_l = 750.0f;
+	float length_w = 650.0f;
+	float length_d = 650.0f;
+
+	const int array_size = 64;
+	//三角形平面
+	std::vector<cocos2d::Vec3> points(array_size);
+
+	for (int index_j = 0; index_j < array_size; ++index_j)
+	{
+		points[index_j] = Vec3(length_l * gt::randomf10(), length_w * gt::randomf10(), length_d * gt::randomf10());
+		Sprite *s = Sprite::create("llk_yd.png");
+		s->setPosition3D(points[index_j]);
+		root_node->addChild(s);
+	}
+
+	std::list<gt::Plane3 *>  planes;
+	bool b = gt::quick_hull_algorithm3d(points, planes);
+	//static_create_tetrahedron(points, planes);
+	for (auto it= planes.begin(); it != planes.end(); ++it)
+	{
+		gt::Plane3 *plane = *it;
+		Color4F color(gt::random(),gt::random(),gt::random(),1.0f);
+
+		draw_node->drawLine(points[plane->v1],points[plane->v2], color);
+		draw_node->drawLine(points[plane->v2], points[plane->v3], color);
+		draw_node->drawLine(points[plane->v3], points[plane->v1], color);
+
+		//画出法线
+		//const Vec3 normal = gt::cross_normalize(points[plane->v1],points[plane->v2],points[plane->v3]);
+		//draw_node->drawLine(points[plane->v1],points[plane->v1] + normal * 400.0f, color);
+
+		delete plane;
+	}
 	root_node->setCameraMask(s_CameraMask);
 }

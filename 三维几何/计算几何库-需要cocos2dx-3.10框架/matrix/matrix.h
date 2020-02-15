@@ -61,8 +61,11 @@ void  mat3_transform_vec3(const mat3x3 &mat,const cocos2d::Vec3 &t,cocos2d::Vec3
 */
 cocos2d::Vec3  cross(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b);
 cocos2d::Vec3  cross_normalize(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b);
+cocos2d::Vec3  cross_normalize(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b, const cocos2d::Vec3 &c);
+
 float cross(const cocos2d::Vec2 &a, const cocos2d::Vec2 &b);
 float cross(const cocos2d::Vec2 &base,const cocos2d::Vec2 &fc1,const cocos2d::Vec2 &fc2);
+cocos2d::Vec3  cross(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b,const cocos2d::Vec3 &c);
 /*
 *向量规范化
 */
@@ -186,6 +189,25 @@ void quick_sort_origin_type(TM *source, int tk_num, std::function<bool(const TM 
 		memcpy(source, t1, sizeof(TM) * tk_num);
 
 	delete[] bubble;
+}
+/*
+  *插入排序算法实现
+ */
+template<typename TA>
+void  insert_sort(TA *source_array, int array_size, std::function<bool(const TA &a, const TA &b)> &compare_func)
+{
+	for (int j = 1; j < array_size; ++j)
+	{
+		TA ta_value = source_array[j];
+		int base_j = j;
+		while (base_j && compare_func(ta_value,source_array[base_j-1]))
+		{
+			source_array[base_j] = source_array[base_j - 1];
+			--base_j;
+		}
+		if (base_j != j)
+			source_array[base_j] = ta_value;
+	}
 }
 /*
   *翻转vector中的元素

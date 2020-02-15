@@ -86,11 +86,43 @@ cocos2d::Vec3 cross(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b)
 	return Vec3(a.y * b.z - a.z * b.y, -a.x *b.z + a.z * b.x, a.x * b.y - a.y * b.x);
 }
 
+cocos2d::Vec3  cross(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b, const cocos2d::Vec3 &c)
+{
+	float a_x = b.x - a.x;
+	float a_y = b.y - a.y;
+	float a_z = b.z - a.z;
+
+	float b_x = c.x - a.x;
+	float b_y = c.y - a.y;
+	float b_z = c.z - a.z;
+
+	return Vec3(a_y * b_z - a_z * b_y, -a_x *b_z + a_z * b_x, a_x * b_y - a_y * b_x);
+}
+
 cocos2d::Vec3 cross_normalize(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b)
 {
 	float x = a.y * b.z - a.z * b.y;
 	float y = -a.x *b.z + a.z * b.x;
 	float z = a.x * b.y - a.y * b.x;
+
+	float d = sqrtf(x*x + y*y + z*z);
+	d = d != 0 ? 1.0f / d : 0.0f;
+	return Vec3(x*d, y*d, z*d);
+}
+
+cocos2d::Vec3  cross_normalize(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b, const cocos2d::Vec3 &c)
+{
+	float a_x = b.x - a.x;
+	float a_y = b.y - a.y;
+	float a_z = b.z - a.z;
+
+	float b_x = c.x - a.x;
+	float b_y = c.y - a.y;
+	float b_z = c.z - a.z;
+
+	float x = a_y * b_z - a_z * b_y;
+	float y = -a_x *b_z + a_z * b_x;
+	float z = a_x * b_y - a_y * b_x;
 
 	float d = sqrtf(x*x + y*y + z*z);
 	d = d != 0 ? 1.0f / d : 0.0f;

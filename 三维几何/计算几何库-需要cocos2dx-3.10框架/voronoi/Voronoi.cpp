@@ -1133,4 +1133,44 @@ void voronoi_increament_policy(const std::vector<cocos2d::Vec2> &disper_points, 
 		static_voronoi_insert(mem_slab,disper_points, points_stride,voronoi_sites, base_j, index_l);
 	}
 }
+
+void delaunay_triangulate_divide(const std::vector<cocos2d::Vec2> &disper_points, std::vector<DelaunayTriangle> &triangles)
+{
+	int array_size = disper_points.size();
+	const Vec2 *array_ptr = disper_points.data();
+	std::vector<const Vec2*>  disper_array(array_size);
+	for (int index_l = 0; index_l < array_size; ++index_l)disper_array[index_l] = array_ptr + index_l;
+	std::function<bool(const Vec2 *a, const Vec2 *b)> compare_func = [](const Vec2 *a, const Vec2 *b)->bool {
+		return a->x < b->x || a->x == b->x && a->y >b->y;
+	};
+	quick_sort_origin_type<const Vec2*>(disper_array.data(), array_size, compare_func);
+	//每一段顶点序列的凸壳序列
+	std::vector<const Vec2*>  polygon_array(array_size * 2);
+	std::vector<int>  boundary_array(array_size);//记录多边形的数组边界
+
+	Vec2 const **polygon_ptr = polygon_array.data();
+	int *boundary_ptr = boundary_array.data();
+	//该数据需要用来复制内存时使用
+	Vec2 const **mem_ptr = polygon_ptr + array_size;
+	//针对每一段顶点序列,逐个的进行合并,注意合并的过程要稍微复杂一些
+	int index_l = 0;
+	for (; index_l < array_size - 2; index_l +=3)
+	{
+		const Vec2 *a = disper_array[index_l];
+		const Vec2 *b = disper_array[index_l +1];
+		const Vec2 *c = disper_array[index_l +2];
+
+		float f = cross(*a,*b,*c);
+		if (f < 0.0f)
+		{
+			const Vec2 *t = b;
+			b = c;
+			c = t;
+		}
+		//记录下该段顶点序列的凸壳
+		polygon_ptr[index_l] = a;
+		polygon_ptr[index_l + 1] = b;
+		polygon_ptr[index_l + 2] = c;
+	}
+}
 NS_GT_END

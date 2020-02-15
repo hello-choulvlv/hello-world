@@ -60,12 +60,6 @@ bool compute_barycentric(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b, const c
 *判断目标点是否位于三角形所在的局部平面之内
 */
 bool check_in_target_plane(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b, const cocos2d::Vec3 &c, const cocos2d::Vec3 &p);
-
-/*
-*求点集的最小凸多边形
-*旋转卡壳算法实现
-*/
-bool polygon_compute_minimum(const std::vector<cocos2d::Vec2> &points, std::vector<cocos2d::Vec2> &polygon_points);
 /*
   *计算两个多边形的公切线
   *对输入已经假设两个多边形不会相交,并且其顶点形式都是逆时针排列的
@@ -77,21 +71,10 @@ void polygon_polygon_tangent_line(const std::vector<cocos2d::Vec2> &polygon1,con
   *并给出距离最远的两个点坐标
  */
 float polygon_compute_max_distance(const std::vector<cocos2d::Vec2> &polygon_points,cocos2d::Vec2 &max_a,cocos2d::Vec2 &max_b);
-/*
-*quick hull算法实现
-*2d实现
-*/
-bool quick_hull_algorithm2d(const std::vector<cocos2d::Vec2> &points, std::vector<cocos2d::Vec2> &polygon);
 
 /*
-*quick hull 算法实现
-*最小3d凸平面
-*输出,每三个顶点构成一个空间平面
-*/
-bool quick_hull_algorithm3d(const std::vector<cocos2d::Vec3> &points, std::vector<cocos2d::Vec3> &planes);
-/*
   *计算N个离散点的最近距离
-  *2d是实现
+  *2d实现
  */
 float point_compute_minimum_distance(const std::vector<cocos2d::Vec2> &points,cocos2d::Vec2 &a,cocos2d::Vec2 &b);
 /*

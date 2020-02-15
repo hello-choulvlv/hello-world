@@ -33,7 +33,7 @@ void  HelloWorld::testRotateHullAlorithm()
 	}
 
 	std::vector<Vec2> polygon_vector;
-	bool check_polygon = gt::polygon_compute_minimum(points, polygon_vector);
+	bool check_polygon = gt::polygon_compute_convex_hull(points, polygon_vector);
 	//建立sprite
 	for (int index_j = 0; index_j < point_num; ++index_j)
 	{
@@ -1239,7 +1239,7 @@ void HelloWorld::doLineRaySegementIntersectWithPolygon()
 	std::vector<gt::Plane2D>   planes;
 
 	//计算最小凸多边形
-	gt::polygon_compute_minimum(points, points_vec);
+	gt::polygon_compute_convex_hull(points, points_vec);
 	//计算2d超平面
 	gt::Polygon  polygon;
 	gt::polygon_create(polygon, points_vec);
@@ -1306,7 +1306,7 @@ void HelloWorld::doPolygonContainsPoint()
 	std::vector<gt::Plane2D>   planes;
 
 	//计算最小凸多边形
-	gt::polygon_compute_minimum(points, points_vec);
+	gt::polygon_compute_convex_hull(points, points_vec);
 	//计算2d超平面
 	gt::Polygon  polygon;
 	gt::polygon_create(polygon, points_vec);
@@ -1354,7 +1354,7 @@ void HelloWorld::doPolygonCycleIntersectTest()
 	std::vector<gt::Plane2D>   planes;
 
 	//计算最小凸多边形
-	gt::polygon_compute_minimum(points, points_vec);
+	gt::polygon_compute_convex_hull(points, points_vec);
 	//计算2d超平面
 	gt::Polygon  polygon;
 	gt::polygon_create(polygon, points_vec);
@@ -1745,7 +1745,7 @@ void HelloWorld::dispersePointsMaxDistanceTest()
 	//计算多边形
 	std::vector<Vec2> polygon_points;
 	polygon_points.reserve(array_size);
-	gt::polygon_compute_minimum(point_array, polygon_points);
+	gt::polygon_compute_convex_hull(point_array, polygon_points);
 	//画出多边形的边
 	for (int index_l = 0; index_l < polygon_points.size(); ++index_l)
 		draw_node->drawLine(polygon_points[index_l], polygon_points[index_l + 1 >= polygon_points.size() ? 0 : index_l + 1], Color4F::WHITE);
@@ -1848,8 +1848,8 @@ void HelloWorld::gjkAlgorithmTest()
 
 	gt::Polygon  polygon1, polygon2;
 	std::vector<Vec2>  polygon_array1, polygon_array2;
-	gt::polygon_compute_minimum(points1, polygon_array1);
-	gt::polygon_compute_minimum(points2, polygon_array2);
+	gt::polygon_compute_convex_hull(points1, polygon_array1);
+	gt::polygon_compute_convex_hull(points2, polygon_array2);
 
 	gt::polygon_create(polygon1, polygon_array1);
 	gt::polygon_create(polygon2, polygon_array2);
@@ -2197,7 +2197,7 @@ void HelloWorld::rotateHullMaxDistanceTest()
 	}
 	//求离散点集的凸包
 	std::vector<Vec2> polygon;
-	gt::polygon_compute_minimum(points, polygon);
+	gt::polygon_compute_convex_hull(points, polygon);
 	//画出多边形的边界
 	for (int index_l = 0; index_l < polygon.size(); ++index_l)
 	{
@@ -2256,7 +2256,7 @@ void HelloWorld::rotateHullWidthTest()
 	}
 	//求离散点集的凸包
 	std::vector<Vec2> polygon;
-	gt::polygon_compute_minimum(points, polygon);
+	gt::polygon_compute_convex_hull(points, polygon);
 	//画出多边形的边界
 	for (int index_l = 0; index_l < polygon.size(); ++index_l)
 	{
@@ -2331,7 +2331,7 @@ void HelloWorld::rotateHullTwoMaxDistanceTest()
 	}
 	//求离散点集的凸包
 	std::vector<Vec2> polygon;
-	gt::polygon_compute_minimum(points, polygon);
+	gt::polygon_compute_convex_hull(points, polygon);
 	//画出多边形的边界
 	for (int index_l = 0; index_l < polygon.size(); ++index_l)
 	{
@@ -2341,7 +2341,7 @@ void HelloWorld::rotateHullTwoMaxDistanceTest()
 
 	//求离散点集的凸包
 	std::vector<Vec2> polygon2;
-	gt::polygon_compute_minimum(points2, polygon2);
+	gt::polygon_compute_convex_hull(points2, polygon2);
 	//画出多边形的边界
 	for (int index_l = 0; index_l < polygon2.size(); ++index_l)
 	{
@@ -2416,7 +2416,7 @@ void HelloWorld::rotateHullTwoMinDistanceTest()
 	}
 	//求离散点集的凸包
 	std::vector<Vec2> polygon;
-	gt::polygon_compute_minimum(points, polygon);
+	gt::polygon_compute_convex_hull(points, polygon);
 	//画出多边形的边界
 	for (int index_l = 0; index_l < polygon.size(); ++index_l)
 	{
@@ -2426,7 +2426,7 @@ void HelloWorld::rotateHullTwoMinDistanceTest()
 
 	//求离散点集的凸包
 	std::vector<Vec2> polygon2;
-	gt::polygon_compute_minimum(points2, polygon2);
+	gt::polygon_compute_convex_hull(points2, polygon2);
 	//画出多边形的边界
 	for (int index_l = 0; index_l < polygon2.size(); ++index_l)
 	{
@@ -2467,7 +2467,7 @@ void HelloWorld::rotateHullMinAreaTest()
 	}
 	//求离散点集的凸包
 	std::vector<Vec2> polygon;
-	gt::polygon_compute_minimum(points, polygon);
+	gt::polygon_compute_convex_hull(points, polygon);
 	//画出多边形的边界
 	for (int index_l = 0; index_l < polygon.size(); ++index_l)
 	{
@@ -2512,7 +2512,7 @@ void HelloWorld::rotateHullMinPerimeterTest()
 	}
 	//求离散点集的凸包
 	std::vector<Vec2> polygon;
-	gt::polygon_compute_minimum(points, polygon);
+	gt::polygon_compute_convex_hull(points, polygon);
 	//画出多边形的边界
 	for (int index_l = 0; index_l < polygon.size(); ++index_l)
 	{
@@ -2638,7 +2638,7 @@ void HelloWorld::rotateHullPolygonUnion()
 	}
 	//求离散点集的凸包
 	std::vector<Vec2> polygon;
-	gt::polygon_compute_minimum(points, polygon);
+	gt::polygon_compute_convex_hull(points, polygon);
 	//画出多边形的边界
 	for (int index_l = 0; index_l < polygon.size(); ++index_l)
 	{
@@ -2647,7 +2647,7 @@ void HelloWorld::rotateHullPolygonUnion()
 	}
 
 	std::vector<Vec2> polygon2;
-	gt::polygon_compute_minimum(points2, polygon2);
+	gt::polygon_compute_convex_hull(points2, polygon2);
 	for (int index_l = 0; index_l < polygon2.size(); ++index_l)
 	{
 		int secondary_l = (index_l + 1) % polygon2.size();
@@ -2700,7 +2700,7 @@ void HelloWorld::rotateHullPolygonIntersect()
 	}
 	//求离散点集的凸包
 	std::vector<Vec2> polygon;
-	gt::polygon_compute_minimum(points, polygon);
+	gt::polygon_compute_convex_hull(points, polygon);
 	//画出多边形的边界
 	for (int index_l = 0; index_l < polygon.size(); ++index_l)
 	{
@@ -2709,7 +2709,7 @@ void HelloWorld::rotateHullPolygonIntersect()
 	}
 
 	std::vector<Vec2> polygon2;
-	gt::polygon_compute_minimum(points2, polygon2);
+	gt::polygon_compute_convex_hull(points2, polygon2);
 	for (int index_l = 0; index_l < polygon2.size(); ++index_l)
 	{
 		int secondary_l = (index_l + 1) % polygon2.size();
@@ -2765,7 +2765,7 @@ void HelloWorld::rotateHullPolygonInnerTangent()
 	}
 	//求离散点集的凸包
 	std::vector<Vec2> polygon;
-	gt::polygon_compute_minimum(points, polygon);
+	gt::polygon_compute_convex_hull(points, polygon);
 	//画出多边形的边界
 	for (int index_l = 0; index_l < polygon.size(); ++index_l)
 	{
@@ -2774,7 +2774,7 @@ void HelloWorld::rotateHullPolygonInnerTangent()
 	}
 
 	std::vector<Vec2> polygon2;
-	gt::polygon_compute_minimum(points2, polygon2);
+	gt::polygon_compute_convex_hull(points2, polygon2);
 	for (int index_l = 0; index_l < polygon2.size(); ++index_l)
 	{
 		int secondary_l = (index_l + 1) % polygon2.size();

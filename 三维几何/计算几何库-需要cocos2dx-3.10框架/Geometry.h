@@ -12,5 +12,5 @@
 #include "triangle/triangle.h"
 #include "voronoi/Voronoi.h"
 #include "rotate_jam/rotate_jam.h"
-
+#include "convex_hull/convex_hull.h"
 #endif

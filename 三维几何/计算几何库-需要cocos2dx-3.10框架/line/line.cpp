@@ -305,7 +305,7 @@ bool ray_aabb_intersect_test(const Ray &ray, const AABB &aabb)
 }
 /*
   *该算法并没有针对OBB进行优化
-  *该算法实现的我另一个版本是分离轴测试
+  *该算法实现的另一个版本是分离轴测试
   *详细实现请参见aabb_obb.cpp文件
  */
 bool ray_obb_intersect_test(const Ray &ray, const OBB &obb)

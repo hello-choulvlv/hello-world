@@ -4,6 +4,7 @@
   *@author:xiaohuaxiong
  */
 #include "rotate_jam.h"
+#include "convex_hull/convex_hull.h"
 #include "matrix/matrix.h"
 #include "point_polygon/point_polygon.h"
 #include <functional>
@@ -1254,7 +1255,7 @@ void rotate_hull_polygon_minkowski_prim(const std::vector<cocos2d::Vec2> &polygo
 		for (int index_b = 0; index_b < array_size2; ++index_b)
 			polygon_mix[base_j++] = polygon1[index_a] + polygon2[index_b];
 	}
-	polygon_compute_minimum(polygon_mix, polygon_mink);
+	polygon_compute_convex_hull(polygon_mix, polygon_mink);
 }
 
 float rotate_hull_polygons_narrow_surface(const std::vector<cocos2d::Vec2> *polygon_array, int polygon_array_size, cocos2d::Vec2 surface[4])

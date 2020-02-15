@@ -176,4 +176,8 @@ void voronoi_delaunay_triangle(const std::vector<cocos2d::Vec2> &disper_points,s
   *第一版只实现基本的功能,在稍后的版本中,我们将改进内存管理方式,增加一个内存分配管理器
  */
 void voronoi_increament_policy(const std::vector<cocos2d::Vec2> &disper_points,std::vector<VoronoiSite> &voronoi_sites);
+/*
+  *分治法求离散点集的Delaunay三角剖分
+ */
+void delaunay_triangulate_divide(const std::vector<cocos2d::Vec2> &disper_points,std::vector<DelaunayTriangle> &triangles);
 NS_GT_END
