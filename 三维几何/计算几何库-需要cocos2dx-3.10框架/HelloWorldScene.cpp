@@ -31,7 +31,7 @@ bool HelloWorld::init()
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 	auto &winSize = _director->getWinSize();
-	int64_t seed = time(nullptr); //1579139246;// time(nullptr);// 1578545857;// time(nullptr);//1572057392;
+	int64_t seed = 1581820238;// time(nullptr); //1579139246;// time(nullptr);// 1578545857;// time(nullptr);//1572057392;
 	CCLOG("seed->%ld", seed);
 	srand(seed);//14,23,27
 
@@ -680,7 +680,7 @@ void HelloWorld::convexHull3dAlgorithm()
 	float length_w = 650.0f;
 	float length_d = 650.0f;
 
-	const int array_size = 64;
+	const int array_size = 128;
 	//三角形平面
 	std::vector<cocos2d::Vec3> points(array_size);
 
@@ -692,8 +692,13 @@ void HelloWorld::convexHull3dAlgorithm()
 		root_node->addChild(s);
 	}
 
+	timeval  tiv1, tiv2;
+	gettimeofday(&tiv1,nullptr);
 	std::list<gt::Plane3 *>  planes;
 	bool b = gt::quick_hull_algorithm3d(points, planes);
+	gettimeofday(&tiv2, nullptr);
+
+	CCLOG("algorithm cost time:%.2f\n",(tiv2.tv_sec - tiv1.tv_sec) * 1000.0f + (tiv2.tv_usec - tiv1.tv_usec)/1000.0f);
 	//static_create_tetrahedron(points, planes);
 	for (auto it= planes.begin(); it != planes.end(); ++it)
 	{
