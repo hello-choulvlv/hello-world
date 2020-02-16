@@ -699,6 +699,7 @@ void HelloWorld::convexHull3dAlgorithm()
 	gettimeofday(&tiv2, nullptr);
 
 	CCLOG("algorithm cost time:%.2f\n",(tiv2.tv_sec - tiv1.tv_sec) * 1000.0f + (tiv2.tv_usec - tiv1.tv_usec)/1000.0f);
+	//实验证明,经过优化后的算法的运行时间明显的缩短了
 	//static_create_tetrahedron(points, planes);
 	for (auto it= planes.begin(); it != planes.end(); ++it)
 	{

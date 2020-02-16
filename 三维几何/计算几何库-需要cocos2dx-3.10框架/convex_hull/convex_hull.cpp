@@ -264,24 +264,53 @@ void static_create_tetrahedron(const std::vector<Vec3> &points,std::list<Plane3*
 	maturity.push_back(plane4);
 
 	const Vec3 &base_point = points[v4];
-	const Vec3 normal1 = cross_normalize(points[plane1->v1],points[plane1->v2],points[plane1->v3]);
-	const Vec3 normal2 = cross_normalize(points[plane2->v1], points[plane2->v2], points[plane2->v3]);
-	const Vec3 normal3 = cross_normalize(points[plane3->v1], points[plane3->v2], points[plane3->v3]);
-	const Vec3 normal4 = cross_normalize(points[plane4->v1], points[plane4->v2], points[plane4->v3]);
+	plane1->normal = plane_normal(plane1);
+	plane2->normal = plane_normal(plane2);
+	plane3->normal = plane_normal(plane3);
+	plane4->normal = plane_normal(plane4);
 
+	float df1 = -FLT_MAX, df2 = -FLT_MAX, df3 = -FLT_MAX, df4 = -FLT_MAX;
 	for (int index_l = 0; index_l < array_size; ++index_l)
 	{
 		Vec3 interpolation = points[index_l] - base_point;
-		float f1 = dot(interpolation, normal1),f2,f3,f4;
+		float f1 = dot(interpolation, plane1->normal),f2,f3,f4;
 		//过滤掉距离标准测试平面非常小的点
 		if (fabsf(f1) > 0.001f && f1 > 0.0f)
-			vector_fast_push_back(plane1->operate_array, index_l)
-		else if (fabsf(f2 = dot(interpolation, normal2))> 0.001f && f2 > 0.0f)
-			vector_fast_push_back(plane2->operate_array, index_l)
-		else if (fabsf(f3 = dot(interpolation, normal3)) > 0.001f && f3 > 0.0f)
-			vector_fast_push_back(plane3->operate_array,index_l)
-		else if(fabsf(f4 = dot(points[index_l] - points[v1],normal4)) > 0.001f && f4 > 0.0f)
-			vector_fast_push_back(plane4->operate_array,index_l)
+		{
+			vector_fast_push_back(plane1->operate_array, index_l);
+			if (f1 > df1)
+			{
+				df1 = f1;
+				plane1->high_v = index_l;
+			}
+		}
+		else if (fabsf(f2 = dot(interpolation, plane2->normal)) > 0.001f && f2 > 0.0f)
+		{
+			vector_fast_push_back(plane2->operate_array, index_l);
+			if (f2 > df2)
+			{
+				df2 = f2;
+				plane2->high_v = index_l;
+			}
+		}
+		else if (fabsf(f3 = dot(interpolation, plane3->normal)) > 0.001f && f3 > 0.0f)
+		{
+			vector_fast_push_back(plane3->operate_array, index_l);
+			if (f3 > df3)
+			{
+				df3 = f3;
+				plane3->high_v = index_l;
+			}
+		}
+		else if (fabsf(f4 = dot(points[index_l] - points[v1], plane4->normal)) > 0.001f && f4 > 0.0f)
+		{
+			vector_fast_push_back(plane4->operate_array, index_l);
+			if (f4 > df4)
+			{
+				df4 = f4;
+				plane4->high_v = index_l;
+			}
+		}
 	}
 }
 
@@ -387,7 +416,7 @@ void quick_hull_build_new_plane(ConvexHullMemmorySlab &memory_slab,const std::ve
 	for (auto it = operate_queue.begin(); it != operate_queue.end(); ++it)
 	{
 		Plane3 *plane = *it;
-		const Vec3 normal = plane_normal(plane);// cross_normalize(points[plane->v1], points[plane->v2], points[plane->v3]);
+		const Vec3 &normal = plane->normal;// cross_normalize(points[plane->v1], points[plane->v2], points[plane->v3]);
 		float f = dot(base_point - points[plane->v1],normal);
 		//检测是否是可见的平面
 		if (f > 0.0f)
@@ -414,8 +443,7 @@ void quick_hull_build_new_plane(ConvexHullMemmorySlab &memory_slab,const std::ve
 			do 
 			{
 				Plane3 *adj_plane = edge->twin->owner;
-				const Vec3 secondary_normal = plane_normal(adj_plane);
-				float f2 = dot(base_point - points[adj_plane->v1], secondary_normal);
+				float f2 = dot(base_point - points[adj_plane->v1], adj_plane->normal);
 				//邻接平面对视点的可见性检测
 				if (f2 > 0.0f)
 				{
@@ -459,16 +487,25 @@ void quick_hull_build_new_plane(ConvexHullMemmorySlab &memory_slab,const std::ve
 		plane_last = plane_new;
 		operate_queue.push_back(plane_new);
 		//针对当前平面,其冲突点的选择需要从与公共边edge相邻接的两个平面中进行筛选,此处不成立
-		const Vec3 normal = plane_normal(plane_new);
+		plane_new->normal = plane_normal(plane_new);
+		const Vec3 &normal = plane_new->normal;// plane_normal(plane_new);
 		//算法在此处是可以进行优化的,某些平面的可见点注定是与目标平面不可见的,因此经过一些简单的几何运算之后
 		//快意快速的判断出点集是否可见
+		float df = -FLT_MAX;
 		for (int j = 0; j < index_array_size; ++j)
 		{
 			int base_j = index_array[j];
 			b_found_array[base_j] = 1;
 			float f = dot(points[base_j] - base_point, normal);
 			if (fabsf(f) > 0.001f && f > 0.0f)
+			{
 				vector_fast_push_back(plane_new->operate_array, base_j);
+				if (f > df)
+				{
+					df = f;
+					plane_new->high_v = base_j;
+				}
+			}
 		}
 		//还有一部分
 		const std::vector<int> &target_array2 = edge->owner->operate_array;
@@ -480,7 +517,14 @@ void quick_hull_build_new_plane(ConvexHullMemmorySlab &memory_slab,const std::ve
 			{
 				float f = dot(points[base_j] - base_point, normal);
 				if (fabsf(f) > 0.001f && f > 0.0f)
+				{
 					vector_fast_push_back(plane_new->operate_array, base_j);
+					if (f > df)
+					{
+						df = f;
+						plane_new->high_v = base_j;
+					}
+				}
 			}
 		}
 	}
@@ -526,22 +570,9 @@ bool quick_hull_algorithm3d(const std::vector<cocos2d::Vec3> &points, std::list<
 		const Vec3 &base_point = points[perform_hull->v1];
 		int operate_size = operate_array.size();
 
-		float distance_f = -FLT_MAX;
-		int selected_index = -1;
-		for (int j = 0; j < operate_size; ++j)
-		{
-			int base_j = operate_array[j];
-			const Vec3 &point = points[base_j];
-			float f = dot(point - base_point,normal);
-			if (f > distance_f)
-			{
-				distance_f = f;
-				selected_index = base_j;
-			}
-		}
-		assert(selected_index != -1 && distance_f > 0.0f);
+		assert(perform_hull->high_v != -1);
 		//从该点观察列表中所有的平面,如果该点在某些平面的正侧,则需要重新架构
-		quick_hull_build_new_plane(memory_slab,points, operate_queue,perform_hull, selected_index);
+		quick_hull_build_new_plane(memory_slab,points, operate_queue,perform_hull, perform_hull->high_v);
 	}
 	return operate_queue.size() != 0;
 }

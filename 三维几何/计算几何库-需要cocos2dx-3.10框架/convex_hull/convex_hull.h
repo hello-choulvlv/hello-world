@@ -35,13 +35,14 @@ struct ConvexEdge
 
 struct Plane3
 {
-	short v1,v2,v3, ref;
+	short v1,v2,v3, ref,high_v;
 	std::vector<int> operate_array;
 
 	ConvexEdge *head, *tail;
 	Plane3 *next;
+	cocos2d::Vec3    normal;
 
-	Plane3(short av1, short av2, short av3) :v1(av1),v2(av2),v3(av3),ref(0),head(nullptr),tail(nullptr), next(nullptr){};
+	Plane3(short av1, short av2, short av3) :v1(av1),v2(av2),v3(av3),ref(0), high_v(-1),head(nullptr),tail(nullptr), next(nullptr){};
 	Plane3() :ref(0),head(nullptr),tail(nullptr){};
 	~Plane3() {
 		if (head)
@@ -126,7 +127,7 @@ struct ConvexHullMemmorySlab
 			_plane_cache = _plane_cache->next;
 			--_plane_size;
 
-			plane->v1 = av1; plane->v2 = av2; plane->v3 = av3;
+			plane->v1 = av1; plane->v2 = av2; plane->v3 = av3,plane->high_v = -1;
 			plane->ref = 0;
 			plane->operate_array.clear();
 			plane->head = nullptr;
@@ -170,6 +171,13 @@ bool quick_hull_algorithm2d(const std::vector<cocos2d::Vec2> &points, std::vecto
 *最小3d凸平面,注意该算法并没有经过优化,在经过正确性测试后,我们将会对其进行优化.
 *输出,每三个顶点构成一个空间平面
 *在下以版本中,我们将会对算法进行优化.包括内存分配算法,相关数据查找算法.
+*@version:1.0实现基本算法
+*@version:1.0->algorithm cost time:11.70
+*@version:2.0修复算法中有时会遗漏某些点的处理错误,并优化内存分配,减少数据复制,以及点处理的运算量
+*@version2.0->algorithm cost time:10.30
+*@version:3.0消除求极点的运算过程,将该过程与求冲突点过程合并,经过反复的实验,算法的运行时间明显的缩短了
+*@version3.0->algorithm cost time:7.01
+*@version:4.0在第四版中,我们将会使用一些高级的数据结构来进一步的提升算法的运行时性能.
 */
 bool quick_hull_algorithm3d(const std::vector<cocos2d::Vec3> &points, std::list<Plane3*> &planes);
 NS_GT_END
