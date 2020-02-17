@@ -7,6 +7,7 @@
 #include "SimpleAudioEngine.h"
 #include "geometry.h"
 #include "DrawNode3D.h"
+#include "data_struct/priority_queue.h"
 
 USING_NS_CC;
 
@@ -2790,4 +2791,39 @@ void HelloWorld::rotateHullPolygonInnerTangent()
 	}
 
 	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::priorityQueueTest()
+{
+	const int array_size = 64;
+	int data_array[array_size], priority_array[array_size], secondary_array[array_size];
+	
+
+	//sort
+	std::function<bool(const int &a, const int &b)> compare_func = [](const int &a, const int &b)->bool {
+		return a < b;
+	};
+	std::function<int(int &target, int index_new)> modify_func = [&priority_array](int &target, int index_new)->int {
+		//priority_array[index_new] = index_new;
+		return index_new;
+	};
+
+	for (int j = 0; j < array_size; ++j)
+	{
+		data_array[j] = gt::random() * 359;
+		priority_array[j] = j;
+
+		//priority_queue.insert(data_array[j], compare_func, modify_func);
+	}
+	gt::priority_queue<int> priority_queue(data_array,array_size,compare_func,modify_func, false);
+
+	gt::quick_sort<int>(data_array, array_size, compare_func);
+	//对参数进行逐一的比较
+	for (int j = 0; j < array_size / 2; ++j)
+	{
+		int v = data_array[j];
+		int pv = priority_queue.head();
+		priority_queue.remove_head(compare_func, modify_func);
+		assert(v == pv);
+	}
 }

@@ -8,7 +8,6 @@
 #include "math/Vec2.h"
 #include "math/Vec3.h"
 #include<vector>
-#include<list>
 
 NS_GT_BEGIN
 /*
@@ -35,14 +34,14 @@ struct ConvexEdge
 
 struct Plane3
 {
-	short v1,v2,v3, ref,high_v;
+	short v1,v2,v3, ref,high_v,index_queue;
 	std::vector<int> operate_array;
 
 	ConvexEdge *head, *tail;
 	Plane3 *next;
 	cocos2d::Vec3    normal;
 
-	Plane3(short av1, short av2, short av3) :v1(av1),v2(av2),v3(av3),ref(0), high_v(-1),head(nullptr),tail(nullptr), next(nullptr){};
+	Plane3(short av1, short av2, short av3) :v1(av1),v2(av2),v3(av3),ref(0), high_v(-1), index_queue(-1),head(nullptr),tail(nullptr), next(nullptr){};
 	Plane3() :ref(0),head(nullptr),tail(nullptr){};
 	~Plane3() {
 		if (head)
@@ -127,7 +126,7 @@ struct ConvexHullMemmorySlab
 			_plane_cache = _plane_cache->next;
 			--_plane_size;
 
-			plane->v1 = av1; plane->v2 = av2; plane->v3 = av3,plane->high_v = -1;
+			plane->v1 = av1; plane->v2 = av2; plane->v3 = av3,plane->high_v = -1,plane->index_queue = -1;
 			plane->ref = 0;
 			plane->operate_array.clear();
 			plane->head = nullptr;
@@ -179,10 +178,17 @@ bool quick_hull_algorithm2d(const std::vector<cocos2d::Vec2> &points, std::vecto
 *@version:3.0消除求极点的运算过程,将该过程与求冲突点过程合并,以及将平面的法线直接存储,不再每次遍历时都重新计算.
 *@version:3.0经过反复的实验,算法的运行时间明显的缩短了
 *@version3.0->algorithm cost time:7.01
+*******************************************************************
 *@version:4.0在第四版中,我们将会使用一些高级的数据结构来进一步的提升算法的运行时性能.
-*@version:4.0->seed:1581910632:优化前:7.95,优化后:4.60
+*@version:4.1->seed:1581910632:优化前:7.95,优化后:6.49,
+*@version4.2:在使用了优先级队列之后,运行时间为algorithm cost time:4.06
 *@note:以上的优化过程都是为了下一个更复杂也更为高效的算法的实现过程作准备.
 */
-bool quick_hull_algorithm3d(const std::vector<cocos2d::Vec3> &points, std::list<Plane3*> &planes);
+bool quick_hull_algorithm3d(const std::vector<cocos2d::Vec3> &points, std::vector<Plane3*> &planes);
+/*
+  *三维凸壳算法之优化实现
+  *该算法源自于<计算几何>的第11章
+ */
+bool convex_hull_3d_optimal(const std::vector<cocos2d::Vec3> &points,std::vector<Plane3*> &planes);
 NS_GT_END
 #endif

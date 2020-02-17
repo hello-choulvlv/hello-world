@@ -3,6 +3,7 @@
 #include "geometry.h"
 #include "DrawNode3D.h"
 #include "data_struct/balance_tree.h"
+#include "data_struct/priority_queue.h"
 
 USING_NS_CC;
 
@@ -31,7 +32,7 @@ bool HelloWorld::init()
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 	auto &winSize = _director->getWinSize();
-	int64_t seed = time(nullptr); //1579139246;// time(nullptr);// 1578545857;// time(nullptr);//1572057392;
+	int64_t seed = 1581910632;// time(nullptr); //1579139246;// time(nullptr);// 1578545857;// time(nullptr);//1572057392;
 	CCLOG("seed->%ld", seed);
 	srand(seed);//14,23,27
 
@@ -119,6 +120,7 @@ bool HelloWorld::init()
 	//rotateHullPolygonMinkowski();
 	//rotateHullPolygonsNarrowSurface();
 	convexHull3dAlgorithm();
+	//priorityQueueTest();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -694,7 +696,7 @@ void HelloWorld::convexHull3dAlgorithm()
 
 	timeval  tiv1, tiv2;
 	gettimeofday(&tiv1,nullptr);
-	std::list<gt::Plane3 *>  planes;
+	std::vector<gt::Plane3 *>  planes;
 	bool b = gt::quick_hull_algorithm3d(points, planes);
 	gettimeofday(&tiv2, nullptr);
 
@@ -718,3 +720,4 @@ void HelloWorld::convexHull3dAlgorithm()
 	}
 	root_node->setCameraMask(s_CameraMask);
 }
+

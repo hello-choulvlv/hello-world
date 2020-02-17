@@ -157,6 +157,8 @@ public:
 	void rotateHullPolygonsNarrowSurface();
 	//3d凸壳算法
 	void convexHull3dAlgorithm();
+	//优先级队列算法测试
+	void priorityQueueTest();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

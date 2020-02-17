@@ -6,6 +6,7 @@
 #include "convex_hull.h"
 #include "matrix/matrix.h"
 #include "data_struct/link_list.h"
+#include "data_struct/priority_queue.h"
 #include <list>
 #include<set>
 using namespace cocos2d ;
@@ -174,7 +175,7 @@ bool quick_hull_algorithm2d(const std::vector<cocos2d::Vec2> &points, std::vecto
 	return polygon.size() >= 3;
 }
 #define plane_normal(plane) cross_normalize(points[plane->v1],points[plane->v2],points[plane->v3])
-void static_create_tetrahedron(const std::vector<Vec3> &points,std::list<Plane3*> &maturity)
+void static_create_tetrahedron(const std::vector<Vec3> &points, priority_queue<Plane3*> &operate_queue, std::function<bool(Plane3 *const &a, Plane3 *const &b)> &compare_func, std::function<int(Plane3 *&plane, int index_queue)> &modify_func)
 {
 	int array_size = points.size();
 	//第一步需要计算出必定成为最终的凸壳上的三条连续的边
@@ -279,11 +280,6 @@ void static_create_tetrahedron(const std::vector<Vec3> &points,std::list<Plane3*
 	bc2->twin = ca3; ca3->twin = bc2;
 	ca1->twin = le1; le1->twin = ca1;
 
-	maturity.push_back(plane1);
-	maturity.push_back(plane2);
-	maturity.push_back(plane3);
-	maturity.push_back(plane4);
-
 	const Vec3 &base_point = points[v4];
 	plane1->normal = plane_normal(plane1);
 	plane2->normal = plane_normal(plane2);
@@ -333,6 +329,10 @@ void static_create_tetrahedron(const std::vector<Vec3> &points,std::list<Plane3*
 			}
 		}
 	}
+	operate_queue.insert(plane1, compare_func, modify_func);
+	operate_queue.insert(plane2, compare_func, modify_func);
+	operate_queue.insert(plane3, compare_func, modify_func);
+	operate_queue.insert(plane4, compare_func, modify_func);
 }
 
 //检测是否有某一个平面还有尚未处理完毕的冲突点集
@@ -409,7 +409,7 @@ bool assert_convex_hull_valid(std::list<Plane3 *> &operate_queue)
 	return b;
 }
 //针对某一个被选中的平面,检测所有的可见平面,在必要的时候需要重新合并新的平面
-void quick_hull_build_new_plane(ConvexHullMemmorySlab &memory_slab,link_list<ConvexEdge *> &horizontal_edge,const std::vector<cocos2d::Vec3> &points, std::list<Plane3*> &operate_queue,int selected_index)
+void quick_hull_build_new_plane(ConvexHullMemmorySlab &memory_slab,link_list<ConvexEdge *> &horizontal_edge,const std::vector<cocos2d::Vec3> &points, priority_queue<Plane3*> &operate_queue,int selected_index, std::function<bool(Plane3 *const &a,Plane3 *const &b)> &compare_func, std::function<int(Plane3 *&plane, int index_queue)> &modify_func)
 {
 	//检查所有的可见平面,以及那些地平线两侧的平面
 	//该点被成为视点
@@ -420,9 +420,12 @@ void quick_hull_build_new_plane(ConvexHullMemmorySlab &memory_slab,link_list<Con
 	unsigned short *index_array = memory_slab._index_array;
 	int index_array_size = 0;
 
-	for (auto it = operate_queue.begin(); it != operate_queue.end(); ++it)
+	Plane3 **operate_queue_array = operate_queue.data();
+	std::vector<Plane3 *>  plane_array;
+
+	for (int s = 0; s < operate_queue.size(); ++s)
 	{
-		Plane3 *plane = *it;
+		Plane3 *plane = operate_queue_array[s];
 		const Vec3 &normal = plane->normal;// cross_normalize(points[plane->v1], points[plane->v2], points[plane->v3]);
 		float f = dot(base_point - points[plane->v1],normal);
 		//检测是否是可见的平面
@@ -433,6 +436,7 @@ void quick_hull_build_new_plane(ConvexHullMemmorySlab &memory_slab,link_list<Con
 			int s_size = plane->operate_array.size();
 			for (int j = 0; j < s_size; ++j)
 				index_array[index_array_size++] = operate_array[j];
+			vector_fast_push_back(plane_array,plane);
 		}
 		else if (f < 0.0f)
 		{
@@ -485,7 +489,6 @@ void quick_hull_build_new_plane(ConvexHullMemmorySlab &memory_slab,link_list<Con
 			plane_head = plane_new;
 
 		plane_last = plane_new;
-		operate_queue.push_back(plane_new);
 		//针对当前平面,其冲突点的选择需要从与公共边edge相邻接的两个平面中进行筛选,此处不成立
 		plane_new->normal = plane_normal(plane_new);
 		const Vec3 &normal = plane_new->normal;// plane_normal(plane_new);
@@ -510,14 +513,15 @@ void quick_hull_build_new_plane(ConvexHullMemmorySlab &memory_slab,link_list<Con
 				}
 			}
 		}
+		operate_queue.insert(plane_new, compare_func, modify_func);
 	}
 	//针对第一个以及最后一个平面,其某些相关的边需要再次连接
 	plane_last->head->twin = plane_head->tail;
 	plane_head->tail->twin = plane_last->head;
 	//在最后删除所有的已经标记的平面
-	for (auto it = operate_queue.begin(); it != operate_queue.end();)
+	for (int s =0;s <plane_array.size();++s)
 	{
-		Plane3 *plane = *it;
+		Plane3 *plane = plane_array[s];
 		if (plane->ref)
 		{
 			ConvexEdge *edge = plane->head;
@@ -528,32 +532,58 @@ void quick_hull_build_new_plane(ConvexHullMemmorySlab &memory_slab,link_list<Con
 				memory_slab.release(edge);
 				edge = next_edge;
 			}
+			operate_queue.remove(plane, compare_func, modify_func);
+
 			plane->head = plane->tail = nullptr;
 			memory_slab.release(plane);
-
-			it = operate_queue.erase(it);
 		}
-		else
-			++it;
 	}
 }
 
-bool quick_hull_algorithm3d(const std::vector<cocos2d::Vec3> &points, std::list<Plane3 *> &operate_queue)
+bool quick_hull_algorithm3d(const std::vector<cocos2d::Vec3> &points, std::vector<Plane3 *> &operate_queue)
 {
 	int array_size = points.size();
 	ConvexHullMemmorySlab memory_slab(array_size);
-	static_create_tetrahedron(points, operate_queue);
+	priority_queue<Plane3*>  plane_priority(array_size,true);
+
+	std::function<int(Plane3 *&plane, int index_queue)> modify_func = [](Plane3 *&plane,int index_queue)->int {
+		if (index_queue != -1)
+			plane->index_queue = index_queue;
+		return plane->index_queue;
+	};
+
+	std::function<bool(Plane3 *const &a, Plane3 *const &b)> compare_func = [](Plane3 *const &a,Plane3 *const &b)->bool {
+		return a->operate_array.size() > b->operate_array.size();
+	};
+
+	static_create_tetrahedron(points, plane_priority,compare_func,modify_func);
 
 	link_list<ConvexEdge*>  horizontal_edge;
 	Plane3 *perform_hull = nullptr;
-	while (check_face_conflict_point(operate_queue,&perform_hull))
+	//可以使用堆结构加速算法的查找过程
+	while (plane_priority.size() && (perform_hull = plane_priority.head())->operate_array.size())
 	{
 		//检索出来距离原平面最高的那个顶点
 		assert(perform_hull->high_v != -1);
 		//从该点观察列表中所有的平面,如果该点在某些平面的正侧,则需要重新架构
-		quick_hull_build_new_plane(memory_slab, horizontal_edge,points, operate_queue, perform_hull->high_v);
+		quick_hull_build_new_plane(memory_slab, horizontal_edge,points, plane_priority, perform_hull->high_v, compare_func, modify_func);
 		horizontal_edge.clear();
 	}
-	return operate_queue.size() != 0;
+
+	int queue_size = plane_priority.size();
+	if (queue_size)
+	{
+		operate_queue.resize(queue_size);
+		memcpy(operate_queue.data(),plane_priority.data(),sizeof(Plane3*)*queue_size);
+	}
+	return queue_size != 0;
+}
+
+bool convex_hull_3d_optimal(const std::vector<cocos2d::Vec3> &points, std::vector<Plane3 *> &planes)
+{
+	int array_size = points.size();
+	//顶点到面的映射,以及平面到顶点的映射
+
+	return planes.size() != 0;
 }
 NS_GT_END
