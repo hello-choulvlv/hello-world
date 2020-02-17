@@ -31,7 +31,7 @@ bool HelloWorld::init()
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 	auto &winSize = _director->getWinSize();
-	int64_t seed = 1581820238;// time(nullptr); //1579139246;// time(nullptr);// 1578545857;// time(nullptr);//1572057392;
+	int64_t seed = time(nullptr); //1579139246;// time(nullptr);// 1578545857;// time(nullptr);//1572057392;
 	CCLOG("seed->%ld", seed);
 	srand(seed);//14,23,27
 

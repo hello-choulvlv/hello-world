@@ -171,13 +171,17 @@ bool quick_hull_algorithm2d(const std::vector<cocos2d::Vec2> &points, std::vecto
 *最小3d凸平面,注意该算法并没有经过优化,在经过正确性测试后,我们将会对其进行优化.
 *输出,每三个顶点构成一个空间平面
 *在下以版本中,我们将会对算法进行优化.包括内存分配算法,相关数据查找算法.
+*以前的测试的数据量都是128
 *@version:1.0实现基本算法
 *@version:1.0->algorithm cost time:11.70
 *@version:2.0修复算法中有时会遗漏某些点的处理错误,并优化内存分配,减少数据复制,以及点处理的运算量
 *@version2.0->algorithm cost time:10.30
-*@version:3.0消除求极点的运算过程,将该过程与求冲突点过程合并,经过反复的实验,算法的运行时间明显的缩短了
+*@version:3.0消除求极点的运算过程,将该过程与求冲突点过程合并,以及将平面的法线直接存储,不再每次遍历时都重新计算.
+*@version:3.0经过反复的实验,算法的运行时间明显的缩短了
 *@version3.0->algorithm cost time:7.01
 *@version:4.0在第四版中,我们将会使用一些高级的数据结构来进一步的提升算法的运行时性能.
+*@version:4.0->seed:1581910632:优化前:7.95,优化后:4.60
+*@note:以上的优化过程都是为了下一个更复杂也更为高效的算法的实现过程作准备.
 */
 bool quick_hull_algorithm3d(const std::vector<cocos2d::Vec3> &points, std::list<Plane3*> &planes);
 NS_GT_END

@@ -198,18 +198,39 @@ void static_create_tetrahedron(const std::vector<Vec3> &points,std::list<Plane3*
 	short v1 = boundary_array[0], v2 = boundary_array[5], v3 = boundary_array[1],v4 = boundary_array[3];
 	//从以上选中的点中选出三个,构成一个平面,这里需要额外的检查一下防止极端的情况出现,比如类似于平行六面体
 	Vec3 normal = cross_normalize(points[v1], points[v2], points[v3]);
-	bool b_normal = Vec3::ZERO != normal && dot(normal,points[v4] - points[v1]) != 0.0f;
+	float f = dot(normal, points[v4] - points[v1]);
+	bool b_normal = Vec3::ZERO != normal && f > 0.0f;
 	if (!b_normal)
 	{
-		v2 = boundary_array[1]; v3 = boundary_array[4];
-		normal = cross_normalize(points[v1], points[v2], points[v3]);
-		b_normal = Vec3::ZERO != normal && dot(normal,points[v4] - points[v1]) != 0.0f;
+		b_normal = true;
+		if (f < 0.0f)
+		{
+			std::swap(v2, v3);
+			normal = -normal;
+		}
+		else
+		{
+			v2 = boundary_array[1]; v3 = boundary_array[4];
+			normal = cross_normalize(points[v1], points[v2], points[v3]);
+			f = dot(normal, points[v4] - points[v1]);
+			b_normal = Vec3::ZERO != normal && f > 0.0f;
+		}
 	}
 	if (!b_normal)
 	{
-		v1 = boundary_array[1]; v2 = boundary_array[3]; v3 = boundary_array[2];
-		normal = cross_normalize(points[v1], points[v2], points[v3]);
-		b_normal = Vec3::ZERO != normal && dot(normal, points[v4] - points[v1]) != 0.0f;
+		b_normal = true;
+		if (f < 0.0f)
+		{
+			std::swap(v2, v3);
+			normal = -normal;
+		}
+		else
+		{
+			v1 = boundary_array[1]; v2 = boundary_array[3]; v3 = boundary_array[2];
+			normal = cross_normalize(points[v1], points[v2], points[v3]);
+			f = dot(normal, points[v4] - points[v1]);
+			b_normal = Vec3::ZERO != normal && f > 0.0f;
+		}
 	}
 	assert(b_normal);
 	assert(dot(points[v4] - points[v1],normal) > 0.0f);
@@ -329,36 +350,36 @@ bool check_face_conflict_point(std::list<Plane3 *> &operate_queue,Plane3 **targe
 	return false;
 }
 //将相关的边插入到队列中
-bool insert_convex_hull_edge(std::list<ConvexEdge *> &horizontal_edge,ConvexEdge *target)
+bool insert_convex_hull_edge(link_list<ConvexEdge *> &horizontal_edge,ConvexEdge *target)
 {
-	auto it = horizontal_edge.begin();
-	for (; it != horizontal_edge.end(); ++it)
+	auto *it_ptr = horizontal_edge.head();
+	for (; it_ptr != nullptr; it_ptr = horizontal_edge.next(it_ptr))
 	{
-		ConvexEdge *edge = *it;
+		ConvexEdge *edge = it_ptr->kt_value;
 		//有两种情况
 		if (edge->v2 == target->v1)
 		{
-			horizontal_edge.insert(++it, target);
+			horizontal_edge.insert_after(it_ptr,target);
 			return true;
 		}
 		else if (target->v2 == edge->v1)//此时目标边置于当前边的位置之前
 		{
-			horizontal_edge.insert(it,target);
+			horizontal_edge.insert_before(it_ptr,target);
 			return true;
 		}
 	}
 	horizontal_edge.push_back(target);
 	return false;
 }
-bool assert_convex_hull_edge_continuous(std::list<ConvexEdge *> &horizontal_edge)
+bool assert_convex_hull_edge_continuous(link_list<ConvexEdge *> &horizontal_edge)
 {
 	bool b_continus = true;
-	auto it = horizontal_edge.begin();
+	auto *it_ptr = horizontal_edge.head();
 	ConvexEdge *edge_head = nullptr,*edge_final = nullptr;
 
-	for (; it != horizontal_edge.end(); ++it)
+	for (; it_ptr; it_ptr = horizontal_edge.next(it_ptr))
 	{
-		ConvexEdge *edge = *it;
+		ConvexEdge *edge = it_ptr->kt_value;
 		if (!edge_head)edge_head = edge;
 		else
 			b_continus &= edge_final->v2 == edge->v1;
@@ -388,30 +409,16 @@ bool assert_convex_hull_valid(std::list<Plane3 *> &operate_queue)
 	return b;
 }
 //针对某一个被选中的平面,检测所有的可见平面,在必要的时候需要重新合并新的平面
-void quick_hull_build_new_plane(ConvexHullMemmorySlab &memory_slab,const std::vector<cocos2d::Vec3> &points, std::list<Plane3*> &operate_queue,Plane3 *target_plane,int selected_index)
+void quick_hull_build_new_plane(ConvexHullMemmorySlab &memory_slab,link_list<ConvexEdge *> &horizontal_edge,const std::vector<cocos2d::Vec3> &points, std::list<Plane3*> &operate_queue,int selected_index)
 {
 	//检查所有的可见平面,以及那些地平线两侧的平面
-	std::list<ConvexEdge *> horizontal_edge;
 	//该点被成为视点
 	const Vec3 &base_point = points[selected_index];
 	int array_size = points.size();
-	std::vector<int> volumn_array = target_plane->operate_array;
 	char *b_found_array = memory_slab._global_memory;
 	memset(b_found_array, 0, array_size);
 	unsigned short *index_array = memory_slab._index_array;
 	int index_array_size = 0;
-
-	int s_size = target_plane->operate_array.size();
-	int *operate_array = target_plane->operate_array.data();
-	for (int j = 0; j < s_size; ++j)
-	{
-		int base_j = operate_array[j];
-		if (!b_found_array[base_j])
-		{
-			b_found_array[base_j] = 1;
-			index_array[index_array_size++] = base_j;
-		}
-	}
 
 	for (auto it = operate_queue.begin(); it != operate_queue.end(); ++it)
 	{
@@ -422,18 +429,10 @@ void quick_hull_build_new_plane(ConvexHullMemmorySlab &memory_slab,const std::ve
 		if (f > 0.0f)
 		{
 			plane->ref = 1;//注意这个标志,将意味着相关的平面会被干掉
-			//volumn_array.insert(volumn_array.end(),plane->operate_array.begin(),plane->operate_array.end());
 			auto *operate_array = plane->operate_array.data();
 			int s_size = plane->operate_array.size();
 			for (int j = 0; j < s_size; ++j)
-			{
-				int base_j = operate_array[j];
-				if (!b_found_array[base_j])
-				{
-					b_found_array[base_j] = 1;
-					index_array[index_array_size++] = base_j;
-				}
-			}
+				index_array[index_array_size++] = operate_array[j];
 		}
 		else if (f < 0.0f)
 		{
@@ -456,12 +455,13 @@ void quick_hull_build_new_plane(ConvexHullMemmorySlab &memory_slab,const std::ve
 			
 		}
 	}
+	assert(index_array_size <= array_size);
 	//assert(assert_convex_hull_edge_continuous(horizontal_edge));
 	//对于已经检测出的可见平面与地平线,则需要另外生成一些新的平面
 	Plane3 *plane_last = nullptr,*plane_head = nullptr;
-	for (auto it = horizontal_edge.begin(); it != horizontal_edge.end(); ++it)
+	for(auto *it = horizontal_edge.head();it ;it = horizontal_edge.next(it))
 	{
-		ConvexEdge *edge = *it;
+		ConvexEdge *edge = it->kt_value;
 		Plane3 *plane_twin = edge->twin->owner;
 		//生成新的平面
 		Plane3 *plane_new = memory_slab.apply(selected_index,edge->v2,edge->v1);// new Plane3(selected_index, edge->v2, edge->v1);
@@ -495,29 +495,12 @@ void quick_hull_build_new_plane(ConvexHullMemmorySlab &memory_slab,const std::ve
 		for (int j = 0; j < index_array_size; ++j)
 		{
 			int base_j = index_array[j];
-			b_found_array[base_j] = 1;
-			float f = dot(points[base_j] - base_point, normal);
-			if (fabsf(f) > 0.001f && f > 0.0f)
-			{
-				vector_fast_push_back(plane_new->operate_array, base_j);
-				if (f > df)
-				{
-					df = f;
-					plane_new->high_v = base_j;
-				}
-			}
-		}
-		//还有一部分
-		const std::vector<int> &target_array2 = edge->owner->operate_array;
-		int array_size2 = target_array2.size();
-		for (int j = 0; j < array_size2; ++j)
-		{
-			int base_j = target_array2[j];
 			if (!b_found_array[base_j])
 			{
 				float f = dot(points[base_j] - base_point, normal);
 				if (fabsf(f) > 0.001f && f > 0.0f)
 				{
+					b_found_array[base_j] = 1;
 					vector_fast_push_back(plane_new->operate_array, base_j);
 					if (f > df)
 					{
@@ -561,18 +544,15 @@ bool quick_hull_algorithm3d(const std::vector<cocos2d::Vec3> &points, std::list<
 	ConvexHullMemmorySlab memory_slab(array_size);
 	static_create_tetrahedron(points, operate_queue);
 
+	link_list<ConvexEdge*>  horizontal_edge;
 	Plane3 *perform_hull = nullptr;
 	while (check_face_conflict_point(operate_queue,&perform_hull))
 	{
 		//检索出来距离原平面最高的那个顶点
-		const Vec3 normal = plane_normal(perform_hull);
-		const std::vector<int> &operate_array = perform_hull->operate_array;
-		const Vec3 &base_point = points[perform_hull->v1];
-		int operate_size = operate_array.size();
-
 		assert(perform_hull->high_v != -1);
 		//从该点观察列表中所有的平面,如果该点在某些平面的正侧,则需要重新架构
-		quick_hull_build_new_plane(memory_slab,points, operate_queue,perform_hull, perform_hull->high_v);
+		quick_hull_build_new_plane(memory_slab, horizontal_edge,points, operate_queue, perform_hull->high_v);
+		horizontal_edge.clear();
 	}
 	return operate_queue.size() != 0;
 }

@@ -108,7 +108,7 @@ public:
 		return node;
 	};
 
-	link_node insert_after(link_node *interval_node, const KT &kt_value) {
+	link_node* insert_after(link_node *interval_node, const KT &kt_value) {
 		link_node *node = apply(kt_value);
 		if (!interval_node->next)
 			_tail_root = node;
