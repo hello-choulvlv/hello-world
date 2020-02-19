@@ -17,10 +17,10 @@ class link_list
 public:
 	struct link_node
 	{
-		KT     kt_value;
+		KT     tv_value;
 		link_node *prev, *next;
 
-		link_node(const KT &akt_value) :kt_value(akt_value),prev(nullptr),next(nullptr) {};
+		link_node(const KT &akt_value) :tv_value(akt_value),prev(nullptr),next(nullptr) {};
 	};
 	typedef link_node link_node_t;
 private:
@@ -171,7 +171,7 @@ public:
 		{
 			node = _cache;
 			_cache = _cache->next;
-			node->kt_value = kt_value;
+			node->tv_value = kt_value;
 			node->prev = node->next = nullptr;
 			--_cache_size;
 		}

@@ -161,6 +161,8 @@ public:
 	void priorityQueueTest();
 	//3d凸克算法--随机算法测试
 	void convexHull3dRandom();
+	//测试共享内存分配器版平衡树
+	void balanceTreeMemSlab();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

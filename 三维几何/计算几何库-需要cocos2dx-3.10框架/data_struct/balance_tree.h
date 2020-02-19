@@ -7,6 +7,7 @@
 #ifndef __BALANCE_TREE_H__
 #define __BALANCE_TREE_H__
 #include "gt_common/geometry_types.h"
+#include "memory_alloc.h"
 #include<assert.h>
 #include<functional>
 NS_GT_BEGIN
@@ -30,22 +31,25 @@ public:
 	};
 private:
 	struct internal_node  *_root, *_cache_head;
+	memory_alloc<internal_node, TW>   *_mem_alloc;
 	int       _node_size, _cache_size, _cache_capacity;
-	//比较函数,稍后读者将会发现最后面的一个参数是怎么来的
-	//int(*_compare_func)(const TW &a, const TW &b, const SV &l);
 public:
-	red_black_tree(int capacity_size = 0x7FFFFFFF) :/*_compare_func(compare_func),*/ _root(nullptr), _cache_head(nullptr), _node_size(0), _cache_size(0), _cache_capacity(capacity_size) {
+	red_black_tree(int capacity_size = 0x7FFFFFFF,memory_alloc<internal_node,TW> *mem_alloc = nullptr) : _root(nullptr), _cache_head(nullptr), _mem_alloc(mem_alloc), _node_size(0), _cache_size(0), _cache_capacity(capacity_size) {
 	};
 	~red_black_tree() {
 		if (_node_size)
 		{
-			internal_node *fix_array[256];
-			internal_node   **node_array =_node_size <= 256?fix_array: new internal_node  *[_node_size];
-			internal_node  *child = find_minimum();
+			internal_node   **node_array; 
+			internal_node  *child;
+			internal_node *fix_array[512];
+
+			node_array = _node_size <= 512 ? fix_array : new internal_node  *[_node_size];
+			child = find_minimum();
+
 			int  j = 0;
 			do
 			{
-				node_array[j] = child;
+				node_array[j++] = child;
 				child = find_next(child);
 			} while (child != nullptr);
 
@@ -72,8 +76,6 @@ public:
 		_cache_capacity = 0;
 	};
 public:
-
-	//typedef int(*compare_func)(void* l_child, void* r_child);
 	internal_node *find_next(internal_node  *node)
 	{
 		internal_node  *child = node->r_child;
@@ -114,7 +116,7 @@ public:
 		return child;
 	};
 
-	internal_node* lookup(const TW &tw_value, std::function<bool (const TW &, const TW &)> &compare_func) {
+	internal_node* lookup(const TW &tw_value, std::function<int (const TW &, const TW &)> &compare_func) {
 		internal_node* n = _root;
 		while (n != nullptr) {
 			int comp_result = compare_func(tw_value, n->tw_value);
@@ -132,8 +134,8 @@ public:
 		return n;
 	};
 
-	void insert(const TW &tw_value, std::function<bool(const TW &, const TW &)> &compare_func) {
-		internal_node* inserted_node = nullptr;// new_node(tw_value, ColorType_Red, nullptr, nullptr);
+	void insert(const TW &tw_value, std::function<int(const TW &, const TW &)> &compare_func) {
+		internal_node* inserted_node = nullptr;
 		if (_root == nullptr) {
 			_root = inserted_node =  apply_memory(tw_value);
 		}
@@ -194,9 +196,9 @@ public:
 		verify_properties();
 	};
 
-	void remove(const TW &tw_value, std::function<bool(const TW &, const TW &)> &compare_func) {
+	void remove(const TW &tw_value, std::function<int(const TW &, const TW &)> &compare_func) {
 		internal_node* search_node = lookup(tw_value, compare_func);
-		if (!search_node)
+		if (search_node)
 			remove(search_node);
 	};
 
@@ -460,6 +462,21 @@ private:
 	//内存管理
 	internal_node   *apply_memory(const TW &tv_value) {
 		internal_node	*tw_node = nullptr;
+		++_node_size;
+		bool b_recyle = false;
+		if (_mem_alloc)
+		{
+			tw_node = _mem_alloc->alloc(tv_value,b_recyle);
+			if (b_recyle)
+			{
+				tw_node->tw_value = tv_value;
+				tw_node->color_type = ColorType_Red;
+				tw_node->parent = nullptr;
+				tw_node->l_child = tw_node->r_child = nullptr;
+			}
+			return tw_node;
+		}
+
 		if (_cache_size)
 		{
 			tw_node = _cache_head;
@@ -472,10 +489,17 @@ private:
 		}
 		else
 			tw_node = new internal_node(tv_value);
-		++_node_size;
 		return tw_node;
 	};
 	void		release_memory(internal_node *tw_node) {
+		--_node_size;
+		//首先检测是否有内存管理器
+		if (_mem_alloc)
+		{
+			_mem_alloc->release(tw_node);
+			return;
+		}
+
 		if (_cache_size < _cache_capacity)
 		{
 			tw_node->r_child = _cache_head;
@@ -484,7 +508,6 @@ private:
 		}
 		else
 			delete tw_node;
-		--_node_size;
 	};
 	void clear()
 	{

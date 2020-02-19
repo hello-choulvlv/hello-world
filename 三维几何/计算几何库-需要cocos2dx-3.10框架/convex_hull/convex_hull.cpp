@@ -357,7 +357,7 @@ bool insert_convex_hull_edge(link_list<ConvexEdge *> &horizontal_edge,ConvexEdge
 	auto *it_ptr = horizontal_edge.head();
 	for (; it_ptr != nullptr; it_ptr = horizontal_edge.next(it_ptr))
 	{
-		ConvexEdge *edge = it_ptr->kt_value;
+		ConvexEdge *edge = it_ptr->tv_value;
 		//有两种情况
 		if (edge->v2 == target->v1)
 		{
@@ -381,7 +381,7 @@ bool assert_convex_hull_edge_continuous(link_list<ConvexEdge *> &horizontal_edge
 
 	for (; it_ptr; it_ptr = horizontal_edge.next(it_ptr))
 	{
-		ConvexEdge *edge = it_ptr->kt_value;
+		ConvexEdge *edge = it_ptr->tv_value;
 		if (!edge_head)edge_head = edge;
 		else
 			b_continus &= edge_final->v2 == edge->v1;
@@ -467,7 +467,7 @@ void quick_hull_build_new_plane(ConvexHullMemmorySlab &memory_slab,link_list<Con
 	Plane3 *plane_last = nullptr,*plane_head = nullptr;
 	for(auto *it = horizontal_edge.head();it ;it = horizontal_edge.next(it))
 	{
-		ConvexEdge *edge = it->kt_value;
+		ConvexEdge *edge = it->tv_value;
 		Plane3 *plane_twin = edge->twin->owner;
 		//生成新的平面
 		Plane3 *plane_new = memory_slab.apply(selected_index,edge->v2,edge->v1);// new Plane3(selected_index, edge->v2, edge->v1);
@@ -776,7 +776,7 @@ void convex_hull_build_new_plane(const std::vector<Vec3> &points,int select_inde
 	Plane3 *plane_last = nullptr, *plane_head = nullptr;
 	for (; it_ptr; it_ptr = horizontal_edge.next(it_ptr))
 	{
-		ConvexEdge *edge = it_ptr->kt_value;
+		ConvexEdge *edge = it_ptr->tv_value;
 		Plane3 *plane_twin = edge->twin->owner;
 		Plane3 *plane_old = edge->owner;
 		//生成新的平面
@@ -893,7 +893,7 @@ bool convex_hull_3d_optimal(const std::vector<cocos2d::Vec3> &points, std::vecto
 	planes.resize(operate_queue.size());
 	for (auto *it_ptr = operate_queue.head(); it_ptr; it_ptr = operate_queue.next(it_ptr))
 	{
-		Plane3 *plane = it_ptr->kt_value;
+		Plane3 *plane = it_ptr->tv_value;
 		planes[j++] = plane;
 	}
 

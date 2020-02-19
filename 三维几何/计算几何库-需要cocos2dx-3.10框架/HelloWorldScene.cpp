@@ -121,7 +121,8 @@ bool HelloWorld::init()
 	//rotateHullPolygonsNarrowSurface();
 	//convexHull3dAlgorithm();
 	//priorityQueueTest();
-	convexHull3dRandom();
+	//convexHull3dRandom();
+	balanceTreeMemSlab();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -235,7 +236,7 @@ void HelloWorld::menuCloseCallback(Ref* pSender)
 
 void HelloWorld::testRedBlackTree()
 {
-	std::function<bool(const int&a, const int &b)> compare_func = [](const int &a,const int &b)->bool {
+	std::function<int(const int&a, const int &b)> compare_func = [](const int &a,const int &b)->int {
 		return a < b;
 	};
 	gt::red_black_tree<int>   rb_tree(32);
@@ -766,4 +767,59 @@ void HelloWorld::convexHull3dRandom()
 		delete plane;
 	}
 	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::balanceTreeMemSlab()
+{
+	std::function<int(const int&a, const int &b)> compare_func = [](const int &a, const int &b)->int {
+		return a > b?1:(a < b?-1:0);
+	};
+	gt::memory_alloc<gt::red_black_tree<int>::internal_node, int>  mem_alloc(1024);
+	gt::red_black_tree<int>   rb_tree(0, &mem_alloc),rb_tree2(0, &mem_alloc);
+
+	int value_array[128];
+	for (int index_l = 0; index_l < 128; ++index_l)
+	{
+		int v = gt::random() * 709875;
+		value_array[index_l] = v;
+
+		rb_tree.insert(v, compare_func);
+		rb_tree2.insert(v,compare_func);
+	}
+
+	std::function<bool(const int &a, const int &b)> compare_func2 = [](const int &a, const int &b)->bool {
+		return a < b;
+	};
+	gt::quick_sort<int>(value_array,128,compare_func2);
+	//Êä³ö
+	auto search_node = rb_tree.find_minimum();
+	assert(search_node != nullptr);
+	int  target = -1;
+	while (search_node)
+	{
+		assert(target < search_node->tw_value);
+		target = search_node->tw_value;
+		search_node = rb_tree.find_next(search_node);
+	}
+	//É¾³ý
+	int j = gt::random() * 64;
+	int js = j + 12;
+	for (; j < js; ++j)
+	{
+		rb_tree.remove(value_array[j], compare_func);
+		rb_tree2.remove(value_array[j],compare_func);
+	}
+
+	for (int j = js - 12; j < js; ++j)
+		rb_tree.insert(value_array[j],compare_func);
+
+	search_node = rb_tree.find_minimum();
+	assert(search_node != nullptr);
+	target = -1;
+	while (search_node)
+	{
+		assert(target < search_node->tw_value);
+		target = search_node->tw_value;
+		search_node = rb_tree.find_next(search_node);
+	}
 }
