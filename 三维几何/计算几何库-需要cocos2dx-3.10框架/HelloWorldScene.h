@@ -155,10 +155,12 @@ public:
 	void rotateHullPolygonMinkowski();
 	//最佳横截带算法实现
 	void rotateHullPolygonsNarrowSurface();
-	//3d凸壳算法
+	//3d凸壳quicck-hull算法
 	void convexHull3dAlgorithm();
 	//优先级队列算法测试
 	void priorityQueueTest();
+	//3d凸克算法--随机算法测试
+	void convexHull3dRandom();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

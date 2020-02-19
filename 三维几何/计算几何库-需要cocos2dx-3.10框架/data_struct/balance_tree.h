@@ -39,16 +39,24 @@ public:
 	~red_black_tree() {
 		if (_node_size)
 		{
-			internal_node   **node_array =new internal_node   *[_node_size];
+			internal_node *fix_array[256];
+			internal_node   **node_array =_node_size <= 256?fix_array: new internal_node  *[_node_size];
 			internal_node  *child = find_minimum();
-			int  index_j = 0;
-			node_array[index_j++] = child;
-			while (child = find_next(child))
-				node_array[index_j++] = child;
+			int  j = 0;
+			do
+			{
+				node_array[j] = child;
+				child = find_next(child);
+			} while (child != nullptr);
+
 			for (int index_l = 0; index_l < _node_size; ++index_l)
 				delete node_array[index_l];
 
-			delete[] node_array;
+			if(node_array != fix_array)
+				delete[] node_array;
+
+			node_array = nullptr;
+			_node_size = 0;
 		}
 		//_cache
 		internal_node  *child = _cache_head;
@@ -60,7 +68,6 @@ public:
 		}
 		_root = nullptr;
 		_cache_head = nullptr;
-		_node_size = 0;
 		_cache_size = 0;
 		_cache_capacity = 0;
 	};
@@ -81,7 +88,7 @@ public:
 				node = child;
 		}
 		return child;
-	}
+	};
 
 	internal_node *find_previous(internal_node  *node)
 	{
@@ -97,7 +104,7 @@ public:
 					node = child;
 			}
 		return child;
-	}
+	};
 
 	internal_node *find_minimum()
 	{
@@ -105,7 +112,7 @@ public:
 		while (child->l_child)//first
 			child = child->l_child;
 		return child;
-	}
+	};
 
 	internal_node* lookup(const TW &tw_value, std::function<bool (const TW &, const TW &)> &compare_func) {
 		internal_node* n = _root;
@@ -123,7 +130,7 @@ public:
 			}
 		}
 		return n;
-	}
+	};
 
 	void insert(const TW &tw_value, std::function<bool(const TW &, const TW &)> &compare_func) {
 		internal_node* inserted_node = nullptr;// new_node(tw_value, ColorType_Red, nullptr, nullptr);
@@ -163,7 +170,7 @@ public:
 		}
 		insert_case1(inserted_node);
 		verify_properties();
-	}
+	};
 
 	void  remove(internal_node  *search_node)
 	{
@@ -185,13 +192,13 @@ public:
 		release_memory(search_node);
 
 		verify_properties();
-	}
+	};
 
 	void remove(const TW &tw_value, std::function<bool(const TW &, const TW &)> &compare_func) {
 		internal_node* search_node = lookup(tw_value, compare_func);
 		if (!search_node)
 			remove(search_node);
-	}
+	};
 
 	internal_node* find_maximum(internal_node* n) {
 		assert(n != nullptr);
@@ -199,14 +206,14 @@ public:
 			n = n->r_child;
 		}
 		return n;
-	}
+	};
 private:
 	void delete_case1(internal_node* n) {
 		if (n->parent == nullptr)
 			return;
 		else
 			delete_case2(n);
-	}
+	};
 
 	void delete_case2(internal_node* n) {
 		if (node_color(sibling(n)) == ColorType_Red) {
@@ -231,7 +238,7 @@ private:
 		}
 		else
 			delete_case4(n);
-	}
+	};
 
 	void delete_case4(internal_node* n) {
 		if (node_color(n->parent) == ColorType_Red &&
@@ -244,7 +251,7 @@ private:
 		}
 		else
 			delete_case5(n);
-	}
+	};
 
 	void delete_case5(internal_node* n) {
 		if (n == n->parent->l_child &&
@@ -266,7 +273,7 @@ private:
 			rotate_left(sibling(n));
 		}
 		delete_case6(n);
-	}
+	};
 
 	void delete_case6(internal_node* n) {
 		sibling(n)->color_type = node_color(n->parent);
@@ -282,13 +289,13 @@ private:
 			sibling(n)->l_child->color_type = ColorType_Black;
 			rotate_right(n->parent);
 		}
-	}
+	};
 	internal_node* grandparent(internal_node* n) {
 		assert(n != nullptr);
 		assert(n->parent != nullptr);
 		assert(n->parent->parent != nullptr);
 		return n->parent->parent;
-	}
+	};
 
 	internal_node* sibling(internal_node* n) {
 		assert(n != nullptr);
@@ -297,14 +304,14 @@ private:
 			return n->parent->r_child;
 		else
 			return n->parent->l_child;
-	}
+	};
 
 	internal_node* uncle(internal_node* n) {
 		assert(n != nullptr);
 		assert(n->parent != nullptr);
 		assert(n->parent->parent != nullptr);
 		return sibling(n->parent);
-	}
+	};
 
 	void verify_properties() {
 #if __check_red_black_property
@@ -313,18 +320,18 @@ private:
 		property_4(_root);
 		property_5(_root);
 #endif
-	}
+	};
 
 	void property_1(internal_node* n) {
 		assert(node_color(n) == ColorType_Red || node_color(n) == ColorType_Black);
 		if (n == nullptr) return;
 		property_1(n->l_child);
 		property_1(n->r_child);
-	}
+	};
 
 	void property_2(internal_node* _root) {
 		assert(node_color(_root) == ColorType_Black);
-	}
+	};
 
 	void property_4(internal_node* n) {
 		if (node_color(n) == ColorType_Red) {
@@ -335,12 +342,12 @@ private:
 		if (n == nullptr) return;
 		property_4(n->l_child);
 		property_4(n->r_child);
-	}
+	};
 
 	void property_5(internal_node* root) {
 		int black_count_path = -1;
 		property_5_helper(_root, 0, &black_count_path);
-	}
+	};
 
 	void property_5_helper(internal_node* n, int black_count, int* path_black_count) {
 		if (node_color(n) == ColorType_Black) {
@@ -357,14 +364,14 @@ private:
 		}
 		property_5_helper(n->l_child, black_count, path_black_count);
 		property_5_helper(n->r_child, black_count, path_black_count);
-	}
+	};
 
 	internal_node* new_node(void* tw_value, ColorType node_color, internal_node* l_child, internal_node* r_child) {
 		internal_node *result = new internal_node(tw_value, node_color, l_child, r_child);
 		if (l_child != nullptr)  l_child->parent = result;
 		if (r_child != nullptr) r_child->parent = result;
 		return result;
-	}
+	};
 	void rotate_left(internal_node* n) {
 		internal_node* r = n->r_child;
 		replace_node(n, r);
@@ -374,7 +381,7 @@ private:
 		}
 		r->l_child = n;
 		n->parent = r;
-	}
+	};
 
 	void rotate_right(internal_node* n) {
 		internal_node* L = n->l_child;
@@ -385,7 +392,7 @@ private:
 		}
 		L->r_child = n;
 		n->parent = L;
-	}
+	};
 
 	void replace_node(internal_node* oldn, internal_node* newn) {
 		if (oldn->parent == nullptr) {
@@ -400,20 +407,20 @@ private:
 		if (newn != nullptr) {
 			newn->parent = oldn->parent;
 		}
-	}
+	};
 	void insert_case1(internal_node* n) {
 		if (n->parent == nullptr)
 			n->color_type = ColorType_Black;
 		else
 			insert_case2(n);
-	}
+	};
 
 	void insert_case2(internal_node* n) {
 		if (node_color(n->parent) == ColorType_Black)
 			return;
 		else
 			insert_case3(n);
-	}
+	};
 
 	void insert_case3(internal_node* n) {
 		if (node_color(uncle(n)) == ColorType_Red) {
@@ -425,7 +432,7 @@ private:
 		else {
 			insert_case4(n);
 		}
-	}
+	};
 
 	void insert_case4(internal_node* n) {
 		if (n == n->parent->r_child && n->parent == grandparent(n)->l_child) {
@@ -437,7 +444,7 @@ private:
 			n = n->r_child;
 		}
 		insert_case5(n);
-	}
+	};
 
 	void insert_case5(internal_node* n) {
 		n->parent->color_type = ColorType_Black;
@@ -449,7 +456,7 @@ private:
 			assert(n == n->parent->r_child && n->parent == grandparent(n)->r_child);
 			rotate_left(grandparent(n));
 		}
-	}
+	};
 	//内存管理
 	internal_node   *apply_memory(const TW &tv_value) {
 		internal_node	*tw_node = nullptr;
@@ -478,6 +485,36 @@ private:
 		else
 			delete tw_node;
 		--_node_size;
+	};
+	void clear()
+	{
+		if (_node_size)
+		{
+			//平衡树的规模一般较小,此时可以使用固定的数组
+			internal_node *fix_array[256];
+			internal_node **remind_array = _node_size <= 256 ? fix_array: new internal_node*[_node_size];
+			int j = 0;
+			internal_node  *child = find_minimum();
+			do 
+			{
+				remind_array[j++] = child;
+				child = find_next(child);
+			} while (child != nullptr);
+
+			for (int j = 0; j < _node_size; ++j)
+			{
+				remind_array[j]->r_child = _cache_head;
+				_cache_head = remind_array[j];
+			}
+			_cache_size += _node_size;
+			_node_size = 0;
+			//
+			if (remind_array != fix_array)
+			{
+				delete[] remind_array;
+				remind_array = nullptr;
+			}
+		}
 	};
 };
 NS_GT_END

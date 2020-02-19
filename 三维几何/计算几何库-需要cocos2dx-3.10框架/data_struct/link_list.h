@@ -2,6 +2,8 @@
   *双向链表
   *2020年1月27日
   *@author:xiaohuaxiong
+  *@date:2020年2月18日
+  *@version:2.0增加任意位置的快速删除操作,但是在操作的时候需要增加一些限制
  */
 #ifndef __LINK_LIST_H__
 #define __LINK_LIST_H__
@@ -52,7 +54,7 @@ public:
 		else _tail_root = node;
 
 		_head_root = node;
-		++node_size;
+		++_node_size;
 
 		return node;
 	};
@@ -64,6 +66,7 @@ public:
 
 		release(_tail_root);
 		_tail_root = prev;
+		--_node_size;
 	};
 
 	void pop_front() {
@@ -73,6 +76,7 @@ public:
 
 		release(_head_root);
 		_head_root = next;
+		--_node_size;
 	};
 
 	link_node *push_back(const KT &kt_value)
@@ -142,6 +146,7 @@ public:
 		if (!next) _tail_root = prev;
 		else next->prev = prev;
 
+		--_node_size;
 		release(node);
 		return next;
 	};
@@ -150,11 +155,12 @@ public:
 		link_node *prev = interval_node->prev, *next = interval_node->next;
 
 		if (!prev)_head_root = next;
-		else prev->next = next
+		else prev->next = next;
 
 		if (!next) _tail_root = prev;
 		else next->prev = prev;
 
+		--_node_size;
 		release(interval_node);
 		return next;
 	};

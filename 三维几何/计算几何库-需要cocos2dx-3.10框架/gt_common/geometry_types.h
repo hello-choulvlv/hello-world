@@ -28,4 +28,9 @@
 #define __offsetof(s,m) (long)((char *)&((s *)nullptr)->m)
 #endif
 
+//针对一段连续内存,测试第N个bit位的值
+#define gt_bit_test(mem_ptr,N)((((unsigned char*)(mem_ptr))+((N)>>3)) & (1 << ((N) & 0xF)))
+#define gt_bit_set(mem_ptr,N) *(((unsigned char*)(mem_ptr))+((N)>>3)) |= 1 << ((N) & 0xF)
+#define gt_bit_cls(mem_ptr,N) *(((unsigned char*)(mem_ptr))+((N)>>3)) &= 0xFF - (1 << ((N) & 0xF))
+
 #endif

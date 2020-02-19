@@ -136,7 +136,7 @@ public:
 	//ÊÕËõÄÚ´æ
 	void shrunk()
 	{
-		if (!_retain && _heap_size > 16 && _heap_size <= (_heap_capacity >> 2))
+		if (!_retain && _heap_size > 16 && _heap_size <= _heap_capacity >> 2)
 		{
 			_heap_capacity >>= 1;
 			KP *extent_array = new KP[_heap_capacity + 1];

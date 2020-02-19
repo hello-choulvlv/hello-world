@@ -119,8 +119,9 @@ bool HelloWorld::init()
 	//rotateHullPolygonInnerTangent();
 	//rotateHullPolygonMinkowski();
 	//rotateHullPolygonsNarrowSurface();
-	convexHull3dAlgorithm();
+	//convexHull3dAlgorithm();
 	//priorityQueueTest();
+	convexHull3dRandom();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -721,3 +722,48 @@ void HelloWorld::convexHull3dAlgorithm()
 	root_node->setCameraMask(s_CameraMask);
 }
 
+void HelloWorld::convexHull3dRandom()
+{
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode3D  *draw_node = DrawNode3D::create();
+	root_node->addChild(draw_node);
+
+	float  length_l = 750.0f;
+	float length_w = 650.0f;
+	float length_d = 650.0f;
+
+	const int array_size = 128;
+	//三角形平面
+	std::vector<cocos2d::Vec3> points(array_size);
+
+	for (int index_j = 0; index_j < array_size; ++index_j)
+	{
+		points[index_j] = Vec3(length_l * gt::randomf10(), length_w * gt::randomf10(), length_d * gt::randomf10());
+		Sprite *s = Sprite::create("llk_yd.png");
+		s->setPosition3D(points[index_j]);
+		root_node->addChild(s);
+	}
+
+	timeval  tiv1, tiv2;
+	gettimeofday(&tiv1, nullptr);
+	std::vector<gt::Plane3 *>  planes;
+	bool b = gt::convex_hull_3d_optimal(points, planes);
+	gettimeofday(&tiv2, nullptr);
+
+	CCLOG("algorithm cost time:%.2f\n", (tiv2.tv_sec - tiv1.tv_sec) * 1000.0f + (tiv2.tv_usec - tiv1.tv_usec) / 1000.0f);
+	//实验证明,经过优化后的算法的运行时间明显的缩短了
+	for (auto it = planes.begin(); it != planes.end(); ++it)
+	{
+		gt::Plane3 *plane = *it;
+		Color4F color(gt::random(), gt::random(), gt::random(), 1.0f);
+
+		draw_node->drawLine(points[plane->v1], points[plane->v2], color);
+		draw_node->drawLine(points[plane->v2], points[plane->v3], color);
+		draw_node->drawLine(points[plane->v3], points[plane->v1], color);
+
+		delete plane;
+	}
+	root_node->setCameraMask(s_CameraMask);
+}

@@ -8,6 +8,7 @@
 #include "math/Vec2.h"
 #include "math/Vec3.h"
 #include<vector>
+#include<set>
 
 NS_GT_BEGIN
 /*
@@ -36,13 +37,15 @@ struct Plane3
 {
 	short v1,v2,v3, ref,high_v,index_queue;
 	std::vector<int> operate_array;
+	std::set<short>  point_set;
 
 	ConvexEdge *head, *tail;
 	Plane3 *next;
+	void      *other_ptr;
 	cocos2d::Vec3    normal;
 
-	Plane3(short av1, short av2, short av3) :v1(av1),v2(av2),v3(av3),ref(0), high_v(-1), index_queue(-1),head(nullptr),tail(nullptr), next(nullptr){};
-	Plane3() :ref(0),head(nullptr),tail(nullptr){};
+	Plane3(short av1, short av2, short av3) :v1(av1),v2(av2),v3(av3),ref(0), high_v(-1), index_queue(-1),head(nullptr),tail(nullptr), next(nullptr), other_ptr(nullptr){};
+	Plane3() :ref(0),head(nullptr),tail(nullptr),next(nullptr), other_ptr(nullptr){};
 	~Plane3() {
 		if (head)
 		{
@@ -129,9 +132,11 @@ struct ConvexHullMemmorySlab
 			plane->v1 = av1; plane->v2 = av2; plane->v3 = av3,plane->high_v = -1,plane->index_queue = -1;
 			plane->ref = 0;
 			plane->operate_array.clear();
+			plane->point_set.clear();
 			plane->head = nullptr;
 			plane->tail = nullptr;
 			plane->next = nullptr;
+			plane->other_ptr = nullptr;
 		}
 		else
 			plane = new Plane3(av1, av2, av3);
@@ -188,6 +193,9 @@ bool quick_hull_algorithm3d(const std::vector<cocos2d::Vec3> &points, std::vecto
 /*
   *三维凸壳算法之优化实现
   *该算法源自于<计算几何>的第11章
+  *该算法没有经过优化,如果需要优化,则首先需要从内存分配入手
+  *@version:1.0实现了基本的算法,但是运行时间明显偏大,达到了76.56,究其原因是内存分配与释放太过于频繁
+  *@version:1.0而且小内存的使用特别的剧烈,因此我们将会在第二版中全面优化该问题
  */
 bool convex_hull_3d_optimal(const std::vector<cocos2d::Vec3> &points,std::vector<Plane3*> &planes);
 NS_GT_END
