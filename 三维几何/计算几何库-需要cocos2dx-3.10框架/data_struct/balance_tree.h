@@ -53,8 +53,13 @@ public:
 				child = find_next(child);
 			} while (child != nullptr);
 
-			for (int index_l = 0; index_l < _node_size; ++index_l)
-				delete node_array[index_l];
+			for (j = 0; j < _node_size; ++j)
+			{
+				if (_mem_alloc)
+					_mem_alloc->release(node_array[j]);
+				else
+					delete node_array[j];
+			}
 
 			if(node_array != fix_array)
 				delete[] node_array;
@@ -75,7 +80,44 @@ public:
 		_cache_size = 0;
 		_cache_capacity = 0;
 	};
-public:
+	void clear()
+	{
+		if (_node_size)
+		{
+			//平衡树的规模一般较小,此时可以使用固定的数组
+			internal_node *fix_array[256];
+			internal_node **remind_array = _node_size <= 256 ? fix_array : new internal_node*[_node_size];
+			int j = 0;
+			internal_node  *child = find_minimum();
+			do
+			{
+				remind_array[j++] = child;
+				child = find_next(child);
+			} while (child != nullptr);
+
+			for (int j = 0; j < _node_size; ++j)
+			{
+				if (!_mem_alloc)
+				{
+					remind_array[j]->r_child = _cache_head;
+					_cache_head = remind_array[j];
+				}
+				else
+					_mem_alloc->release(remind_array[j]);
+			}
+			if (!_mem_alloc)
+				_cache_size += _node_size;
+			_node_size = 0;
+			//
+			if (remind_array != fix_array)
+			{
+				delete[] remind_array;
+				remind_array = nullptr;
+			}
+		}
+	};
+	int size()const { return _node_size; };
+
 	internal_node *find_next(internal_node  *node)
 	{
 		internal_node  *child = node->r_child;
@@ -111,7 +153,7 @@ public:
 	internal_node *find_minimum()
 	{
 		internal_node  *child = _root;
-		while (child->l_child)//first
+		while (child && child->l_child)//first
 			child = child->l_child;
 		return child;
 	};
@@ -174,7 +216,7 @@ public:
 		verify_properties();
 	};
 
-	void  remove(internal_node  *search_node)
+	internal_node*  remove(internal_node  *search_node)
 	{
 		if (search_node->l_child != nullptr && search_node->r_child != nullptr) {
 			internal_node* pred = find_maximum(search_node->l_child);
@@ -194,12 +236,16 @@ public:
 		release_memory(search_node);
 
 		verify_properties();
+
+		return child;
 	};
 
-	void remove(const TW &tw_value, std::function<int(const TW &, const TW &)> &compare_func) {
+	//删除相关的数值,并返回下一个节点
+	internal_node* remove(const TW &tw_value, std::function<int(const TW &, const TW &)> &compare_func) {
 		internal_node* search_node = lookup(tw_value, compare_func);
 		if (search_node)
-			remove(search_node);
+			return remove(search_node);
+		return nullptr;
 	};
 
 	internal_node* find_maximum(internal_node* n) {
@@ -509,36 +555,6 @@ private:
 		else
 			delete tw_node;
 	};
-	void clear()
-	{
-		if (_node_size)
-		{
-			//平衡树的规模一般较小,此时可以使用固定的数组
-			internal_node *fix_array[256];
-			internal_node **remind_array = _node_size <= 256 ? fix_array: new internal_node*[_node_size];
-			int j = 0;
-			internal_node  *child = find_minimum();
-			do 
-			{
-				remind_array[j++] = child;
-				child = find_next(child);
-			} while (child != nullptr);
-
-			for (int j = 0; j < _node_size; ++j)
-			{
-				remind_array[j]->r_child = _cache_head;
-				_cache_head = remind_array[j];
-			}
-			_cache_size += _node_size;
-			_node_size = 0;
-			//
-			if (remind_array != fix_array)
-			{
-				delete[] remind_array;
-				remind_array = nullptr;
-			}
-		}
-	};
-};
+}; 
 NS_GT_END
 #endif

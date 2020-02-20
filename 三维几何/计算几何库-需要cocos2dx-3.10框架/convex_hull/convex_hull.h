@@ -5,6 +5,7 @@
 #ifndef __CONVEX_HULL_H__
 #define __CONVEX_HULL_H__
 #include "gt_common/geometry_types.h"
+#include "data_struct/balance_tree.h"
 #include "math/Vec2.h"
 #include "math/Vec3.h"
 #include<vector>
@@ -37,7 +38,8 @@ struct Plane3
 {
 	short v1,v2,v3, ref,high_v,index_queue;
 	std::vector<int> operate_array;
-	std::set<short>  point_set;
+	//std::set<short>  point_set;
+	red_black_tree<short> point_set;
 
 	ConvexEdge *head, *tail;
 	Plane3 *next;
@@ -45,6 +47,11 @@ struct Plane3
 	cocos2d::Vec3    normal;
 
 	Plane3(short av1, short av2, short av3) :v1(av1),v2(av2),v3(av3),ref(0), high_v(-1), index_queue(-1),head(nullptr),tail(nullptr), next(nullptr), other_ptr(nullptr){};
+	Plane3(short av1,short av2,short av3,memory_alloc<red_black_tree<short>::internal_node,short> *mem_alloc):
+		v1(av1),v2(av2),v3(av3),
+		point_set(0,mem_alloc),
+		next(nullptr),other_ptr(nullptr){};
+
 	Plane3() :ref(0),head(nullptr),tail(nullptr),next(nullptr), other_ptr(nullptr){};
 	~Plane3() {
 		if (head)
@@ -121,7 +128,7 @@ struct ConvexHullMemmorySlab
 			delete edge;
 	}
 
-	Plane3 *apply(short av1, short av2, short av3) {
+	Plane3 *apply(short av1, short av2, short av3,memory_alloc<red_black_tree<Plane3*>::internal_node,Plane3*> *mem_alloc_ptr = nullptr) {
 		Plane3 *plane = nullptr;
 		if (_plane_cache)
 		{

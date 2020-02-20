@@ -583,7 +583,9 @@ bool quick_hull_algorithm3d(const std::vector<cocos2d::Vec3> &points, std::vecto
 /*
   *注意,该函数与上面的有着很大的不同
  */
-void static_create_tetrahedron(const std::vector<Vec3> &points, link_list<Plane3*> &operate_queue,std::map<short, std::set<Plane3*>> &point_to_face,std::vector<short> &remind_index_array)
+void static_create_tetrahedron(const std::vector<Vec3> &points, link_list<Plane3*> &operate_queue,std::map<short, red_black_tree<Plane3*>> &point_to_face,std::vector<short> &remind_index_array, 
+	std::function<int(const short &a, const short &b)> &compare_func, std::function<int(Plane3 *const &plane1, Plane3 *const &plane2)> &compare_func2, 
+	memory_alloc<red_black_tree<short>::internal_node, short>  &point_mem_alloc, memory_alloc<red_black_tree<Plane3*>::internal_node, Plane3 *>  &plane_mem_alloc)
 {
 	int array_size = points.size();
 	//第一步需要计算出必定成为最终的凸壳上的三条连续的边
@@ -649,7 +651,7 @@ void static_create_tetrahedron(const std::vector<Vec3> &points, link_list<Plane3
 			remind_index_array[base_j++] = j;
 	}
 	//该四面体的构造过程比较复杂
-	Plane3  *plane1 = new Plane3(v1, v2, v4);//a,b
+	Plane3  *plane1 = new Plane3(v1, v2, v4,&point_mem_alloc);//a,b
 	ConvexEdge  *ab1 = new ConvexEdge(v1, v2, plane1);
 	ConvexEdge  *ab2 = new ConvexEdge(v2, v4, plane1);
 	ConvexEdge  *ab3 = new ConvexEdge(v4, v1, plane1);
@@ -658,7 +660,7 @@ void static_create_tetrahedron(const std::vector<Vec3> &points, link_list<Plane3
 	ab3->next = ab1; ab1->prev = ab3;
 	plane1->head = ab1; plane1->tail = ab3;
 
-	Plane3 *plane2 = new Plane3(v2, v3, v4);
+	Plane3 *plane2 = new Plane3(v2, v3, v4, &point_mem_alloc);
 	ConvexEdge *bc1 = new ConvexEdge(v2, v3, plane2);
 	ConvexEdge *bc2 = new ConvexEdge(v3, v4, plane2);
 	ConvexEdge *bc3 = new ConvexEdge(v4, v2, plane2);
@@ -667,7 +669,7 @@ void static_create_tetrahedron(const std::vector<Vec3> &points, link_list<Plane3
 	bc3->next = bc1; bc1->prev = bc3;
 	plane2->head = bc1; plane2->tail = bc3;
 
-	Plane3 *plane3 = new Plane3(v3, v1, v4);
+	Plane3 *plane3 = new Plane3(v3, v1, v4, &point_mem_alloc);
 	ConvexEdge *ca1 = new ConvexEdge(v3, v1, plane3);
 	ConvexEdge *ca2 = new ConvexEdge(v1, v4, plane3);
 	ConvexEdge	*ca3 = new ConvexEdge(v4, v3, plane3);
@@ -676,7 +678,7 @@ void static_create_tetrahedron(const std::vector<Vec3> &points, link_list<Plane3
 	ca3->next = ca1; ca1->prev = ca3;
 	plane3->head = ca1; plane3->tail = ca3;
 
-	Plane3 *plane4 = new Plane3(v1, v3, v2);
+	Plane3 *plane4 = new Plane3(v1, v3, v2, &point_mem_alloc);
 	ConvexEdge *le1 = new ConvexEdge(v1, v3, plane4);
 	ConvexEdge *le2 = new ConvexEdge(v3, v2, plane4);
 	ConvexEdge *le3 = new ConvexEdge(v2, v1, plane4);
@@ -710,27 +712,31 @@ void static_create_tetrahedron(const std::vector<Vec3> &points, link_list<Plane3
 		//过滤掉距离标准测试平面非常小的点
 		if (fabsf(f1) > 0.001f && f1 > 0.0f)
 		{
-			plane1->point_set.insert(base_j);
+			plane1->point_set.insert(base_j,compare_func);
 			plane_array[plane_array_size++] = plane1;
 		}
 		if (fabsf(f2 = dot(interpolation, plane2->normal)) > 0.001f && f2 > 0.0f)
 		{
-			plane2->point_set.insert(base_j);
+			plane2->point_set.insert(base_j, compare_func);
 			plane_array[plane_array_size++] = plane2;
 		}
 		if (fabsf(f3 = dot(interpolation, plane3->normal)) > 0.001f && f3 > 0.0f)
 		{
-			plane3->point_set.insert(base_j);
+			plane3->point_set.insert(base_j, compare_func);
 			plane_array[plane_array_size++] = plane3;
 		}
 		if (fabsf(f4 = dot(points[base_j] - points[v1], plane4->normal)) > 0.001f && f4 > 0.0f)
 		{
-			plane4->point_set.insert(base_j);
+			plane4->point_set.insert(base_j, compare_func);
 			plane_array[plane_array_size++] = plane4;
 		}
 
 		if (plane_array_size)
-			point_to_face[base_j] = std::set<Plane3*>(plane_array, plane_array + plane_array_size);
+		{
+			auto &balance_tree =  point_to_face[base_j] = red_black_tree<Plane3*>(0,&plane_mem_alloc);
+			for (int j = 0; j < plane_array_size; ++j)
+				balance_tree.insert(plane_array[j], compare_func2);
+		}
 		plane_array_size = 0;
 	}
 
@@ -740,7 +746,11 @@ void static_create_tetrahedron(const std::vector<Vec3> &points, link_list<Plane3
 	plane4->other_ptr =  operate_queue.push_back(plane4);
 }
 
-void convex_hull_build_new_plane(const std::vector<Vec3> &points,int select_index,ConvexHullMemmorySlab &mem_slab,std::set<Plane3*> &plane_remove, link_list<ConvexEdge *> &horizontal_edge,link_list<Plane3*> &operate_queue,std::map<short,std::set<Plane3*>> &point_to_face)
+void convex_hull_build_new_plane(const std::vector<Vec3> &points,int select_index,ConvexHullMemmorySlab &mem_slab,red_black_tree<Plane3*> &plane_remove,
+	link_list<ConvexEdge *> &horizontal_edge,link_list<Plane3*> &operate_queue,
+	std::map<short,red_black_tree<Plane3*>> &point_to_face,
+	std::function<int(const short &a, const short &b)> &compare_func, std::function<int(Plane3 *const &plane1, Plane3 *const &plane2)> &compare_func2,
+	memory_alloc<red_black_tree<short>::internal_node, short>  &point_mem_alloc, memory_alloc<red_black_tree<Plane3*>::internal_node, Plane3 *>  &plane_mem_alloc)
 {
 	int array_size = points.size();
 	int plane_size = plane_remove.size();
@@ -748,9 +758,9 @@ void convex_hull_build_new_plane(const std::vector<Vec3> &points,int select_inde
 	const Vec3 &base_point = points[select_index];
 	//遍历每一个待删除的平面,计算其地平线集合
 	int c1 = 0, c2 = 0;
-	for (auto jt = plane_remove.begin(); jt != plane_remove.end(); ++jt)
+	for (auto jt = plane_remove.find_minimum(); jt; jt = plane_remove.find_next(jt))
 	{
-		Plane3 *plane = *jt;
+		Plane3 *plane = jt->tw_value;
 		//检查其边界,查看是否有对于当前目标点来说不可见的邻接平面
 		ConvexEdge *edge = plane->head;
 		do
@@ -758,7 +768,7 @@ void convex_hull_build_new_plane(const std::vector<Vec3> &points,int select_inde
 			Plane3 *plane_adj = edge->twin->owner;
 			float f = dot(base_point - points[plane_adj->v1],plane_adj->normal);
 			bool b1 = f < 0.0f;
-			bool b2 = plane_adj->point_set.find(select_index) == plane_adj->point_set.end();
+			bool b2 = !plane_adj->point_set.lookup(select_index,compare_func);
 
 			c1 += b1;
 			c2 += b2;
@@ -780,7 +790,7 @@ void convex_hull_build_new_plane(const std::vector<Vec3> &points,int select_inde
 		Plane3 *plane_twin = edge->twin->owner;
 		Plane3 *plane_old = edge->owner;
 		//生成新的平面
-		Plane3 *plane_new = mem_slab.apply(select_index, edge->v2, edge->v1);
+		Plane3 *plane_new = mem_slab.apply(select_index, edge->v2, edge->v1,&plane_mem_alloc);
 		ConvexEdge *e1 = mem_slab.apply(select_index, edge->v2, plane_new);
 		ConvexEdge *e2 = mem_slab.apply(edge->v2, edge->v1, plane_new);
 		ConvexEdge *e3 = mem_slab.apply(edge->v1, select_index, plane_new);
@@ -805,30 +815,30 @@ void convex_hull_build_new_plane(const std::vector<Vec3> &points,int select_inde
 		plane_new->normal = plane_normal(plane_new);
 		const Vec3 &normal = plane_new->normal;
 		//另一个平面
-		const std::set<short> &operate_array2 = plane_twin->point_set;
-		for (auto it = operate_array2.begin(); it != operate_array2.end(); ++it)
+		red_black_tree<short> &operate_array2 = plane_twin->point_set;
+		for (auto it = operate_array2.find_minimum(); it; it = operate_array2.find_next(it))
 		{
-			int base_j = *it;
+			int base_j = it->tw_value;
 			float f = dot(points[base_j] - base_point, normal);
 			if (fabsf(f) > 0.001f && f > 0.0f)
 			{
-				plane_new->point_set.insert(base_j);
+				plane_new->point_set.insert(base_j,compare_func);
 				auto it2 = point_to_face.find(base_j);
 				//另外需要增加反向映射
-				it2->second.insert(plane_new);
+				it2->second.insert(plane_new,compare_func2);
 			}
 		}
 		//对两个平面的点进行筛选
-		const std::set<short> &operate_array1 = plane_old->point_set;
-		for (auto jt = operate_array1.begin(); jt != operate_array1.end(); ++jt)
+		red_black_tree<short> &operate_array1 = plane_old->point_set;
+		for (auto jt = operate_array1.find_minimum(); jt; jt = operate_array1.find_next(jt))
 		{
-			int base_j = *jt;
+			int base_j = jt->tw_value;
 			float f = dot(points[base_j] - base_point, normal);
-			if (fabsf(f) > 0.001f && f > 0.0f && plane_new->point_set.find(base_j) == plane_new->point_set.end())
+			if (fabsf(f) > 0.001f && f > 0.0f)
 			{
-				plane_new->point_set.insert(base_j);
+				plane_new->point_set.insert(base_j,compare_func);
 				auto it = point_to_face.find(base_j);
-				it->second.insert(plane_new);
+				it->second.insert(plane_new,compare_func2);
 			}
 		}
 		assert(plane_new->tail && plane_new->head);
@@ -838,16 +848,15 @@ void convex_hull_build_new_plane(const std::vector<Vec3> &points,int select_inde
 	plane_last->head->twin = plane_head->tail;
 	plane_head->tail->twin = plane_last->head;
 	//删除目标小平面
-	std::vector<Plane3*> t_array(plane_remove.begin(), plane_remove.end());
-	for (auto jt = t_array.begin(); jt != t_array.end(); ++jt)
+	for (auto jt = plane_remove.find_minimum(); jt; jt = plane_remove.find_minimum())
 	{
-		Plane3 *plane = *jt;
-		for (auto it = plane->point_set.begin(); it != plane->point_set.end(); ++it)
+		Plane3 *plane = jt->tw_value;
+		for (auto it = plane->point_set.find_minimum(); it;it = plane->point_set.find_next(it))
 		{
-			auto st = point_to_face.find(*it);
-			assert(st->second.erase(plane));//删除元素必须是成功的
+			auto pt = point_to_face.find(it->tw_value);
+			//assert(st->second.erase(plane));//删除元素必须是成功的
+			pt->second.remove(plane, compare_func2);
 		}
-
 		//回收资源
 		ConvexEdge *edge = plane->head;
 		if (plane->tail)plane->tail->next = nullptr;
@@ -868,13 +877,22 @@ bool convex_hull_3d_optimal(const std::vector<cocos2d::Vec3> &points, std::vecto
 	int array_size = points.size();
 	link_list<Plane3*> operate_queue;
 	link_list<ConvexEdge*> horizontal_edge;
+	std::function<int(const short &a, const short &b)> compare_func = [](const short &a, const short &b)->int {
+		return a > b ? 1 : (a < b?-1:0);
+	};
+	std::function<int(Plane3 *const &plane1, Plane3 *const &plane2)> compare_func2 = [](Plane3 *const &plane1, Plane3 *const &plane2)->int {
+		return plane1 > plane2 ? 1:(plane1 < plane2?-1:0);
+	};
 	//顶点到面的映射,以及平面到顶点的映射
-	std::map<short, std::set<Plane3*>> point_to_face;
+	std::map<short, red_black_tree<Plane3*>> point_to_face;
 	std::vector<short>  remind_index_array(array_size - 4);
-	//首先创建一个四面体
+	//内存管理器对象
 	ConvexHullMemmorySlab memory_slab(array_size);
+	memory_alloc<red_black_tree<Plane3*>::internal_node, Plane3 *>  plane_mem_alloc(512);
+	memory_alloc<red_black_tree<short>::internal_node, short>  point_mem_alloc(1024);
 
-	static_create_tetrahedron(points, operate_queue,point_to_face, remind_index_array);
+	//首先创建一个四面体
+	static_create_tetrahedron(points, operate_queue,point_to_face, remind_index_array, compare_func, compare_func2, point_mem_alloc, plane_mem_alloc);
 	//对于剩下的点集合,逐个的遍历,并将它们所对应的可见平面逐个的重新计算
 	for (int j = 0; j < array_size - 4; ++j)
 	{
@@ -883,7 +901,7 @@ bool convex_hull_3d_optimal(const std::vector<cocos2d::Vec3> &points, std::vecto
 		auto it = point_to_face.find(base_j);
 		if (it != point_to_face.end() && it->second.size())
 		{
-			convex_hull_build_new_plane(points, base_j, memory_slab, it->second, horizontal_edge, operate_queue, point_to_face);
+			convex_hull_build_new_plane(points, base_j, memory_slab, it->second, horizontal_edge, operate_queue, point_to_face,compare_func,compare_func2,point_mem_alloc,plane_mem_alloc);
 			point_to_face.erase(it);
 			horizontal_edge.clear();
 		}

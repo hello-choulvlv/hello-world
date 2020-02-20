@@ -8,7 +8,6 @@
 #include "line/line.h"
 #include "cycle_sphere/cycle_sphere.h"
 #include<unordered_map>
-#include "data_struct/balance_tree.h"
 //#include<map>
 #include<stack>
 #include<set>
