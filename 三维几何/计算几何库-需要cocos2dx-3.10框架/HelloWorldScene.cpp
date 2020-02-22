@@ -802,16 +802,22 @@ void HelloWorld::balanceTreeMemSlab()
 		search_node = rb_tree.find_next(search_node);
 	}
 	//É¾³ý
-	int j = gt::random() * 64;
-	int js = j + 12;
+	int j = gt::random() * 16;
+	int js = j + 100;
 	for (; j < js; ++j)
 	{
 		rb_tree.remove(value_array[j], compare_func);
 		rb_tree2.remove(value_array[j],compare_func);
 	}
 
-	for (int j = js - 12; j < js; ++j)
-		rb_tree.insert(value_array[j],compare_func);
+	for (int j = js; j < js + 400; ++j)
+	{
+		int v = gt::random() * 709875;
+		rb_tree.insert(v, compare_func);
+
+		if (rand() & 0x4)
+			rb_tree.remove(v,compare_func);
+	}
 
 	search_node = rb_tree.find_minimum();
 	assert(search_node != nullptr);

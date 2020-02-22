@@ -14,7 +14,7 @@ NS_GT_BEGIN
 
 enum ColorType { ColorType_Red, ColorType_Black };
 #define node_color(node) ((!node)?ColorType_Black:(node)->color_type)
-#define __check_red_black_property 0
+#define __check_red_black_property 1
 
 template<typename TW>
 class red_black_tree {
@@ -134,7 +134,7 @@ public:
 		return child;
 	};
 
-	internal_node *find_previous(internal_node  *node)
+	internal_node *find_prev(internal_node  *node)
 	{
 		internal_node  *child = node->l_child
 			if (child != nullptr)
@@ -176,7 +176,7 @@ public:
 		return n;
 	};
 
-	void insert(const TW &tw_value, std::function<int(const TW &, const TW &)> &compare_func) {
+	internal_node* insert(const TW &tw_value, std::function<int(const TW &, const TW &)> &compare_func) {
 		internal_node* inserted_node = nullptr;
 		if (_root == nullptr) {
 			_root = inserted_node =  apply_memory(tw_value);
@@ -186,7 +186,7 @@ public:
 			while (1) {
 				int comp_result = compare_func(tw_value, n->tw_value);
 				if (comp_result == 0) {
-					return;
+					return nullptr;
 				}
 				else if (comp_result < 0) {
 					if (n->l_child == nullptr) {
@@ -212,9 +212,77 @@ public:
 			}
 			inserted_node->parent = n;
 		}
-		insert_case1(inserted_node);
+		insert_case(inserted_node);
 		verify_properties();
+		return inserted_node;
 	};
+	/*
+	  *插入节点之后的修正
+	 */
+	void insert_case(internal_node *insert_node){
+		if (!insert_node->parent) {
+			insert_node->color_type = ColorType_Black;
+			return;
+		}
+		while (node_color(insert_node->parent) == ColorType_Red){
+			//两大判断分支,已知parent的颜色为红色,则其必然有父节点
+			internal_node *parent = insert_node->parent;
+			internal_node *grand_parent = parent->parent;
+			if (parent == grand_parent->l_child) {
+				internal_node *right_uncle = grand_parent->r_child;
+				if (node_color(right_uncle) == ColorType_Red) {//叔叔节点
+					parent->color_type = ColorType_Black;
+					if (right_uncle)right_uncle->color_type = ColorType_Black;
+					grand_parent->color_type = ColorType_Red;
+					insert_node = grand_parent;
+				}
+				else if (insert_node == parent->r_child) {//此时已知叔叔节点的颜色为黑色,因此需要做出复杂的变换
+					insert_node = parent;
+					rotate_left(insert_node);
+
+					parent = insert_node->parent;
+					parent->color_type = ColorType_Black;
+					grand_parent = parent->parent;
+					grand_parent->color_type = ColorType_Red;
+					rotate_right(grand_parent);
+					break;
+				}
+				else {
+					parent->color_type = ColorType_Black;
+					grand_parent->color_type = ColorType_Red;
+					rotate_right(grand_parent);
+					break;
+				}
+			}
+			else {
+				internal_node *left_unccle = grand_parent->l_child;
+				if (node_color(left_unccle) == ColorType_Red) {
+					parent->color_type = ColorType_Black;
+					if (left_unccle)left_unccle->color_type = ColorType_Black;
+					grand_parent->color_type = ColorType_Red;
+					insert_node = grand_parent;
+				}
+				else if (insert_node == parent->l_child) {
+					insert_node = parent;
+					rotate_right(insert_node);
+
+					parent = insert_node->parent;
+					parent->color_type = ColorType_Black;
+					grand_parent = parent->parent;
+					grand_parent->color_type = ColorType_Red;
+					rotate_left(grand_parent);
+					break;
+				}
+				else {
+					parent->color_type = ColorType_Black;
+					grand_parent->color_type = ColorType_Red;
+					rotate_left(grand_parent);
+					break;
+				}
+			}
+		}
+		_root->color_type = ColorType_Black;
+	}
 
 	internal_node*  remove(internal_node  *search_node)
 	{
@@ -230,6 +298,7 @@ public:
 			search_node->color_type = node_color(child);
 			delete_case1(search_node);
 		}
+
 		replace_node(search_node, child);
 		if (search_node->parent == nullptr && child != nullptr)
 			child->color_type = ColorType_Black;
@@ -246,6 +315,18 @@ public:
 		if (search_node)
 			return remove(search_node);
 		return nullptr;
+	};
+
+	internal_node *remove2(internal_node *search_node){
+		if (_node_size == 1) {
+			_root = nullptr;
+			release_memory(search_node);
+			return nullptr;
+		};
+		internal_node *next_node = find_next(search_node);
+
+
+		return next_node;
 	};
 
 	internal_node* find_maximum(internal_node* n) {
@@ -421,25 +502,41 @@ private:
 		return result;
 	};
 	void rotate_left(internal_node* n) {
-		internal_node* r = n->r_child;
-		replace_node(n, r);
-		n->r_child = r->l_child;
-		if (r->l_child != nullptr) {
-			r->l_child->parent = n;
+		internal_node* r = n->r_child, *parent = n->parent;
+
+		if (parent != nullptr) {
+			if (parent->l_child == n)
+				parent->l_child = r;
+			else parent->r_child = r;
 		}
+		else
+			_root = r;
+
+		n->r_child = r->l_child;
+		if (n->r_child)n->r_child->parent = n;
+
 		r->l_child = n;
 		n->parent = r;
+		r->parent = parent;
 	};
 
 	void rotate_right(internal_node* n) {
-		internal_node* L = n->l_child;
-		replace_node(n, L);
-		n->l_child = L->r_child;
-		if (L->r_child != nullptr) {
-			L->r_child->parent = n;
+		internal_node* L = n->l_child,*parent = n->parent;
+		
+		if (parent != nullptr) {
+			if (parent->l_child == n)
+				parent->l_child = L;
+			else parent->r_child = L;
 		}
+		else
+			_root = L;
+
+		n->l_child = L->r_child;
+		if (n->l_child) n->l_child->parent = n;
+
 		L->r_child = n;
 		n->parent = L;
+		L->parent = parent;
 	};
 
 	void replace_node(internal_node* oldn, internal_node* newn) {
@@ -456,55 +553,6 @@ private:
 			newn->parent = oldn->parent;
 		}
 	};
-	void insert_case1(internal_node* n) {
-		if (n->parent == nullptr)
-			n->color_type = ColorType_Black;
-		else
-			insert_case2(n);
-	};
-
-	void insert_case2(internal_node* n) {
-		if (node_color(n->parent) == ColorType_Black)
-			return;
-		else
-			insert_case3(n);
-	};
-
-	void insert_case3(internal_node* n) {
-		if (node_color(uncle(n)) == ColorType_Red) {
-			n->parent->color_type = ColorType_Black;
-			uncle(n)->color_type = ColorType_Black;
-			grandparent(n)->color_type = ColorType_Red;
-			insert_case1(grandparent(n));
-		}
-		else {
-			insert_case4(n);
-		}
-	};
-
-	void insert_case4(internal_node* n) {
-		if (n == n->parent->r_child && n->parent == grandparent(n)->l_child) {
-			rotate_left(n->parent);
-			n = n->l_child;
-		}
-		else if (n == n->parent->l_child && n->parent == grandparent(n)->r_child) {
-			rotate_right(n->parent);
-			n = n->r_child;
-		}
-		insert_case5(n);
-	};
-
-	void insert_case5(internal_node* n) {
-		n->parent->color_type = ColorType_Black;
-		grandparent(n)->color_type = ColorType_Red;
-		if (n == n->parent->l_child && n->parent == grandparent(n)->l_child) {
-			rotate_right(grandparent(n));
-		}
-		else {
-			assert(n == n->parent->r_child && n->parent == grandparent(n)->r_child);
-			rotate_left(grandparent(n));
-		}
-	};
 	//内存管理
 	internal_node   *apply_memory(const TW &tv_value) {
 		internal_node	*tw_node = nullptr;
@@ -513,25 +561,21 @@ private:
 		if (_mem_alloc)
 		{
 			tw_node = _mem_alloc->alloc(tv_value,b_recyle);
-			if (b_recyle)
-			{
+			if (b_recyle) {
 				tw_node->tw_value = tv_value;
 				tw_node->color_type = ColorType_Red;
-				tw_node->parent = nullptr;
-				tw_node->l_child = tw_node->r_child = nullptr;
+				 tw_node->parent = tw_node->l_child = tw_node->r_child = nullptr;
 			}
 			return tw_node;
 		}
 
-		if (_cache_size)
-		{
+		if (_cache_size) {
 			tw_node = _cache_head;
 			_cache_head = _cache_head->r_child;
 			--_cache_size;
 			tw_node->tw_value = tv_value;
 			tw_node->color_type = ColorType_Red;
-			tw_node->parent = nullptr;
-			tw_node->l_child = tw_node->r_child = nullptr;
+			 tw_node->parent = tw_node->l_child = tw_node->r_child = nullptr;
 		}
 		else
 			tw_node = new internal_node(tv_value);
