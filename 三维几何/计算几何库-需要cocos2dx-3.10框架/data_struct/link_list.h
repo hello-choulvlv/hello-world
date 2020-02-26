@@ -59,6 +59,18 @@ public:
 		return node;
 	};
 
+	link_node *push_front(link_node *node) {
+		node->next = _head_root;
+
+		if (_head_root)_head_root->prev = node;
+		else _tail_root = node;
+
+		_head_root = node;
+		++_node_size;
+
+		return node;
+	};
+
 	void pop_back(){
 		link_node *prev = _tail_root->prev;
 		if (!prev)_head_root = nullptr;
@@ -92,6 +104,18 @@ public:
 		return node;
 	};
 
+	link_node *push_back(link_node *node)
+	{
+		node->prev = _tail_root;
+		if (_tail_root)_tail_root->next = node;
+		else _head_root = node;
+
+		_tail_root = node;
+		++_node_size;
+
+		return node;
+	};
+
 	int                size()const { return _node_size; };
 	link_node *head()const { return _head_root; };
 	link_node *back()const { return _tail_root; };
@@ -112,6 +136,18 @@ public:
 		return node;
 	};
 
+	link_node *insert_before(link_node *interval_node, link_node *target_node) {
+		if (!interval_node->prev)
+			_head_root = target_node;
+		else
+			interval_node->prev->next = target_node;
+		target_node->prev = interval_node->prev;
+		interval_node->prev = target_node;
+		target_node->next = interval_node;
+		++_node_size;
+		return target_node;
+	};
+
 	link_node* insert_after(link_node *interval_node, const KT &kt_value) {
 		link_node *node = apply(kt_value);
 		if (!interval_node->next)
@@ -123,6 +159,18 @@ public:
 		interval_node->next = node;
 		++_node_size;
 		return node;
+	};
+
+	link_node* insert_after(link_node *interval_node, link_node *target_node) {
+		if (!interval_node->next)
+			_tail_root = target_node;
+		else
+			interval_node->next->prev = target_node;
+		target_node->next = interval_node->next;
+		target_node->prev = interval_node;
+		interval_node->next = target_node;
+		++_node_size;
+		return target_node;
 	};
 
 	link_node *lookup(const KT &kt_value,const std::function<bool (const KT &a,const KT &b)> &compare_func) {
@@ -141,7 +189,7 @@ public:
 
 		link_node *prev = node->prev, *next = node->next;
 		if (!prev)_head_root = next;
-		else prev->next = next
+		else prev->next = next;
 
 		if (!next) _tail_root = prev;
 		else next->prev = prev;
@@ -151,7 +199,7 @@ public:
 		return next;
 	};
 
-	link_node *remove(link_node *interval_node){
+	link_node *remove(link_node *interval_node,bool b_release = true){
 		link_node *prev = interval_node->prev, *next = interval_node->next;
 
 		if (!prev)_head_root = next;
@@ -161,7 +209,8 @@ public:
 		else next->prev = prev;
 
 		--_node_size;
-		release(interval_node);
+		if(b_release)
+			release(interval_node);
 		return next;
 	};
 

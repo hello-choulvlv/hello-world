@@ -375,20 +375,44 @@ bool insert_convex_hull_edge(link_list<ConvexEdge *> &horizontal_edge,ConvexEdge
 }
 bool assert_convex_hull_edge_continuous(link_list<ConvexEdge *> &horizontal_edge)
 {
-	bool b_continus = true;
-	auto *it_ptr = horizontal_edge.head();
-	ConvexEdge *edge_head = nullptr,*edge_final = nullptr;
+	assert(horizontal_edge.size() > 2);
+	auto *node_ptr = horizontal_edge.head();
+	while (node_ptr->next) {
+		auto *next_ptr = node_ptr->next;
 
-	for (; it_ptr; it_ptr = horizontal_edge.next(it_ptr))
-	{
-		ConvexEdge *edge = it_ptr->tv_value;
-		if (!edge_head)edge_head = edge;
-		else
-			b_continus &= edge_final->v2 == edge->v1;
-		edge_final = edge;
+		if (node_ptr->tv_value->v2 != next_ptr->tv_value->v1) {
+			auto *tripple_ptr = next_ptr->next;
+			while (tripple_ptr && node_ptr->tv_value->v2 != tripple_ptr->tv_value->v1) {
+				tripple_ptr = tripple_ptr->next;
+			}
+			if (!tripple_ptr)return false;
+
+			while (tripple_ptr && node_ptr->tv_value->v2 == tripple_ptr->tv_value->v1) {
+				auto *s_node = tripple_ptr->next;
+				horizontal_edge.remove(tripple_ptr, false);
+				horizontal_edge.insert_after(node_ptr, tripple_ptr);
+				node_ptr = tripple_ptr;
+				tripple_ptr = s_node;
+			}
+		}
+		else node_ptr = next_ptr;
 	}
-	b_continus &= edge_final->v2 == edge_head->v1;
-	return b_continus;
+
+	//bool b_continus = true;
+	//auto *it_ptr = horizontal_edge.head();
+	//ConvexEdge *edge_head = nullptr, *edge_final = nullptr;
+
+	//for (; it_ptr; it_ptr = horizontal_edge.next(it_ptr))
+	//{
+	//	ConvexEdge *edge = it_ptr->tv_value;
+	//	if (!edge_head)edge_head = edge;
+	//	else
+	//		b_continus &= edge_final->v2 == edge->v1;
+	//	edge_final = edge;
+	//}
+	//b_continus &= edge_final->v2 == edge_head->v1;
+
+	return true;
 }
 
 bool assert_convex_hull_valid(std::list<Plane3 *> &operate_queue)
@@ -767,11 +791,6 @@ void convex_hull_build_new_plane(const std::vector<Vec3> &points,int select_inde
 		{
 			Plane3 *plane_adj = edge->twin->owner;
 			float f = dot(base_point - points[plane_adj->v1],plane_adj->normal);
-			bool b1 = f < 0.0f;
-			bool b2 = !plane_adj->point_set.lookup(select_index,compare_func);
-
-			c1 += b1;
-			c2 += b2;
 
 			if (f < 0.0f)
 				insert_convex_hull_edge(horizontal_edge, edge->twin);
@@ -779,7 +798,6 @@ void convex_hull_build_new_plane(const std::vector<Vec3> &points,int select_inde
 			edge = edge->next;
 		} while (edge != plane->head);
 	}
-	assert(c1 == c2);
 	assert(assert_convex_hull_edge_continuous(horizontal_edge));
 	//对于地平线边的集合,重新生成相关的平面
 	auto *it_ptr = horizontal_edge.head();
@@ -822,6 +840,10 @@ void convex_hull_build_new_plane(const std::vector<Vec3> &points,int select_inde
 			float f = dot(points[base_j] - base_point, normal);
 			if (fabsf(f) > 0.001f && f > 0.0f)
 			{
+				if (base_j == 2) {
+					int x = 0;
+					int y = 0;
+				}
 				plane_new->point_set.insert(base_j,compare_func);
 				auto it2 = point_to_face.find(base_j);
 				//另外需要增加反向映射
@@ -866,7 +888,7 @@ void convex_hull_build_new_plane(const std::vector<Vec3> &points,int select_inde
 			mem_slab.release(edge);
 			edge = next_edge;
 		}
-		operate_queue.remove((link_list<Plane3*>::link_node *)plane->other_ptr);
+		operate_queue.remove(plane->other_ptr);
 		plane->head = plane->tail = nullptr;
 		mem_slab.release(plane);
 	}
@@ -888,7 +910,7 @@ bool convex_hull_3d_optimal(const std::vector<cocos2d::Vec3> &points, std::vecto
 	std::vector<short>  remind_index_array(array_size - 4);
 	//内存管理器对象
 	ConvexHullMemmorySlab memory_slab(array_size);
-	memory_alloc<red_black_tree<Plane3*>::internal_node, Plane3 *>  plane_mem_alloc(512);
+	memory_alloc<red_black_tree<Plane3*>::internal_node, Plane3 *>  plane_mem_alloc(1024);
 	memory_alloc<red_black_tree<short>::internal_node, short>  point_mem_alloc(1024);
 
 	//首先创建一个四面体
@@ -897,6 +919,10 @@ bool convex_hull_3d_optimal(const std::vector<cocos2d::Vec3> &points, std::vecto
 	for (int j = 0; j < array_size - 4; ++j)
 	{
 		int base_j = remind_index_array[j];
+		if (j == 43) {
+			int x = 0;
+			int y = 0;
+		}
 		//遍历当前点集的所有小平面,如果又的话
 		auto it = point_to_face.find(base_j);
 		if (it != point_to_face.end() && it->second.size())

@@ -32,7 +32,7 @@ bool HelloWorld::init()
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 	auto &winSize = _director->getWinSize();
-	int64_t seed = 1581910632;// time(nullptr); //1579139246;// time(nullptr);// 1578545857;// time(nullptr);//1572057392;
+	int64_t seed = time(nullptr); //1579139246;// time(nullptr);// 1578545857;// time(nullptr);//1572057392;
 	CCLOG("seed->%ld", seed);
 	srand(seed);//14,23,27
 
@@ -121,8 +121,8 @@ bool HelloWorld::init()
 	//rotateHullPolygonsNarrowSurface();
 	//convexHull3dAlgorithm();
 	//priorityQueueTest();
-	//convexHull3dRandom();
-	balanceTreeMemSlab();
+	convexHull3dRandom();
+	//balanceTreeMemSlab();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -769,6 +769,35 @@ void HelloWorld::convexHull3dRandom()
 	root_node->setCameraMask(s_CameraMask);
 }
 
+void testRedBlackTreeDepth(gt::red_black_tree<int> &rb_tree) {
+	auto search_node = rb_tree.find_minimum();
+	assert(search_node != nullptr);
+	int  target = -1;
+	int child_size = 0;
+	int tree_depth_old = -1;
+	while (search_node)
+	{
+		assert(target < search_node->tw_value);
+		target = search_node->tw_value;
+		++child_size;
+
+		if (!search_node->l_child && !search_node->r_child) {
+			int depth_tree = 1;
+			auto *visit_node = search_node;
+			while (visit_node) {
+				if (visit_node->color_type == gt::ColorType_Black)
+					++depth_tree;
+				visit_node = visit_node->parent;
+			}
+			if (tree_depth_old == -1)
+				tree_depth_old = depth_tree;
+			assert(tree_depth_old == depth_tree);
+		}
+		search_node = rb_tree.find_next(search_node);
+	}
+	assert(child_size == rb_tree.size());
+}
+
 void HelloWorld::balanceTreeMemSlab()
 {
 	std::function<int(const int&a, const int &b)> compare_func = [](const int &a, const int &b)->int {
@@ -778,6 +807,7 @@ void HelloWorld::balanceTreeMemSlab()
 	gt::red_black_tree<int>   rb_tree(0, &mem_alloc),rb_tree2(0, &mem_alloc);
 
 	int value_array[128];
+	int tree_depth_old = -1;
 	for (int index_l = 0; index_l < 128; ++index_l)
 	{
 		int v = gt::random() * 709875;
@@ -792,40 +822,40 @@ void HelloWorld::balanceTreeMemSlab()
 	};
 	gt::quick_sort<int>(value_array,128,compare_func2);
 	//输出
-	auto search_node = rb_tree.find_minimum();
-	assert(search_node != nullptr);
-	int  target = -1;
-	while (search_node)
-	{
-		assert(target < search_node->tw_value);
-		target = search_node->tw_value;
-		search_node = rb_tree.find_next(search_node);
-	}
+	testRedBlackTreeDepth(rb_tree);
+	//////////////////////////////tree2//////////////////////
+	testRedBlackTreeDepth(rb_tree2);
+	/////////////////////////////tree2///////////////////////
 	//删除
 	int j = gt::random() * 16;
 	int js = j + 100;
 	for (; j < js; ++j)
 	{
+		if (value_array[j] == 56413){//442168) {
+			int x = 0;
+			int y = 0;
+		}
 		rb_tree.remove(value_array[j], compare_func);
 		rb_tree2.remove(value_array[j],compare_func);
+		//////////////////////test tree2/////////////////////
+		testRedBlackTreeDepth(rb_tree2);
+		/////////////////////test tree2/////////////////////
 	}
 
-	for (int j = js; j < js + 400; ++j)
+	for (int j = js; j < 260/*js + 400*/; ++j)
 	{
+		if (j == 259) {
+			int x = 0;
+			int y = 0;
+		}
 		int v = gt::random() * 709875;
 		rb_tree.insert(v, compare_func);
 
 		if (rand() & 0x4)
 			rb_tree.remove(v,compare_func);
+		testRedBlackTreeDepth(rb_tree2);
 	}
-
-	search_node = rb_tree.find_minimum();
-	assert(search_node != nullptr);
-	target = -1;
-	while (search_node)
-	{
-		assert(target < search_node->tw_value);
-		target = search_node->tw_value;
-		search_node = rb_tree.find_next(search_node);
-	}
+	//重新加测树的结构是否合法
+	testRedBlackTreeDepth(rb_tree);
+	testRedBlackTreeDepth(rb_tree2);
 }

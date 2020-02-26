@@ -6,6 +6,7 @@
 #define __CONVEX_HULL_H__
 #include "gt_common/geometry_types.h"
 #include "data_struct/balance_tree.h"
+#include "data_struct/link_list.h"
 #include "math/Vec2.h"
 #include "math/Vec3.h"
 #include<vector>
@@ -43,7 +44,7 @@ struct Plane3
 
 	ConvexEdge *head, *tail;
 	Plane3 *next;
-	void      *other_ptr;
+	link_list<Plane3*>::link_node  *other_ptr;
 	cocos2d::Vec3    normal;
 
 	Plane3(short av1, short av2, short av3) :v1(av1),v2(av2),v3(av3),ref(0), high_v(-1), index_queue(-1),head(nullptr),tail(nullptr), next(nullptr), other_ptr(nullptr){};
@@ -111,6 +112,7 @@ struct ConvexHullMemmorySlab
 		{
 			++_plane_size;
 			plane->next = _plane_cache;
+			plane->point_set.clear();
 			_plane_cache = plane;
 		}
 		else
@@ -203,6 +205,10 @@ bool quick_hull_algorithm3d(const std::vector<cocos2d::Vec3> &points, std::vecto
   *该算法没有经过优化,如果需要优化,则首先需要从内存分配入手
   *@version:1.0实现了基本的算法,但是运行时间明显偏大,达到了76.56,究其原因是内存分配与释放太过于频繁
   *@version:1.0而且小内存的使用特别的剧烈,因此我们将会在第二版中全面优化该问题
+  *最终使用平衡树改进之后,虽然时间上有明显的改进28,但是与quick-hull算法相比,速度仍然太慢.
+  *在PC上表现很奇怪,同样的随机数种子,每次生成的序列都不相同,而且还伴随着assert宏判断失败
+  *但是在Mac上运行时完全成功的,并切表现都一致,这可能是由于大量使用了模板类的原因吧.
+  *也的确,在编译器领域,mac的技术明显要稍好一些.
  */
 bool convex_hull_3d_optimal(const std::vector<cocos2d::Vec3> &points,std::vector<Plane3*> &planes);
 NS_GT_END

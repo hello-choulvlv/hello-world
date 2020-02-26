@@ -14,7 +14,8 @@ NS_GT_BEGIN
 
 enum ColorType { ColorType_Red, ColorType_Black };
 #define node_color(node) ((!node)?ColorType_Black:(node)->color_type)
-#define __check_red_black_property 1
+#define __check_red_black_property 0
+#define __debug_valid 0
 
 template<typename TW>
 class red_black_tree {
@@ -23,11 +24,17 @@ public:
 	{
 		TW						tw_value;
 		ColorType			color_type;
+#if __debug_valid
+		bool                    in_use;
+#endif
 		internal_node  *parent, *l_child, *r_child;
 
-		internal_node(const TW &tv) :tw_value(tv), color_type(ColorType_Red), parent(nullptr), l_child(nullptr), r_child(nullptr) {
+		internal_node(const TW &tv) :tw_value(tv), color_type(ColorType_Red),parent(nullptr), l_child(nullptr), r_child(nullptr) {
+#if __debug_valid
+			in_use = true
+#endif
 		};
-		internal_node(const TW &t_value, ColorType node_color, internal_node* la_child, internal_node* ra_child) :tw_value(t_value), color_type(node_color), parent(nullptr), l_child(la_child), r_child(ra_child) {};
+		internal_node(const TW &t_value, ColorType node_color2, internal_node* la_child, internal_node* ra_child) :tw_value(t_value), color_type(node_color2), parent(nullptr), l_child(la_child), r_child(ra_child) {};
 	};
 private:
 	struct internal_node  *_root, *_cache_head;
@@ -85,8 +92,8 @@ public:
 		if (_node_size)
 		{
 			//平衡树的规模一般较小,此时可以使用固定的数组
-			internal_node *fix_array[256];
-			internal_node **remind_array = _node_size <= 256 ? fix_array : new internal_node*[_node_size];
+			internal_node *fix_array[512];
+			internal_node **remind_array = _node_size <= 512 ? fix_array : new internal_node*[_node_size];
 			int j = 0;
 			internal_node  *child = find_minimum();
 			do
@@ -94,6 +101,7 @@ public:
 				remind_array[j++] = child;
 				child = find_next(child);
 			} while (child != nullptr);
+			assert(j == _node_size);
 
 			for (int j = 0; j < _node_size; ++j)
 			{
@@ -107,13 +115,14 @@ public:
 			}
 			if (!_mem_alloc)
 				_cache_size += _node_size;
-			_node_size = 0;
-			//
+			
 			if (remind_array != fix_array)
 			{
 				delete[] remind_array;
 				remind_array = nullptr;
 			}
+			_root = nullptr;
+			_node_size = 0;
 		}
 	};
 	int size()const { return _node_size; };
@@ -125,18 +134,20 @@ public:
 		{
 			while (child->l_child)
 				child = child->l_child;
+			return child;
 		}
-		else
-		{
-			for (child = node->parent; child != nullptr && node == child->r_child; child = child->parent)
-				node = child;
+
+		internal_node *parent = node->parent;
+		while (parent && parent->r_child == node) {
+			node = parent;
+			parent = parent->parent;
 		}
-		return child;
+		return parent;
 	};
 
 	internal_node *find_prev(internal_node  *node)
 	{
-		internal_node  *child = node->l_child
+		internal_node  *child = node->l_child;
 			if (child != nullptr)
 			{
 				while (child->r_child)
@@ -283,51 +294,158 @@ public:
 		}
 		_root->color_type = ColorType_Black;
 	}
-
-	internal_node*  remove(internal_node  *search_node)
-	{
-		if (search_node->l_child != nullptr && search_node->r_child != nullptr) {
-			internal_node* pred = find_maximum(search_node->l_child);
-			search_node->tw_value = pred->tw_value;
-			search_node = pred;
-		}
-
-		assert(search_node->l_child == nullptr || search_node->r_child == nullptr);
-		internal_node *child = search_node->r_child == nullptr ? search_node->l_child : search_node->r_child;
-		if (node_color(search_node) == ColorType_Black) {
-			search_node->color_type = node_color(child);
-			delete_case1(search_node);
-		}
-
-		replace_node(search_node, child);
-		if (search_node->parent == nullptr && child != nullptr)
-			child->color_type = ColorType_Black;
-		release_memory(search_node);
-
-		verify_properties();
-
-		return child;
-	};
-
 	//删除相关的数值,并返回下一个节点
 	internal_node* remove(const TW &tw_value, std::function<int(const TW &, const TW &)> &compare_func) {
 		internal_node* search_node = lookup(tw_value, compare_func);
 		if (search_node)
-			return remove(search_node);
+			return remove_case(search_node);
 		return nullptr;
 	};
 
-	internal_node *remove2(internal_node *search_node){
+	void replace_node_case(internal_node *old_node,internal_node *new_node) {
+		internal_node *parent = old_node->parent;
+		if (!parent)
+			_root = new_node;
+		else if (parent->l_child == old_node)
+			parent->l_child = new_node;
+		else parent->r_child = new_node;
+
+		new_node->parent = parent;
+		//child
+		new_node->l_child = old_node->l_child;
+		if (new_node->l_child)
+			new_node->l_child->parent = new_node;
+
+		new_node->r_child = old_node->r_child;
+		if (new_node->r_child)
+			new_node->r_child->parent = new_node;
+		//color of node
+		new_node->color_type = old_node->color_type;
+	}
+
+	internal_node *remove_case(internal_node *search_node){
 		if (_node_size == 1) {
 			_root = nullptr;
 			release_memory(search_node);
 			return nullptr;
-		};
+		}
 		internal_node *next_node = find_next(search_node);
+		internal_node *target_node = nullptr;
+		//以下代码的目标是,查找一个层级最低的替代节点,并且由于red_black_tree的性质,target_node的层级不可能比search_node的更高
+		if (!search_node->l_child || !search_node->r_child)
+			target_node = search_node;
+		else
+			target_node = next_node;
 
+		//如果replace_node != nullptr,则其必为target_node的唯一的子节点
+		internal_node *replace_node = target_node->l_child? target_node->l_child: target_node->r_child;
+		internal_node *parent_node = target_node->parent;
+		if (replace_node != nullptr)replace_node->parent = parent_node;
 
+		if (!parent_node)
+			_root = replace_node;
+		else if (parent_node->l_child == target_node)
+			parent_node->l_child = replace_node;
+		else
+			parent_node->r_child = replace_node;
+
+		//替换相关的数据,search_node -> target_node,这个过程只修改指针,而不能修改数据本身
+		ColorType old_color = target_node->color_type;
+		if (target_node != search_node) {
+			//注意,这一步代码只有当target_node是search_node的直接子节点时,才会起作用,少了这一句代码,算法将直接错乱
+			if (parent_node == search_node)parent_node = target_node;
+			replace_node_case(search_node, target_node);
+		}
+		//该行代码保证了如果算法在没有保证数据一致性时,将直接发生崩溃,而非继续沿着错误的道路继续走下去
+		//search_node->parent = search_node->l_child = search_node->r_child = nullptr;
+		//如果删除的目标不是红色的节点,则预示着red_black_tree的平衡已经被破坏了
+		if (old_color == ColorType_Black)
+			remove_case(parent_node, replace_node);
+		release_memory(search_node);
+		verify_properties();
 		return next_node;
 	};
+
+	void remove_case(internal_node *parent_node,internal_node *replace_node) {
+		//replace_node始终具有二重黑色,该算法将始终围绕这个核心内容进行运算
+		while (node_color(replace_node) == ColorType_Black && replace_node != _root) {
+			if (parent_node->l_child == replace_node) {
+				internal_node	*sibling_node = parent_node->r_child;//assert(sibling_node != nullptr)
+				assert(sibling_node != nullptr);
+				//此时需要做出一些些变换,并将变换后的情况转换为后面的三种情况中的任何一种
+				if (sibling_node->color_type == ColorType_Red) {
+					sibling_node->color_type = ColorType_Black;
+					parent_node->color_type = ColorType_Red;
+					rotate_left(parent_node);
+					sibling_node = parent_node->r_child;
+				}
+				//Case 1:如果两个后继节点同时为黑色,此时情况比较简单
+				if (node_color(sibling_node->l_child) == ColorType_Black && node_color(sibling_node->r_child) == ColorType_Black) {
+					sibling_node->color_type = ColorType_Red;
+					replace_node = parent_node;
+					parent_node = replace_node->parent;
+				}
+				else if (node_color(sibling_node->l_child) == ColorType_Red) {
+					sibling_node->color_type = ColorType_Red;
+					sibling_node->l_child->color_type = ColorType_Black;
+					rotate_right(sibling_node);
+					sibling_node = parent_node->r_child;
+
+					sibling_node->color_type = parent_node->color_type;
+					parent_node->color_type = ColorType_Black;
+					sibling_node->r_child->color_type = ColorType_Black;
+					rotate_left(parent_node);
+					replace_node = _root;
+					break;
+				}
+				else {
+					sibling_node->color_type = parent_node->color_type;
+					sibling_node->r_child->color_type = ColorType_Black;
+					parent_node->color_type = ColorType_Black;
+					rotate_left(parent_node);
+					replace_node = _root;
+					break;
+				}
+			}
+			else {
+				internal_node *sibling_node = parent_node->l_child;
+				assert(sibling_node != nullptr);
+				if (sibling_node->color_type == ColorType_Red) {
+					sibling_node->color_type = ColorType_Black;
+					parent_node->color_type = ColorType_Red;
+					rotate_right(parent_node);
+					sibling_node = parent_node->l_child;
+				}
+				if (node_color(sibling_node->l_child) == ColorType_Black && node_color(sibling_node->r_child) == ColorType_Black) {
+					sibling_node->color_type = ColorType_Red;
+					replace_node = parent_node;
+					parent_node = replace_node->parent;
+				}
+				else if (node_color(sibling_node->r_child) == ColorType_Red) {
+					sibling_node->color_type = ColorType_Red;
+					sibling_node->r_child->color_type = ColorType_Black;
+					rotate_left(sibling_node);
+					sibling_node = parent_node->l_child;
+
+					sibling_node->color_type = parent_node->color_type;
+					parent_node->color_type = ColorType_Black;
+					sibling_node->l_child->color_type = ColorType_Black;
+					rotate_right(parent_node);
+					replace_node = _root;
+					break;
+				}
+				else {
+					sibling_node->color_type = parent_node->color_type;
+					sibling_node->l_child->color_type = ColorType_Black;
+					parent_node->color_type = ColorType_Black;
+					rotate_right(parent_node);
+					replace_node = _root;
+					break;
+				}
+			}
+		}
+		replace_node->color_type = ColorType_Black;
+	}
 
 	internal_node* find_maximum(internal_node* n) {
 		assert(n != nullptr);
@@ -337,111 +455,6 @@ public:
 		return n;
 	};
 private:
-	void delete_case1(internal_node* n) {
-		if (n->parent == nullptr)
-			return;
-		else
-			delete_case2(n);
-	};
-
-	void delete_case2(internal_node* n) {
-		if (node_color(sibling(n)) == ColorType_Red) {
-			n->parent->color_type = ColorType_Red;
-			sibling(n)->color_type = ColorType_Black;
-			if (n == n->parent->l_child)
-				rotate_left(n->parent);
-			else
-				rotate_right(n->parent);
-		}
-		delete_case3(n);
-	}
-
-	void delete_case3(internal_node* n) {
-		if (node_color(n->parent) == ColorType_Black &&
-			node_color(sibling(n)) == ColorType_Black &&
-			node_color(sibling(n)->l_child) == ColorType_Black &&
-			node_color(sibling(n)->r_child) == ColorType_Black)
-		{
-			sibling(n)->color_type = ColorType_Red;
-			delete_case1(n->parent);
-		}
-		else
-			delete_case4(n);
-	};
-
-	void delete_case4(internal_node* n) {
-		if (node_color(n->parent) == ColorType_Red &&
-			node_color(sibling(n)) == ColorType_Black &&
-			node_color(sibling(n)->l_child) == ColorType_Black &&
-			node_color(sibling(n)->r_child) == ColorType_Black)
-		{
-			sibling(n)->color_type = ColorType_Red;
-			n->parent->color_type = ColorType_Black;
-		}
-		else
-			delete_case5(n);
-	};
-
-	void delete_case5(internal_node* n) {
-		if (n == n->parent->l_child &&
-			node_color(sibling(n)) == ColorType_Black &&
-			node_color(sibling(n)->l_child) == ColorType_Red &&
-			node_color(sibling(n)->r_child) == ColorType_Black)
-		{
-			sibling(n)->color_type = ColorType_Red;
-			sibling(n)->l_child->color_type = ColorType_Black;
-			rotate_right(sibling(n));
-		}
-		else if (n == n->parent->r_child &&
-			node_color(sibling(n)) == ColorType_Black &&
-			node_color(sibling(n)->r_child) == ColorType_Red &&
-			node_color(sibling(n)->l_child) == ColorType_Black)
-		{
-			sibling(n)->color_type = ColorType_Red;
-			sibling(n)->r_child->color_type = ColorType_Black;
-			rotate_left(sibling(n));
-		}
-		delete_case6(n);
-	};
-
-	void delete_case6(internal_node* n) {
-		sibling(n)->color_type = node_color(n->parent);
-		n->parent->color_type = ColorType_Black;
-		if (n == n->parent->l_child) {
-			assert(node_color(sibling(n)->r_child) == ColorType_Red);
-			sibling(n)->r_child->color_type = ColorType_Black;
-			rotate_left(n->parent);
-		}
-		else
-		{
-			assert(node_color(sibling(n)->l_child) == ColorType_Red);
-			sibling(n)->l_child->color_type = ColorType_Black;
-			rotate_right(n->parent);
-		}
-	};
-	internal_node* grandparent(internal_node* n) {
-		assert(n != nullptr);
-		assert(n->parent != nullptr);
-		assert(n->parent->parent != nullptr);
-		return n->parent->parent;
-	};
-
-	internal_node* sibling(internal_node* n) {
-		assert(n != nullptr);
-		assert(n->parent != nullptr);
-		if (n == n->parent->l_child)
-			return n->parent->r_child;
-		else
-			return n->parent->l_child;
-	};
-
-	internal_node* uncle(internal_node* n) {
-		assert(n != nullptr);
-		assert(n->parent != nullptr);
-		assert(n->parent->parent != nullptr);
-		return sibling(n->parent);
-	};
-
 	void verify_properties() {
 #if __check_red_black_property
 		property_1(_root);
@@ -454,6 +467,7 @@ private:
 	void property_1(internal_node* n) {
 		assert(node_color(n) == ColorType_Red || node_color(n) == ColorType_Black);
 		if (n == nullptr) return;
+		assert(n->in_use);
 		property_1(n->l_child);
 		property_1(n->r_child);
 	};
@@ -495,12 +509,6 @@ private:
 		property_5_helper(n->r_child, black_count, path_black_count);
 	};
 
-	internal_node* new_node(void* tw_value, ColorType node_color, internal_node* l_child, internal_node* r_child) {
-		internal_node *result = new internal_node(tw_value, node_color, l_child, r_child);
-		if (l_child != nullptr)  l_child->parent = result;
-		if (r_child != nullptr) r_child->parent = result;
-		return result;
-	};
 	void rotate_left(internal_node* n) {
 		internal_node* r = n->r_child, *parent = n->parent;
 
@@ -538,21 +546,6 @@ private:
 		n->parent = L;
 		L->parent = parent;
 	};
-
-	void replace_node(internal_node* oldn, internal_node* newn) {
-		if (oldn->parent == nullptr) {
-			_root = newn;
-		}
-		else {
-			if (oldn == oldn->parent->l_child)
-				oldn->parent->l_child = newn;
-			else
-				oldn->parent->r_child = newn;
-		}
-		if (newn != nullptr) {
-			newn->parent = oldn->parent;
-		}
-	};
 	//内存管理
 	internal_node   *apply_memory(const TW &tv_value) {
 		internal_node	*tw_node = nullptr;
@@ -584,21 +577,22 @@ private:
 	void		release_memory(internal_node *tw_node) {
 		--_node_size;
 		//首先检测是否有内存管理器
-		if (_mem_alloc)
-		{
+		if (_mem_alloc){
 			_mem_alloc->release(tw_node);
 			return;
 		}
 
-		if (_cache_size < _cache_capacity)
-		{
+		if (_cache_size < _cache_capacity){
 			tw_node->r_child = _cache_head;
 			_cache_head = tw_node;
 			++_cache_size;
 		}
-		else
-			delete tw_node;
+		else delete tw_node;
 	};
 }; 
+#undef node_color
+#undef __check_red_black_property 
+#undef __debug_valid 
+
 NS_GT_END
 #endif

@@ -7,7 +7,9 @@
 #define __memory_alloc_h__
 #include "gt_common/geometry_types.h"
 #include<string.h>
+#include<assert.h>
 NS_GT_BEGIN
+#define __check_repeat_node 0
 template<typename MC,typename TV>
 class memory_alloc
 {
@@ -43,6 +45,8 @@ public:
 				_alloc_array = alloc_new;
 			}
 			b_recycle = true;
+			//assert(!node->in_use);
+			//node->in_use = true;
 		}
 		else
 		{
@@ -63,6 +67,12 @@ public:
 			delete[] _alloc_array;
 			_alloc_array = extent_array;
 		}
+#if __check_repeat_node
+		for (int j = 0; j < _alloc_size; ++j)
+			assert(_alloc_array[j] != node);
+#endif
+		//assert(node->in_use);
+		//node->in_use = false;
 		_alloc_array[_alloc_size++] = node;
 	}
 };
