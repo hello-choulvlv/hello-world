@@ -48,7 +48,7 @@ struct Plane3
 	cocos2d::Vec3    normal;
 
 	Plane3(short av1, short av2, short av3) :v1(av1),v2(av2),v3(av3),ref(0), high_v(-1), index_queue(-1),head(nullptr),tail(nullptr), next(nullptr), other_ptr(nullptr){};
-	Plane3(short av1,short av2,short av3,memory_alloc<red_black_tree<short>::internal_node,short> *mem_alloc):
+	Plane3(short av1,short av2,short av3, red_black_tree_alloc<red_black_tree<short>::internal_node,short> *mem_alloc):
 		v1(av1),v2(av2),v3(av3),
 		point_set(0,mem_alloc),
 		next(nullptr),other_ptr(nullptr){};
@@ -130,7 +130,7 @@ struct ConvexHullMemmorySlab
 			delete edge;
 	}
 
-	Plane3 *apply(short av1, short av2, short av3,memory_alloc<red_black_tree<Plane3*>::internal_node,Plane3*> *mem_alloc_ptr = nullptr) {
+	Plane3 *apply(short av1, short av2, short av3, red_black_tree_alloc<red_black_tree<Plane3*>::internal_node,Plane3*> *mem_alloc_ptr = nullptr) {
 		Plane3 *plane = nullptr;
 		if (_plane_cache)
 		{

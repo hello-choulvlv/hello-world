@@ -4,12 +4,59 @@
   *@author:xiaohuaxiong
   *@date:2020年2月18日
   *@version:2.0增加任意位置的快速删除操作,但是在操作的时候需要增加一些限制
+  *@version:3.0增加内存分配器
  */
 #ifndef __LINK_LIST_H__
 #define __LINK_LIST_H__
 #include "gt_common/geometry_types.h"
 #include<functional>
 NS_GT_BEGIN
+
+template<typename MN, typename TV>
+class link_list_alloc {
+	MN  *_cache_head;
+	int    _cache_size, _cache_capacity;
+public:
+	link_list_alloc(const link_list_alloc &) = delete;
+	link_list_alloc& operator=(const link_list_alloc &) = delete;
+
+	link_list_alloc(int cache_capacity = 0x7FFFFFFF) :_cache_head(nullptr), _cache_size(0), _cache_capacity(cache_capacity) {};
+	~link_list_alloc() {
+		while (_cache_head)
+		{
+			MN  *node = _cache_head->next;
+			delete _cache_head;
+			_cache_head = node;
+		}
+		_cache_head = nullptr;
+		_cache_size = 0;
+		_cache_capacity = 0;
+	};
+
+	void release(MN *node) {
+		if (_cache_size < _cache_capacity) {
+			node->next = _cache_head;
+			_cache_head = node;
+			++_cache_size;
+		}
+		else delete node;
+	};
+
+	MN* alloc(const TV &tv_value, bool &b_recycle) {
+		MN *node = nullptr;
+		if (_cache_head) {
+			node = _cache_head;
+			_cache_head = node->next;
+			--_cache_size;
+			b_recycle = true;
+		}
+		else {
+			node = new MN(tv_value);
+			b_recycle = false;
+		}
+		return node;
+	};
+};
 
 template<typename KT>
 class link_list
@@ -27,6 +74,9 @@ private:
 	link_node  *_head_root,*_tail_root,*_cache;
 	int                  _node_size,_cache_size, _cache_capacity;
 public:
+	link_list(const link_list &) = delete;
+	link_list& operator = (const link_list &) = delete;
+
 	link_list(int cache_capacity = 0x7FFFFFFF):_head_root(nullptr), _tail_root(nullptr),_cache(nullptr),_node_size(0),_cache_size(0), _cache_capacity(cache_capacity){};
 
 	~link_list() {

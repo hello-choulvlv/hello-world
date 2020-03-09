@@ -19,6 +19,9 @@ class priority_queue
 	//是否拘留内存,如果此标志打开的话,则内存会一直递增,否则会动态改变
 	bool   _retain;
 public:
+	priority_queue(const priority_queue &) = delete;
+	priority_queue& operator=(const priority_queue &) = delete;
+
 	priority_queue(int heap_size,bool retain_mem): _heap_size(0),_heap_capacity(heap_size), _retain(retain_mem){
 		_root_heap = new KP[heap_size + 1];
 	};

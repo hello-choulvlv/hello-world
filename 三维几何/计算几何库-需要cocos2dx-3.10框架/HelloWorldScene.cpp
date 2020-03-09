@@ -803,7 +803,7 @@ void HelloWorld::balanceTreeMemSlab()
 	std::function<int(const int&a, const int &b)> compare_func = [](const int &a, const int &b)->int {
 		return a > b?1:(a < b?-1:0);
 	};
-	gt::memory_alloc<gt::red_black_tree<int>::internal_node, int>  mem_alloc(1024);
+	gt::red_black_tree_alloc<gt::red_black_tree<int>::internal_node, int>  mem_alloc(1024);
 	gt::red_black_tree<int>   rb_tree(0, &mem_alloc),rb_tree2(0, &mem_alloc);
 
 	int value_array[128];

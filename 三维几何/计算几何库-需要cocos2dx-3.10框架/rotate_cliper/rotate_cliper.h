@@ -110,6 +110,7 @@ bool rotate_hull_inner_tangent(const std::vector<cocos2d::Vec2> &polygon1,const 
 /*
   *求凸多边形的Minkowski和
   *算法已经假设输入的多边形顶点在第0位置已经取得了y坐标最小点
+  *关于该算法的相近解释,请参考 计算几何:算法与应用 第13章机器人运动规划第3节
  */
 void rotate_hull_polygon_minkowski(const std::vector<cocos2d::Vec2> &polygon1,const std::vector<cocos2d::Vec2> &polygon2,std::vector<cocos2d::Vec2> &polygon_mink);
 /*

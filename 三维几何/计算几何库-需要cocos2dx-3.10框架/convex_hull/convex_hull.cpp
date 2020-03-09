@@ -398,20 +398,6 @@ bool assert_convex_hull_edge_continuous(link_list<ConvexEdge *> &horizontal_edge
 		else node_ptr = next_ptr;
 	}
 
-	//bool b_continus = true;
-	//auto *it_ptr = horizontal_edge.head();
-	//ConvexEdge *edge_head = nullptr, *edge_final = nullptr;
-
-	//for (; it_ptr; it_ptr = horizontal_edge.next(it_ptr))
-	//{
-	//	ConvexEdge *edge = it_ptr->tv_value;
-	//	if (!edge_head)edge_head = edge;
-	//	else
-	//		b_continus &= edge_final->v2 == edge->v1;
-	//	edge_final = edge;
-	//}
-	//b_continus &= edge_final->v2 == edge_head->v1;
-
 	return true;
 }
 
@@ -609,7 +595,7 @@ bool quick_hull_algorithm3d(const std::vector<cocos2d::Vec3> &points, std::vecto
  */
 void static_create_tetrahedron(const std::vector<Vec3> &points, link_list<Plane3*> &operate_queue,std::map<short, red_black_tree<Plane3*>> &point_to_face,std::vector<short> &remind_index_array, 
 	std::function<int(const short &a, const short &b)> &compare_func, std::function<int(Plane3 *const &plane1, Plane3 *const &plane2)> &compare_func2, 
-	memory_alloc<red_black_tree<short>::internal_node, short>  &point_mem_alloc, memory_alloc<red_black_tree<Plane3*>::internal_node, Plane3 *>  &plane_mem_alloc)
+	red_black_tree_alloc<red_black_tree<short>::internal_node, short>  &point_mem_alloc, red_black_tree_alloc<red_black_tree<Plane3*>::internal_node, Plane3 *>  &plane_mem_alloc)
 {
 	int array_size = points.size();
 	//第一步需要计算出必定成为最终的凸壳上的三条连续的边
@@ -774,7 +760,7 @@ void convex_hull_build_new_plane(const std::vector<Vec3> &points,int select_inde
 	link_list<ConvexEdge *> &horizontal_edge,link_list<Plane3*> &operate_queue,
 	std::map<short,red_black_tree<Plane3*>> &point_to_face,
 	std::function<int(const short &a, const short &b)> &compare_func, std::function<int(Plane3 *const &plane1, Plane3 *const &plane2)> &compare_func2,
-	memory_alloc<red_black_tree<short>::internal_node, short>  &point_mem_alloc, memory_alloc<red_black_tree<Plane3*>::internal_node, Plane3 *>  &plane_mem_alloc)
+	red_black_tree_alloc<red_black_tree<short>::internal_node, short>  &point_mem_alloc, red_black_tree_alloc<red_black_tree<Plane3*>::internal_node, Plane3 *>  &plane_mem_alloc)
 {
 	int array_size = points.size();
 	int plane_size = plane_remove.size();
@@ -840,10 +826,6 @@ void convex_hull_build_new_plane(const std::vector<Vec3> &points,int select_inde
 			float f = dot(points[base_j] - base_point, normal);
 			if (fabsf(f) > 0.001f && f > 0.0f)
 			{
-				if (base_j == 2) {
-					int x = 0;
-					int y = 0;
-				}
 				plane_new->point_set.insert(base_j,compare_func);
 				auto it2 = point_to_face.find(base_j);
 				//另外需要增加反向映射
@@ -910,8 +892,8 @@ bool convex_hull_3d_optimal(const std::vector<cocos2d::Vec3> &points, std::vecto
 	std::vector<short>  remind_index_array(array_size - 4);
 	//内存管理器对象
 	ConvexHullMemmorySlab memory_slab(array_size);
-	memory_alloc<red_black_tree<Plane3*>::internal_node, Plane3 *>  plane_mem_alloc(1024);
-	memory_alloc<red_black_tree<short>::internal_node, short>  point_mem_alloc(1024);
+	red_black_tree_alloc<red_black_tree<Plane3*>::internal_node, Plane3 *>  plane_mem_alloc(1024);
+	red_black_tree_alloc<red_black_tree<short>::internal_node, short>  point_mem_alloc(1024);
 
 	//首先创建一个四面体
 	static_create_tetrahedron(points, operate_queue,point_to_face, remind_index_array, compare_func, compare_func2, point_mem_alloc, plane_mem_alloc);
@@ -919,10 +901,6 @@ bool convex_hull_3d_optimal(const std::vector<cocos2d::Vec3> &points, std::vecto
 	for (int j = 0; j < array_size - 4; ++j)
 	{
 		int base_j = remind_index_array[j];
-		if (j == 43) {
-			int x = 0;
-			int y = 0;
-		}
 		//遍历当前点集的所有小平面,如果又的话
 		auto it = point_to_face.find(base_j);
 		if (it != point_to_face.end() && it->second.size())

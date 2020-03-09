@@ -1,6 +1,7 @@
 /*
   *平衡树模板算法
   *该数据结构的主要用途在线段扫描线算法系列中使用
+  *version:2.0增加内存分配器
   *@date:2019年10月30日
   *@author:xiaohuaxiong
  */
@@ -17,6 +18,53 @@ enum ColorType { ColorType_Red, ColorType_Black };
 #define __check_red_black_property 0
 #define __debug_valid 0
 
+//red_black_tree专用的红内存分配器
+template<typename MN,typename TV>
+class red_black_tree_alloc {
+	MN  *_cache_head;
+	int    _cache_size, _cache_capacity;
+public:
+	red_black_tree_alloc(const red_black_tree_alloc &) = delete;
+	red_black_tree_alloc& operator=(const red_black_tree_alloc &) = delete;
+
+	red_black_tree_alloc(int cache_capacity = 0x7FFFFFFF) :_cache_head(nullptr),_cache_size(0),_cache_capacity(cache_capacity){};
+	~red_black_tree_alloc() {
+		while (_cache_head)
+		{
+			MN  *node = _cache_head->r_child;
+			delete _cache_head;
+			_cache_head = node;
+		}
+		_cache_head = nullptr;
+		_cache_size = 0;
+		_cache_capacity = 0;
+	};
+
+	void release(MN *node) {
+		if (_cache_size < _cache_capacity) {
+			node->r_child = _cache_head;
+			_cache_head = node;
+			++_cache_size;
+		}
+		else delete node;
+	};
+
+	MN* alloc(const TV &tv_value,bool &b_recycle) {
+		MN *node = nullptr;
+		if (_cache_head) {
+			node = _cache_head;
+			_cache_head = node->r_child;
+			--_cache_size;
+			b_recycle = true;
+		}
+		else {
+			node = new MN(tv_value);
+			b_recycle = false;
+		}
+		return node;
+	};
+};
+
 template<typename TW>
 class red_black_tree {
 public:
@@ -24,28 +72,19 @@ public:
 	{
 		TW						tw_value;
 		ColorType			color_type;
-#if __debug_valid
-		bool                    in_use;
-#endif
 		internal_node  *parent, *l_child, *r_child;
-
-		internal_node(const TW &tv) :tw_value(tv), color_type(ColorType_Red),parent(nullptr), l_child(nullptr), r_child(nullptr) {
-#if __debug_valid
-			in_use = true
-#endif
-		};
+		internal_node(const TW &tv) :tw_value(tv), color_type(ColorType_Red),parent(nullptr), l_child(nullptr), r_child(nullptr) {};
 		internal_node(const TW &t_value, ColorType node_color2, internal_node* la_child, internal_node* ra_child) :tw_value(t_value), color_type(node_color2), parent(nullptr), l_child(la_child), r_child(ra_child) {};
 	};
 private:
 	struct internal_node  *_root, *_cache_head;
-	memory_alloc<internal_node, TW>   *_mem_alloc;
+	red_black_tree_alloc<internal_node, TW>   *_mem_alloc;
 	int       _node_size, _cache_size, _cache_capacity;
 public:
-	red_black_tree(int capacity_size = 0x7FFFFFFF,memory_alloc<internal_node,TW> *mem_alloc = nullptr) : _root(nullptr), _cache_head(nullptr), _mem_alloc(mem_alloc), _node_size(0), _cache_size(0), _cache_capacity(capacity_size) {
+	red_black_tree(int capacity_size = 0x7FFFFFFF, red_black_tree_alloc<internal_node,TW> *mem_alloc = nullptr) : _root(nullptr), _cache_head(nullptr), _mem_alloc(mem_alloc), _node_size(0), _cache_size(0), _cache_capacity(capacity_size) {
 	};
 	~red_black_tree() {
-		if (_node_size)
-		{
+		if (_node_size){
 			internal_node   **node_array; 
 			internal_node  *child;
 			internal_node *fix_array[512];
@@ -60,8 +99,7 @@ public:
 				child = find_next(child);
 			} while (child != nullptr);
 
-			for (j = 0; j < _node_size; ++j)
-			{
+			for (j = 0; j < _node_size; ++j){
 				if (_mem_alloc)
 					_mem_alloc->release(node_array[j]);
 				else
@@ -76,8 +114,7 @@ public:
 		}
 		//_cache
 		internal_node  *child = _cache_head;
-		while (child)
-		{
+		while (child){
 			internal_node *t = child;
 			child = child->r_child;
 			delete t;
@@ -89,8 +126,7 @@ public:
 	};
 	void clear()
 	{
-		if (_node_size)
-		{
+		if (_node_size){
 			//平衡树的规模一般较小,此时可以使用固定的数组
 			internal_node *fix_array[512];
 			internal_node **remind_array = _node_size <= 512 ? fix_array : new internal_node*[_node_size];
@@ -103,10 +139,8 @@ public:
 			} while (child != nullptr);
 			assert(j == _node_size);
 
-			for (int j = 0; j < _node_size; ++j)
-			{
-				if (!_mem_alloc)
-				{
+			for (int j = 0; j < _node_size; ++j){
+				if (!_mem_alloc){
 					remind_array[j]->r_child = _cache_head;
 					_cache_head = remind_array[j];
 				}
@@ -116,8 +150,7 @@ public:
 			if (!_mem_alloc)
 				_cache_size += _node_size;
 			
-			if (remind_array != fix_array)
-			{
+			if (remind_array != fix_array){
 				delete[] remind_array;
 				remind_array = nullptr;
 			}
@@ -130,8 +163,7 @@ public:
 	internal_node *find_next(internal_node  *node)
 	{
 		internal_node  *child = node->r_child;
-		if (child != nullptr)
-		{
+		if (child != nullptr){
 			while (child->l_child)
 				child = child->l_child;
 			return child;
@@ -148,16 +180,14 @@ public:
 	internal_node *find_prev(internal_node  *node)
 	{
 		internal_node  *child = node->l_child;
-			if (child != nullptr)
-			{
-				while (child->r_child)
-					child = child->r_child;
-			}
-			else
-			{
-				for (child = node->parent; child != nullptr && node == child->l_child; child = child->parent)
-					node = child;
-			}
+		if (child != nullptr){
+			while (child->r_child)
+				child = child->r_child;
+		}
+		else{
+			for (child = node->parent; child != nullptr && node == child->l_child; child = child->parent)
+				node = child;
+		}
 		return child;
 	};
 
@@ -467,7 +497,6 @@ private:
 	void property_1(internal_node* n) {
 		assert(node_color(n) == ColorType_Red || node_color(n) == ColorType_Black);
 		if (n == nullptr) return;
-		assert(n->in_use);
 		property_1(n->l_child);
 		property_1(n->r_child);
 	};
@@ -551,8 +580,7 @@ private:
 		internal_node	*tw_node = nullptr;
 		++_node_size;
 		bool b_recyle = false;
-		if (_mem_alloc)
-		{
+		if (_mem_alloc){
 			tw_node = _mem_alloc->alloc(tv_value,b_recyle);
 			if (b_recyle) {
 				tw_node->tw_value = tv_value;

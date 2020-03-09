@@ -45,8 +45,6 @@ public:
 				_alloc_array = alloc_new;
 			}
 			b_recycle = true;
-			//assert(!node->in_use);
-			//node->in_use = true;
 		}
 		else
 		{
@@ -71,8 +69,6 @@ public:
 		for (int j = 0; j < _alloc_size; ++j)
 			assert(_alloc_array[j] != node);
 #endif
-		//assert(node->in_use);
-		//node->in_use = false;
 		_alloc_array[_alloc_size++] = node;
 	}
 };
