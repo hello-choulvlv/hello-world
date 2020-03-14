@@ -72,12 +72,13 @@ public:
 	typedef link_node link_node_t;
 private:
 	link_node  *_head_root,*_tail_root,*_cache;
+	link_list_alloc<link_node, KT>  *_mem_alloc;
 	int                  _node_size,_cache_size, _cache_capacity;
 public:
 	link_list(const link_list &) = delete;
 	link_list& operator = (const link_list &) = delete;
 
-	link_list(int cache_capacity = 0x7FFFFFFF):_head_root(nullptr), _tail_root(nullptr),_cache(nullptr),_node_size(0),_cache_size(0), _cache_capacity(cache_capacity){};
+	link_list(int cache_capacity = 0x7FFFFFFF, link_list_alloc<link_node, KT> *mem_alloc = nullptr):_head_root(nullptr), _tail_root(nullptr),_cache(nullptr), _mem_alloc(mem_alloc),_node_size(0),_cache_size(0), _cache_capacity(cache_capacity){};
 
 	~link_list() {
 		link_node *node = _head_root;
@@ -266,6 +267,16 @@ public:
 
 	link_node *apply(const KT &kt_value) {
 		link_node *node = nullptr;
+		if (_mem_alloc) {
+			bool b_recycle = false;
+			node = _mem_alloc->alloc(kt_value,b_recycle);
+			if (b_recycle) {
+				node->next = node->prev  = nullptr;
+				node->tv_value = kt_value;
+			}
+			return node;
+		}
+
 		if (_cache_size)
 		{
 			node = _cache;
@@ -279,6 +290,10 @@ public:
 		return node;
 	};
 	void release(link_node *interval_node) {
+		if (_mem_alloc) {
+			_mem_alloc->release(interval_node);
+			return;
+		}
 		if (_cache_size < _cache_capacity)
 		{
 			interval_node->next = _cache;

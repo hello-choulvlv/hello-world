@@ -22,10 +22,10 @@ public:
 	priority_queue(const priority_queue &) = delete;
 	priority_queue& operator=(const priority_queue &) = delete;
 
-	priority_queue(int heap_size,bool retain_mem): _heap_size(0),_heap_capacity(heap_size), _retain(retain_mem){
+	priority_queue(int heap_size,bool retain_mem = true): _heap_size(0),_heap_capacity(heap_size), _retain(retain_mem){
 		_root_heap = new KP[heap_size + 1];
 	};
-	priority_queue(KP *elem_array, int array_size, std::function<bool(const KP &a, const KP &b)> &compare_func, std::function<int(KP &target,int index_new)> &modify_func,bool retain_mem) : 
+	priority_queue(KP *elem_array, int array_size, std::function<bool(const KP &a, const KP &b)> &compare_func, std::function<int(KP &target,int index_new)> &modify_func,bool retain_mem = true) : 
 		_heap_size(array_size), 
 		_heap_capacity(array_size),
 		_retain(retain_mem){
@@ -111,6 +111,7 @@ public:
 	void remove(KP &target,std::function<bool(const KP &a, const KP &b)> &compare_func, std::function<int(KP &target, int index_new)> &modify_func)
 	{
 		int parent_l = modify_func(target, -1);
+		assert(parent_l > 0 && parent_l <= _heap_size);
 		int child_l = parent_l << 1;
 		KP &elem = _root_heap[_heap_size];
 		--_heap_size;

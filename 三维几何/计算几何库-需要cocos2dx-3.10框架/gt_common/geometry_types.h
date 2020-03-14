@@ -33,4 +33,5 @@
 #define gt_bit_set(mem_ptr,N) *(((unsigned char*)(mem_ptr))+((N)>>3)) |= 1 << ((N) & 0xF)
 #define gt_bit_cls(mem_ptr,N) *(((unsigned char*)(mem_ptr))+((N)>>3)) &= 0xFF - (1 << ((N) & 0xF))
 
+#define gt_eps 0.0001f
 #endif

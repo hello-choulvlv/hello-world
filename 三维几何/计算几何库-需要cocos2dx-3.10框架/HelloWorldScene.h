@@ -163,6 +163,8 @@ public:
 	void convexHull3dRandom();
 	//测试共享内存分配器版平衡树
 	void balanceTreeMemSlab();
+	//简单多边形求交
+	void simplePolygonIntersect();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

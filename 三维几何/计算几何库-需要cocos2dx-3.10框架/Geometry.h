@@ -8,6 +8,8 @@
 #include "cycle_sphere/cycle_sphere.h"
 #include "aabb_obb/aabb_obb.h"
 #include "point_polygon/point_polygon.h"
+#include "point_polygon/simple_polygon.h"
+
 #include "line/line.h"
 #include "triangle/triangle.h"
 #include "voronoi/Voronoi.h"

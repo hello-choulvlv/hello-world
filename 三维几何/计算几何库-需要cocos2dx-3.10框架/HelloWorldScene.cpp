@@ -32,7 +32,7 @@ bool HelloWorld::init()
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 	auto &winSize = _director->getWinSize();
-	int64_t seed = time(nullptr); //1579139246;// time(nullptr);// 1578545857;// time(nullptr);//1572057392;
+	int64_t seed = 1584181141;// time(nullptr); //1579139246;// time(nullptr);// 1578545857;// time(nullptr);//1572057392;
 	CCLOG("seed->%ld", seed);
 	srand(seed);//14,23,27
 
@@ -121,8 +121,9 @@ bool HelloWorld::init()
 	//rotateHullPolygonsNarrowSurface();
 	//convexHull3dAlgorithm();
 	//priorityQueueTest();
-	convexHull3dRandom();
+	//convexHull3dRandom();
 	//balanceTreeMemSlab();
+	simplePolygonIntersect();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -858,4 +859,43 @@ void HelloWorld::balanceTreeMemSlab()
 	//重新加测树的结构是否合法
 	testRedBlackTreeDepth(rb_tree);
 	testRedBlackTreeDepth(rb_tree2);
+}
+
+void HelloWorld::simplePolygonIntersect() {
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+
+	float  length_l = 600.0f;
+	float length_w = 600;
+	const int array_size = 13;
+	//三角形平面
+	std::vector<Vec2>  points(array_size);
+	std::vector<Vec2>  points2(array_size);
+
+	for (int j = 0; j < array_size; ++j)
+	{
+		points[j] = Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+		points2[j] = Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+	}
+	//生成简单多边形
+	gt::polygon_simple_generate(points, points);
+	gt::polygon_simple_generate(points2, points2);
+	//画出离散的边
+	for (int index_j = 0; index_j < array_size; ++index_j) {
+		draw_node->drawLine(points[index_j], points[index_j < array_size - 1 ? index_j + 1 : 0], Color4F::GREEN);
+		draw_node->drawLine(points2[index_j], points2[index_j < array_size - 1 ? index_j + 1 : 0], Color4F::BLUE);
+	}
+
+	std::vector<Vec2>  intersect_array;
+	gt::simple_polygon_intersect(points, points2, intersect_array);
+	for (int j = 0; j < intersect_array.size(); ++j){
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(intersect_array[j]);
+		root_node->addChild(sprite);
+	}
+
+	root_node->setCameraMask(s_CameraMask);
 }
