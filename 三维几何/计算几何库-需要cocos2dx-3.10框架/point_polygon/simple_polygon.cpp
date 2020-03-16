@@ -75,6 +75,10 @@ bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const 
 
 		if (fabsf(a_ly - b_ly) > gt_eps) 
 			return a_ly > b_ly ? 1 : -1;
+		////如果两个端点的坐标值相等,则很大程度上可能因为是相互衔接的端点,此时需要额外的判断
+		//bool b1 = false, b2 = false;
+		//if (a.owner_idx == b.owner_idx && (b1 = a.final_point.equals(b.origin_point) || (b2 = b.final_point.equals(a.origin_point))))
+		//	return b1?;
 		//否则计算以交点(tx,a_y)为原点的相对位置
 		compare_base_point.y = a_ly;
 		float f = cross(compare_base_point,a.final_point + Vec2(a_x,a_y),b.final_point + Vec2(b_x,b_y));
@@ -85,7 +89,11 @@ bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const 
 		if (a.event_point.x < b.event_point.x || a.event_point.x == b.event_point.x && a.event_point.y < b.event_point.y)
 			return true;
 		//下面的代码可以化简
-		return a.event_point.x == b.event_point.x && a.event_point.y == b.event_point.y && a.event_type < b.event_type;
+		bool b2 = a.event_point.equals(b.event_point);
+		if (a.owner_idx == b.owner_idx && b2)
+			return a.event_type == EventType_Right;
+
+		return b2 && a.event_type < b.event_type;
 	};
 
 	std::function<int(simple_event &, int)> modify_func = [](simple_event &event, int queue_idx)->int {
@@ -108,6 +116,10 @@ bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const 
 		++loops;
 		//检查头
 		const simple_event target_event = event_queue.head();
+		if (target_event.point_idx == 3 && target_event.event_type == EventType_Left) {
+			int x = 0;
+			int y = 0;
+		}
 		event_queue.remove_head(event_compare_func, modify_func);
 		const polygons_info &target_polygon = polygon_array[target_event.owner_idx];
 		short prev_idx = target_event.point_idx ? target_event.point_idx - 1 : target_polygon.polygon_size - 1;

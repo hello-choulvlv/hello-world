@@ -870,7 +870,7 @@ void HelloWorld::simplePolygonIntersect() {
 
 	float  length_l = 600.0f;
 	float length_w = 600;
-	const int array_size = 13;
+	const int array_size = 12;
 	//三角形平面
 	std::vector<Vec2>  points(array_size);
 	std::vector<Vec2>  points2(array_size);
@@ -887,6 +887,21 @@ void HelloWorld::simplePolygonIntersect() {
 	for (int index_j = 0; index_j < array_size; ++index_j) {
 		draw_node->drawLine(points[index_j], points[index_j < array_size - 1 ? index_j + 1 : 0], Color4F::GREEN);
 		draw_node->drawLine(points2[index_j], points2[index_j < array_size - 1 ? index_j + 1 : 0], Color4F::BLUE);
+
+#if 0
+		char buffer[128];
+		sprintf(buffer,"%d,%d",(int)points[index_j].x,(int)points[index_j].y);
+		Label *label1 = Label::createWithSystemFont(buffer, "Arial",14);
+		label1->setPosition(points[index_j]);
+		label1->setColor(Color3B::GREEN);
+		root_node->addChild(label1);
+
+		sprintf(buffer, "%d,%d",(int)points2[index_j].x,(int)points[index_j].y);
+		Label *label2 = Label::createWithSystemFont(buffer, "Arial",14);
+		label2->setPosition(points2[index_j]);
+		//label2->setColor(Color3B::BLUE);
+		root_node->addChild(label2);
+#endif
 	}
 
 	std::vector<Vec2>  intersect_array;
