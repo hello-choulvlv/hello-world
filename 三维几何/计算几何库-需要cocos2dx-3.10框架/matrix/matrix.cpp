@@ -183,6 +183,22 @@ float radian_from(const cocos2d::Vec2 &a, const cocos2d::Vec2 &b)
 	return angle_b - angle_a;
 }
 
+float randian_fromy(const cocos2d::Vec2 &axis) {
+	float d = sqrtf(axis.x * axis.x + axis.y * axis.y);
+	d = d != 0.0f ? 1.0f / d : 0.0f;
+
+	float asin_f = asinf(axis.x * d);
+	return asin_f >=0.0f?M_PI_2 - asin_f:asin_f+M_PI_2;
+}
+
+float randian_fromy(float x, float y) {
+	float d = sqrtf(x * x + y * y);
+	d = d != 0.0f ? 1.0f / d : 0.0f;
+
+	float asin_f = asinf(x * d);
+	return asin_f >= 0.0f ? M_PI_2 - asin_f : asin_f + M_PI_2;
+}
+
 float cross(const cocos2d::Vec2 &a, const cocos2d::Vec2 &b)
 {
 	return a.x * b.y - a.y * b.x;
@@ -191,6 +207,32 @@ float cross(const cocos2d::Vec2 &a, const cocos2d::Vec2 &b)
 float cross(const cocos2d::Vec2 &base, const cocos2d::Vec2 &fc1, const cocos2d::Vec2 &fc2)
 {
 	return	(fc1.x - base.x) * (fc2.y - base.y) - (fc1.y - base.y) * (fc2.x - base.x);
+}
+
+float cross_normalize(const cocos2d::Vec2 &fc1, const cocos2d::Vec2 &fc2) {
+	float d1 = sqrtf(fc1.x * fc1.x + fc1.y *fc1.y);
+	float d2 = sqrtf(fc2.x * fc2.x + fc2.y *fc2.y);
+
+	d1 = d1 != 0.0f ? 1.0f / d1 : 0.0f;
+	d2 = d2 != 0.0f ? 1.0f / d2 : 0.0f;
+
+	return d1 * d2 *(fc1.x  * fc2.y - fc1.y * fc2.x);
+}
+
+float cross_normalize(const cocos2d::Vec2 &base, const cocos2d::Vec2 &fc1, const cocos2d::Vec2 &fc2) {
+	float a_x = fc1.x - base.x;
+	float a_y = fc1.y - base.y;
+
+	float b_x = fc2.x - base.x;
+	float b_y = fc2.y - base.y;
+
+	float d1 = sqrtf(a_x * a_x+ a_y * a_y);
+	float d2 = sqrtf(b_x * b_x + b_y * b_y);
+
+	d1 = d1 != 0.0f ? 1.0f / d1 : 0.0f;
+	d2 = d2 != 0.0f ? 1.0f / d2 : 0.0f;
+
+	return d1 * d2 *(a_x  * b_y - a_y * b_x);
 }
 
 float sign_area(const cocos2d::Vec2 &db, const cocos2d::Vec2 &dc)

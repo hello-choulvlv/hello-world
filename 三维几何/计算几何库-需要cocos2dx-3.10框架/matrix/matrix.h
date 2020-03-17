@@ -60,12 +60,14 @@ void  mat3_transform_vec3(const mat3x3 &mat,const cocos2d::Vec3 &t,cocos2d::Vec3
 *向量的叉乘
 */
 cocos2d::Vec3  cross(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b);
+cocos2d::Vec3  cross(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b, const cocos2d::Vec3 &c);
 cocos2d::Vec3  cross_normalize(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b);
 cocos2d::Vec3  cross_normalize(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b, const cocos2d::Vec3 &c);
 
 float cross(const cocos2d::Vec2 &a, const cocos2d::Vec2 &b);
 float cross(const cocos2d::Vec2 &base,const cocos2d::Vec2 &fc1,const cocos2d::Vec2 &fc2);
-cocos2d::Vec3  cross(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b,const cocos2d::Vec3 &c);
+float cross_normalize(const cocos2d::Vec2 &fc1, const cocos2d::Vec2 &fc2);
+float cross_normalize(const cocos2d::Vec2 &base, const cocos2d::Vec2 &fc1, const cocos2d::Vec2 &fc2);
 /*
 *向量规范化
 */
@@ -79,6 +81,11 @@ cocos2d::Vec2 normalize(float x,float y);
   *求从向量a旋转到b经过的弧度
  */
 float radian_from(const cocos2d::Vec2 &a,const cocos2d::Vec2 &b);
+/*
+  *球员向量与+y轴的夹角
+ */
+float randian_fromy(const cocos2d::Vec2 &axis);
+float randian_fromy(float x,float y);
 /*
   *3x3矩阵变换
  */

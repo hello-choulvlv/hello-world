@@ -32,7 +32,7 @@ bool HelloWorld::init()
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 	auto &winSize = _director->getWinSize();
-	int64_t seed = 1584181141;// time(nullptr); //1579139246;// time(nullptr);// 1578545857;// time(nullptr);//1572057392;
+	int64_t seed = time(nullptr);//1572057392;
 	CCLOG("seed->%ld", seed);
 	srand(seed);//14,23,27
 
@@ -868,9 +868,9 @@ void HelloWorld::simplePolygonIntersect() {
 	DrawNode  *draw_node = DrawNode::create();
 	root_node->addChild(draw_node);
 
-	float  length_l = 600.0f;
-	float length_w = 600;
-	const int array_size = 12;
+	float  length_l = 700.0f;
+	float length_w = 700;
+	const int array_size = 15;
 	//三角形平面
 	std::vector<Vec2>  points(array_size);
 	std::vector<Vec2>  points2(array_size);
@@ -888,15 +888,15 @@ void HelloWorld::simplePolygonIntersect() {
 		draw_node->drawLine(points[index_j], points[index_j < array_size - 1 ? index_j + 1 : 0], Color4F::GREEN);
 		draw_node->drawLine(points2[index_j], points2[index_j < array_size - 1 ? index_j + 1 : 0], Color4F::BLUE);
 
-#if 0
+#if 1
 		char buffer[128];
-		sprintf(buffer,"%d,%d",(int)points[index_j].x,(int)points[index_j].y);
+		sprintf(buffer,"%d->%d,%d",index_j,(int)points[index_j].x,(int)points[index_j].y);
 		Label *label1 = Label::createWithSystemFont(buffer, "Arial",14);
 		label1->setPosition(points[index_j]);
 		label1->setColor(Color3B::GREEN);
 		root_node->addChild(label1);
 
-		sprintf(buffer, "%d,%d",(int)points2[index_j].x,(int)points[index_j].y);
+		sprintf(buffer, "%d->%d,%d",index_j,(int)points2[index_j].x,(int)points[index_j].y);
 		Label *label2 = Label::createWithSystemFont(buffer, "Arial",14);
 		label2->setPosition(points2[index_j]);
 		//label2->setColor(Color3B::BLUE);

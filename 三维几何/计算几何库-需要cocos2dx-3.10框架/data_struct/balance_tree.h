@@ -353,7 +353,7 @@ public:
 		new_node->color_type = old_node->color_type;
 	}
 
-	internal_node *remove_case(internal_node *search_node){
+	internal_node *remove_case(internal_node *search_node,bool b_release = true){
 		if (_node_size == 1) {
 			_root = nullptr;
 			release_memory(search_node);
@@ -583,7 +583,8 @@ private:
 		if (_mem_alloc){
 			tw_node = _mem_alloc->alloc(tv_value,b_recyle);
 			if (b_recyle) {
-				tw_node->tw_value = tv_value;
+				if(&tv_value != &tw_node->tw_value)//直接比较对象的地址,在有些算法中,会使用到red_black_tree的结构技巧
+					tw_node->tw_value = tv_value;
 				tw_node->color_type = ColorType_Red;
 				 tw_node->parent = tw_node->l_child = tw_node->r_child = nullptr;
 			}
