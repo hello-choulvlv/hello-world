@@ -904,13 +904,29 @@ void HelloWorld::simplePolygonIntersect() {
 #endif
 	}
 
-	std::vector<Vec2>  intersect_array;
+	std::vector<gt::simple_interleave>  intersect_array;
 	gt::simple_polygon_intersect(points, points2, intersect_array);
 	for (int j = 0; j < intersect_array.size(); ++j){
+		auto &interleave_point = intersect_array[j];
 		Sprite *sprite = Sprite::create("llk_yd.png");
-		sprite->setPosition(intersect_array[j]);
+		sprite->setPosition(interleave_point.interleave_point);
 		root_node->addChild(sprite);
 	}
+	//求多边形的交集合
+#if 1
+	std::list<std::vector<Vec2>> polygon_intersect_array;
+	gt::simple_polygon_interleave_set(points, points2, intersect_array, polygon_intersect_array);
 
+	gt::random();
+	for (auto it = polygon_intersect_array.begin(); it != polygon_intersect_array.end(); ++it) {
+		auto &polygon = *it;
+		int array_size2 = polygon.size();
+		Color4F color(gt::random(), gt::random(), gt::random(), 1.0f);
+		for (int j = 0; j < array_size2; ++j) {
+			draw_node->drawLine(polygon[j], polygon[(j + 1) % array_size2], color);
+		}
+		//break;
+	}
+#endif
 	root_node->setCameraMask(s_CameraMask);
 }

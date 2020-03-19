@@ -8,6 +8,7 @@
 #define __simple_polygon_h__
 #include "math/Vec2.h"
 #include <vector>
+#include<list>
 #include "gt_common/geometry_types.h"
 #include "data_struct/balance_tree.h"
 
@@ -33,9 +34,16 @@ struct simple_event {
 	//simple_edge *cross_edge1,*cross_edge2;
 	red_black_tree<simple_edge>::internal_node *cross_edge1, *cross_edge2;
 };
+//简单多边形之间的交点
+struct simple_interleave {
+	cocos2d::Vec2 interleave_point;//交叉点的坐标
+	short point_idx1,point_idx2;//所属的多边形以及当前交叉点所在的边,point_idx-----point_idx+1
+	short ref;//访问标志0未被访问过,1已经被访问过
+};
 
-struct simple_polygon {
-
+struct simple_interleave_ref {
+	const simple_interleave *simple_ref;
+	int	   point_idx;
 };
 /*
   *第一版中,先求出所有的多边形交点
@@ -44,7 +52,14 @@ struct simple_polygon {
   *在后面的函数视实现中,我们将会扩展该函数的功能.
   *并且完整的实现两简单多边形的交并差算法.
  */
-bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1,const std::vector<cocos2d::Vec2>&polygon2,std::vector<cocos2d::Vec2> &intersect_array);
+bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1,const std::vector<cocos2d::Vec2>&polygon2,std::vector<simple_interleave> &intersect_array);
+/*
+  *将给出的交叉点数据结构转换为多边形的交集,注意有可能会产生不止一个多边形
+  *中间如果有多个多边形,则使用索引-1隔开
+  *如果多边形都是星型多边形,则算法将会更加简单
+  *在这里假设只是普通的简单多边形
+ */
+bool simple_polygon_interleave_set(const std::vector<cocos2d::Vec2>&, const std::vector<cocos2d::Vec2> &polygon2, const std::vector<simple_interleave>&,std::list<std::vector<cocos2d::Vec2>> &polygon_intersect_array);
 NS_GT_END
 
 #endif

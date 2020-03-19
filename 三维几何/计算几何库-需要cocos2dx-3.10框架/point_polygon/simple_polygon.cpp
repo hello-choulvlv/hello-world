@@ -12,6 +12,7 @@
 #include <functional>
 #include <math.h>
 #include <assert.h>
+#include <map>
 
 using namespace cocos2d ;
 NS_GT_BEGIN
@@ -55,7 +56,7 @@ static void simple_polygon_init_event(const std::vector<cocos2d::Vec2> &polygon,
 	}
 }
 
-bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const std::vector<cocos2d::Vec2>&polygon2, std::vector<cocos2d::Vec2> &intersect_array) {
+bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const std::vector<cocos2d::Vec2>&polygon2, std::vector<simple_interleave> &intersect_array) {
 	//建立算法运行过程中需要使用到的数据结构
 	priority_queue<simple_event>  event_queue(polygon1.size() + polygon2.size() << 1);
 	red_black_tree<simple_edge>   edge_status;
@@ -145,7 +146,7 @@ bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const 
 				simple_edge &target_edge = above_ptr->tw_value;
 				bool b_interleave = segment_segment_intersect_test(target_edge.origin_point, target_edge.final_point,edge1.origin_point,edge1.final_point,intersect_point);
 				//此时将会形成新的交点,并截断原来的线段
-				if (b_interleave) {
+				if (b_interleave && intersect_point.x >= compare_base_point.x) {
 					simple_event interleave_event = {
 						intersect_point,
 						SimpleEventType::EventType_Interleave,
@@ -164,7 +165,7 @@ bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const 
 				simple_edge &target_edge = below_ptr->tw_value;
 				bool b_interleave = segment_segment_intersect_test(target_edge.origin_point, target_edge.final_point, edge1.origin_point, edge1.final_point, intersect_point);
 				//此时将会形成新的交点,并截断原来的线段
-				if (b_interleave) {
+				if (b_interleave && intersect_point.x >= compare_base_point.x) {
 					simple_event interleave_event = {
 						intersect_point,
 						SimpleEventType::EventType_Interleave,
@@ -184,7 +185,7 @@ bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const 
 				simple_edge &target_edge = above_ptr->tw_value;
 				bool b_interleave = segment_segment_intersect_test(target_edge.origin_point, target_edge.final_point, edge2.origin_point, edge2.final_point, intersect_point);
 				//此时将会形成新的交点,并截断原来的线段
-				if (b_interleave) {
+				if (b_interleave && intersect_point.x >= compare_base_point.x) {
 					simple_event interleave_event = {
 						intersect_point,
 						SimpleEventType::EventType_Interleave,
@@ -202,7 +203,7 @@ bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const 
 				simple_edge &target_edge = below_ptr->tw_value;
 				bool b_interleave = segment_segment_intersect_test(target_edge.origin_point, target_edge.final_point, edge2.origin_point, edge2.final_point, intersect_point);
 				//此时将会形成新的交点,并截断原来的线段
-				if (b_interleave) {
+				if (b_interleave && intersect_point.x >= compare_base_point.x) {
 					simple_event interleave_event = {
 						intersect_point,
 						SimpleEventType::EventType_Interleave,
@@ -240,7 +241,7 @@ bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const 
 			//求出交点
 			if (above_ptr && below_ptr && above_ptr->tw_value.owner_idx != below_ptr->tw_value.owner_idx) {
 				bool b_interleave = segment_segment_intersect_test(above_ptr->tw_value.origin_point,above_ptr->tw_value.final_point,below_ptr->tw_value.origin_point,below_ptr->tw_value.final_point,intersect_point);
-				if (b_interleave) {
+				if (b_interleave && intersect_point.x > compare_base_point.x) {
 					simple_event event_point = {
 						intersect_point,
 						SimpleEventType::EventType_Interleave,
@@ -264,7 +265,7 @@ bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const 
 			auto *above_ptr = edge_status.find_next(edge_ptr);
 			if (above_ptr && above_ptr->tw_value.owner_idx != target_event.owner_idx) {
 				bool b_interleave = segment_segment_intersect_test(edge1.origin_point,edge1.final_point,above_ptr->tw_value.origin_point,above_ptr->tw_value.final_point,intersect_point);
-				if (b_interleave) {
+				if (b_interleave && intersect_point.x >= compare_base_point.x) {
 					simple_event interleave_event = {
 						intersect_point,
 						SimpleEventType::EventType_Interleave,
@@ -281,7 +282,7 @@ bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const 
 			auto *below_ptr = edge_status.find_prev(edge_ptr);
 			if (below_ptr && below_ptr->tw_value.owner_idx != target_event.owner_idx) {
 				bool b_interleave = segment_segment_intersect_test(edge1.origin_point, edge1.final_point, below_ptr->tw_value.origin_point, below_ptr->tw_value.final_point, intersect_point);
-				if (b_interleave) {
+				if (b_interleave && intersect_point.x >= compare_base_point.x) {
 					simple_event interleave_event = {
 						intersect_point,
 						SimpleEventType::EventType_Interleave,
@@ -309,7 +310,7 @@ bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const 
 			auto *below_ptr = edge_status.find_prev(edge_ptr);
 			if (above_ptr && below_ptr && above_ptr->tw_value.owner_idx != below_ptr->tw_value.owner_idx) {
 				bool b_interleave = segment_segment_intersect_test(above_ptr->tw_value.origin_point,above_ptr->tw_value.final_point,below_ptr->tw_value.origin_point,below_ptr->tw_value.final_point,intersect_point);
-				if (b_interleave) {
+				if (b_interleave && intersect_point.x > compare_base_point.x) {
 					simple_event event_point = {
 						intersect_point,
 						SimpleEventType::EventType_Interleave,
@@ -327,9 +328,20 @@ bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const 
 		else {
 			//如果是交叉点事件,此时需要记录相关交点
 			assert(target_event.event_type == EventType_Interleave);
-			vector_fast_push_back(intersect_array,target_event.event_point);
-			//同时需要修改两条相关边的起点,以及交换两条边的位置
 			auto *edge1_ptr = target_event.cross_edge1, *edge2_ptr = target_event.cross_edge2;
+			auto &edge1_ref = !edge1_ptr->tw_value.owner_idx ? edge1_ptr->tw_value:edge2_ptr->tw_value;
+			auto &edge2_ref = edge2_ptr->tw_value.owner_idx ? edge2_ptr->tw_value : edge1_ptr->tw_value;
+
+			int s = min_f(edge1_ref.point_idx, edge1_ref.next_idx), t3 = max_f(edge1_ref.point_idx, edge1_ref.next_idx);
+			if (s == 0 && t3 == polygon1.size() - 1) s = t3;
+			int x = min_f(edge2_ref.point_idx, edge2_ref.next_idx), y = max_f(edge2_ref.point_idx, edge2_ref.next_idx);
+			if (x == 0 && y == polygon2.size() - 1) x = y;
+
+			simple_interleave interleave_point = {
+				target_event.event_point,s,x, 
+			};
+			vector_fast_push_back(intersect_array, interleave_point);
+			//同时需要修改两条相关边的起点,以及交换两条边的位置
 			edge1_ptr->tw_value.origin_point = target_event.event_point;
 			edge2_ptr->tw_value.origin_point = target_event.event_point;
 			//实际上,该处代码是可以优化的,前提是对red_black_tree的代码结构非常了解
@@ -347,7 +359,7 @@ bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const 
 			assert(below_ptr != nullptr);
 			if (below_ptr != edge1_ptr && below_ptr->tw_value.owner_idx != edge2_ptr->tw_value.owner_idx) {
 				bool b_interleave = segment_segment_intersect_test(below_ptr->tw_value.origin_point,below_ptr->tw_value.final_point, edge2_ptr->tw_value.origin_point, edge2_ptr->tw_value.final_point,intersect_point);
-				if (b_interleave) {
+				if (b_interleave && intersect_point.x >= compare_base_point.x) {
 					simple_event interleave_event = {
 						intersect_point,
 						SimpleEventType::EventType_Interleave,
@@ -365,7 +377,7 @@ bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const 
 			assert(above_ptr != edge1_ptr);
 			if (above_ptr && above_ptr->tw_value.owner_idx != edge2_ptr->tw_value.owner_idx) {
 				bool b_interleave = segment_segment_intersect_test(above_ptr->tw_value.origin_point, above_ptr->tw_value.final_point, edge2_ptr->tw_value.origin_point, edge2_ptr->tw_value.final_point, intersect_point);
-				if (b_interleave) {
+				if (b_interleave && intersect_point.x >= compare_base_point.x) {
 					simple_event interleave_event = {
 						intersect_point,
 						SimpleEventType::EventType_Interleave,
@@ -383,7 +395,7 @@ bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const 
 			assert(above_ptr != nullptr);
 			if (above_ptr != edge2_ptr && above_ptr->tw_value.owner_idx != edge1_ptr->tw_value.owner_idx) {
 				bool b_interleave = segment_segment_intersect_test(above_ptr->tw_value.origin_point, above_ptr->tw_value.final_point, edge1_ptr->tw_value.origin_point, edge1_ptr->tw_value.final_point, intersect_point);
-				if (b_interleave) {
+				if (b_interleave && intersect_point.x >= compare_base_point.x) {
 					simple_event interleave_event = {
 						intersect_point,
 						SimpleEventType::EventType_Interleave,
@@ -401,7 +413,7 @@ bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const 
 			assert(below_ptr != edge2_ptr);
 			if (below_ptr != nullptr && below_ptr->tw_value.owner_idx != edge1_ptr->tw_value.owner_idx) {
 				bool b_interleave = segment_segment_intersect_test(below_ptr->tw_value.origin_point, below_ptr->tw_value.final_point, edge1_ptr->tw_value.origin_point, edge1_ptr->tw_value.final_point, intersect_point);
-				if (b_interleave) {
+				if (b_interleave && intersect_point.x >= compare_base_point.x) {
 					simple_event interleave_event = {
 						intersect_point,
 						SimpleEventType::EventType_Interleave,
@@ -419,4 +431,132 @@ bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const 
 	return intersect_array.size() > 0;
 }
 
+bool simple_polygon_interleave_set(const std::vector<cocos2d::Vec2>&polygon1,const std::vector<cocos2d::Vec2> &polygon2, const std::vector<simple_interleave>&interleave_array, std::list<std::vector<cocos2d::Vec2>> &polygon_intersect_array) {
+	//注意如果没有任何的交点,要么是完全的分离,要么是一个多边形完全处于另外一个的内部
+	//这两种情况我们稍后分析
+
+	//第一步对顶点进行统计
+	std::map<int, std::vector<simple_interleave_ref>> polygon_edge1;
+	std::map<int, std::vector<simple_interleave_ref>> polygon_edge2;
+	std::map<int, simple_interleave> polygon_edge;
+
+	Vec2 base_point;
+	std::function<bool(const simple_interleave_ref &,const simple_interleave_ref &)> compare_func = [&base_point](const simple_interleave_ref &a, const simple_interleave_ref &b)->bool {
+		return length2(a.simple_ref->interleave_point,base_point) < length2(b.simple_ref->interleave_point,base_point);
+	};
+
+	std::function<bool(const simple_interleave_ref &,const simple_interleave_ref &)> equal_func = [](const simple_interleave_ref&a, const simple_interleave_ref&b)->bool {
+		return a.simple_ref->point_idx1 == b.simple_ref->point_idx1 
+			&&a.simple_ref->point_idx2 == b.simple_ref->point_idx2 
+			&& a.point_idx == b.point_idx;
+	};
+
+#define map_key(x,y) (((y)<<16)+x)
+	for (int j = 0; j < interleave_array.size(); ++j) {
+		const simple_interleave &interleave_point = interleave_array[j];
+		simple_interleave_ref interleave_ref = {
+			&interleave_point,interleave_point.point_idx2,
+		};
+
+		auto it = polygon_edge1.find(interleave_point.point_idx1);
+		std::vector<simple_interleave_ref> *array_ptr = nullptr;
+		if (it == polygon_edge1.end())
+			array_ptr = &(polygon_edge1[interleave_point.point_idx1] = std::vector<simple_interleave_ref>());
+		else
+			array_ptr = &it->second;
+
+		base_point = polygon1[interleave_point.point_idx1];
+		if (check_array_same_elem<simple_interleave_ref>(array_ptr->data(), (int)array_ptr->size(),interleave_ref,equal_func) == -1)
+			vector_fast_push_back((*array_ptr), interleave_ref);
+		insert_sort<simple_interleave_ref>(array_ptr->data(),(int)array_ptr->size(),compare_func);
+		//////////////////////////////////////////////////////////////////////////
+		interleave_ref.point_idx = interleave_point.point_idx1;
+		it = polygon_edge2.find(interleave_point.point_idx2);
+		array_ptr = nullptr;
+		if (it == polygon_edge2.end())
+			array_ptr = &(polygon_edge2[interleave_point.point_idx2] = std::vector<simple_interleave_ref>());
+		else
+			array_ptr = &it->second;
+
+		base_point = polygon2[interleave_point.point_idx2];
+		if(check_array_same_elem<simple_interleave_ref>(array_ptr->data(),(int)array_ptr->size(),interleave_ref,equal_func) == -1)
+			vector_fast_push_back((*array_ptr), interleave_ref);
+		insert_sort<simple_interleave_ref>(array_ptr->data(), (int)array_ptr->size(), compare_func);
+
+		int key_code = map_key(interleave_point.point_idx1,interleave_point.point_idx2);
+		if (polygon_edge.find(key_code) == polygon_edge.end()) {
+			auto &st = polygon_edge[key_code] = interleave_point;
+			//作上标志,表示未被访问过
+			st.ref = 0;
+		}
+	}
+	//第二步,逐边遍历,遍历的过程有点复杂
+
+	if (!polygon_edge.size())return false;
+	std::function<int(const std::vector<simple_interleave_ref> &, short)> lookup_func = [](const std::vector<simple_interleave_ref> &ref_array, short target_idx)->int {
+		int array_size = ref_array.size();
+		for (int j = 0; j < array_size; ++j) {
+			if (ref_array.at(j).point_idx == target_idx) 
+				return j < array_size - 1 ? ref_array.at(j+1).point_idx : -1;
+		}
+		return -1;
+	};
+
+	for (auto it = polygon_edge.begin(); it != polygon_edge.end(); ++it) {
+		if (it->second.ref)continue;
+		std::vector<Vec2>  polygon;
+		bool b_found = true;
+		int array_size1 = polygon1.size();
+		int array_size2 = polygon2.size();
+		//以下算法的核心思想是利用多边形的两条边至多只有一个交点的性质
+		const simple_interleave &interleave_st = it->second;
+		float f = cross(interleave_st.interleave_point, polygon1[(interleave_st.point_idx1 + 1) % array_size1], polygon2[(interleave_st.point_idx2 + 1) % array_size2]);
+		bool b2 = f < 0.0f;
+		//如果f < 0.0,则表示会继续沿着原来的边继续前进,否则交换顺序
+		std::map<int, std::vector<simple_interleave_ref>> *other_edge_ptr = b2 ? &polygon_edge1 : &polygon_edge2;
+		std::map<int, std::vector<simple_interleave_ref>> *tripple_edge_ptr = b2 ? &polygon_edge2 : &polygon_edge1;
+
+		const std::vector<Vec2> *polygon1_ptr = b2 ? &polygon1 : &polygon2;
+		const std::vector<Vec2> *polygon2_ptr = b2 ? &polygon2 : &polygon1;
+
+		int point_idx1 = b2 ? it->second.point_idx1 : it->second.point_idx2;
+		int point_idx2 = b2 ? it->second.point_idx2 : it->second.point_idx1;
+
+		if (!b2) {
+			array_size1 = polygon2.size();
+		}
+		auto it2 = it;
+		bool b3 = b2;
+		int point_idx = point_idx1;
+		while (b_found) {
+			vector_fast_push_back(polygon, it2->second.interleave_point);
+			it2->second.ref = 1;
+			const std::vector<simple_interleave_ref> &ref_array = (*other_edge_ptr)[point_idx1];
+			int lookup_idx = lookup_func(ref_array, point_idx2);
+			//循环遍历孤立的顶点
+			while (lookup_idx == -1) {
+				point_idx1 = (point_idx1 + 1)%array_size1;
+				vector_fast_push_back(polygon, (*polygon1_ptr)[point_idx1%array_size1]);
+				auto st2 = other_edge_ptr->find(point_idx1);
+				lookup_idx = st2 == other_edge_ptr->end() ? -1 : st2->second[0].point_idx;
+			}
+			b2 = !b2;
+			//检测当前是否回到了原点
+			point_idx2 = point_idx1;
+			point_idx1 = lookup_idx;
+			if (b2 == b3 && lookup_idx == point_idx)
+				break;
+			//计算新的交叉点
+			int key_code = b2?map_key(point_idx1, point_idx2):map_key(point_idx2,point_idx1);
+			it2 = polygon_edge.find(key_code);
+			//重新设置某些数据结构
+			other_edge_ptr = b2 ? &polygon_edge1 : &polygon_edge2;
+			polygon1_ptr = b2 ? &polygon1 : &polygon2;
+			array_size1 = b2 ? polygon1.size() : polygon2.size();
+		}
+		polygon_intersect_array.push_back(polygon);
+	}
+#undef map_key
+	return true;
+}
 NS_GT_END

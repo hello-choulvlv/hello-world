@@ -216,6 +216,41 @@ void  insert_sort(TA *source_array, int array_size, std::function<bool(const TA 
 			source_array[base_j] = ta_value;
 	}
 }
+
+template<typename TA>
+void insert_array(TA *source_array, int array_size,const  TA &elem, std::function<bool(const TA &a, const TA &b)> &compare_func) {
+	int j = array_size - 1;
+	while (j >= 0 && compare_func(elem, source_array[j])) {
+		source_array[j + 1] = source_array[j];
+		--j;
+	}
+	source_array[j+1] = elem;
+}
+
+template<typename TA>
+int check_array_same_elem(const TA *source,int array_size,const TA &elem,std::function<bool(const TA &a,const TA&b)> &compare_func) {
+	int j = 0;
+	while (j < array_size && !compare_func(elem, source[j]))
+		++j;
+	return j < array_size ? j : -1;
+}
+/*
+  *二分查找
+ */
+template<typename TA>
+int binary_search(const TA *source,int array_size,const TA &elem,std::function<int(const TA &a,const TA&b)> &compare_func) {
+	int s = 0, t = array_size;
+	while (s < t){
+		int j = (s+t) >>1;
+		int result_ref = compare_func(elem,source[j]);
+		if (result_ref > 0)
+			s = j;
+		else if (result_ref < 0)
+			t = j;
+		else return j;
+	}
+	return -1;
+}
 /*
   *翻转vector中的元素
  */
