@@ -165,6 +165,8 @@ public:
 	void balanceTreeMemSlab();
 	//简单多边形求交
 	void simplePolygonIntersect();
+	//简单多边形与点之间的包含测试
+	void simplePolygonContainsPoint();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

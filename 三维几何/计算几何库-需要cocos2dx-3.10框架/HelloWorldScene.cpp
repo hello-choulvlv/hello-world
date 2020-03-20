@@ -123,7 +123,8 @@ bool HelloWorld::init()
 	//priorityQueueTest();
 	//convexHull3dRandom();
 	//balanceTreeMemSlab();
-	simplePolygonIntersect();
+	//simplePolygonIntersect();
+	simplePolygonContainsPoint();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -928,5 +929,38 @@ void HelloWorld::simplePolygonIntersect() {
 		//break;
 	}
 #endif
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::simplePolygonContainsPoint() {
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+
+	float  length_l = 700.0f;
+	float length_w = 700;
+	const int array_size = 15;
+	//三角形平面
+	std::vector<Vec2>  points(array_size);
+
+	for (int j = 0; j < array_size; ++j)
+		points[j] = Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+
+	gt::polygon_simple_generate(points, points);
+	//画出离散的边
+	for (int index_j = 0; index_j < array_size; ++index_j) 
+		draw_node->drawLine(points[index_j], points[index_j < array_size - 1 ? index_j + 1 : 0], Color4F::GREEN);
+
+	//随机一个点
+	const Vec2 target_point(length_w * gt::randomf10(), length_l * gt::randomf10());
+	bool b_intersect = gt::simple_polygon_contains_point(points, target_point);
+	Sprite *sprite = Sprite::create("llk_yd.png");
+	if (b_intersect)
+		sprite->setColor(Color3B::RED);
+	sprite->setPosition(target_point);
+	root_node->addChild(sprite);
+
 	root_node->setCameraMask(s_CameraMask);
 }

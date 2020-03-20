@@ -353,7 +353,7 @@ public:
 		new_node->color_type = old_node->color_type;
 	}
 
-	internal_node *remove_case(internal_node *search_node,bool b_release = true){
+	internal_node *remove_case(internal_node *search_node){
 		if (_node_size == 1) {
 			_root = nullptr;
 			release_memory(search_node);

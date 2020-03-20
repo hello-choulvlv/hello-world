@@ -431,10 +431,49 @@ bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1, const 
 	return intersect_array.size() > 0;
 }
 
+bool simple_polygon_contains_point(const std::vector<cocos2d::Vec2>&simple_polygon, const cocos2d::Vec2 &target_point) {
+	int above_num = 0;
+	int below_num = 0;
+	int array_size = simple_polygon.size();
+
+	for (int j = 0; j < array_size; ++j) {
+		int next_idx = j < array_size - 1?j+1:0;
+		const Vec2 &now_point = simple_polygon[j];
+		const Vec2 &next_point = simple_polygon[next_idx];
+		if (target_point.x >= min_f(now_point.x, next_point.x) && target_point.x <= max_f(now_point.x, next_point.x)) {
+			//计算是否与上/下射线相交
+			float d_x = next_point.x - now_point.x;
+			float d_y = next_point.y - now_point.y;
+			float d = (target_point.x - now_point.x)*(d_x != 0.0f ? 1.0f / d_x : 0.0f);
+			float t_y = now_point.y + d_y * d;
+			//需要检测垂线是否与当前的线段相交
+			if (t_y > target_point.y)
+				above_num += 1;
+			else if (t_y < target_point.y)
+				below_num += 1;
+		}
+	}
+	return (above_num & 1) & (below_num & 1);
+}
+
 bool simple_polygon_interleave_set(const std::vector<cocos2d::Vec2>&polygon1,const std::vector<cocos2d::Vec2> &polygon2, const std::vector<simple_interleave>&interleave_array, std::list<std::vector<cocos2d::Vec2>> &polygon_intersect_array) {
 	//注意如果没有任何的交点,要么是完全的分离,要么是一个多边形完全处于另外一个的内部
 	//这两种情况我们稍后分析
+	//对任意简单多边形相交测试最简单有效的算法为GJK算法,该算法的实现在point_polygon.cpp中
+	//这里我们将使用任意一个向量对多边形进行测试
+	if (!interleave_array.size()) {
+		bool b_intersect = simple_polygon_contains_point(polygon1,polygon2[0]);
+		const std::vector<cocos2d::Vec2> *polygon_ptr = b_intersect?&polygon2:nullptr;
+		if (!b_intersect) {
+			b_intersect = simple_polygon_contains_point(polygon2, polygon1[0]);
+			polygon_ptr = b_intersect ? &polygon1 : nullptr;
+		}
 
+		if (polygon_ptr != nullptr) {
+			polygon_intersect_array.push_back(*polygon_ptr);
+		}
+		return b_intersect;
+	}
 	//第一步对顶点进行统计
 	std::map<int, std::vector<simple_interleave_ref>> polygon_edge1;
 	std::map<int, std::vector<simple_interleave_ref>> polygon_edge2;

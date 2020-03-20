@@ -58,8 +58,17 @@ bool simple_polygon_intersect(const std::vector<cocos2d::Vec2> &polygon1,const s
   *中间如果有多个多边形,则使用索引-1隔开
   *如果多边形都是星型多边形,则算法将会更加简单
   *在这里假设只是普通的简单多边形
+  *目前给出了求交算法,实际上根据下述算法的解码过程,完全可以写出求并,差的算法
+  *该任务留给了读者自己实现,哥太累了最近.
  */
 bool simple_polygon_interleave_set(const std::vector<cocos2d::Vec2>&, const std::vector<cocos2d::Vec2> &polygon2, const std::vector<simple_interleave>&,std::list<std::vector<cocos2d::Vec2>> &polygon_intersect_array);
+/*
+  *简单多边形与目标点之间的包含测试
+  *算法的核心思想为,以目标点为基准点向上下作垂直射线
+  *计算simple polygon的边与两个射线的相交数目,如果两侧相交的数目都为奇数,则表示相交
+  *分则则意味着分离
+ */
+bool simple_polygon_contains_point(const std::vector<cocos2d::Vec2>&simple_polygon,const cocos2d::Vec2 &target_point);
 NS_GT_END
 
 #endif
