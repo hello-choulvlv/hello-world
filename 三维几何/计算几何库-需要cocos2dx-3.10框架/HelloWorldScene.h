@@ -167,6 +167,8 @@ public:
 	void simplePolygonIntersect();
 	//简单多边形与点之间的包含测试
 	void simplePolygonContainsPoint();
+	//二维线性规划算法
+	void linearProgram2d();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

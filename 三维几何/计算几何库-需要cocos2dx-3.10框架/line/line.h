@@ -201,16 +201,6 @@ bool ray_ray_intersect_test(const cocos2d::Vec2 &raya_start,const cocos2d::Vec2 
  */
 int segment_n_intersect_prim(const std::vector<Segment2D> &segments, std::vector<cocos2d::Vec2> &intersect_points);
 /*
-  *二维线性规划问题,函数约定,直线的左侧为半平面区域
-  *函数已经假定,目标系数向量中x分量为0
-  *2019年11月15日
-  *target_coeff:目标函数的系数
-  *如果找到最大值,则返回1,并给出最有解
-  *如果无界,则返回相关的无限递增射线
-  *否则返回0
- */
-int linearly_program_2d(const std::vector<Line2D> &lines,const cocos2d::Vec2 &target_coeff,cocos2d::Vec2 &interect_point,cocos2d::Vec2 &direction);
-/*
   *N条直线是否可以围成一个多边形
   *如果可以,则返回true,同时给出相关的顶点序列,并呈逆时针排列
   *否则返回false

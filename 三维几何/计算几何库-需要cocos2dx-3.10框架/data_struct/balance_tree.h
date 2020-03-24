@@ -595,7 +595,8 @@ private:
 			tw_node = _cache_head;
 			_cache_head = _cache_head->r_child;
 			--_cache_size;
-			tw_node->tw_value = tv_value;
+			if(&tw_node->tw_value != &tv_value)
+				tw_node->tw_value = tv_value;
 			tw_node->color_type = ColorType_Red;
 			 tw_node->parent = tw_node->l_child = tw_node->r_child = nullptr;
 		}

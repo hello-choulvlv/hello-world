@@ -124,7 +124,8 @@ bool HelloWorld::init()
 	//convexHull3dRandom();
 	//balanceTreeMemSlab();
 	//simplePolygonIntersect();
-	simplePolygonContainsPoint();
+	//simplePolygonContainsPoint();
+	linearProgram2d();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -961,6 +962,75 @@ void HelloWorld::simplePolygonContainsPoint() {
 		sprite->setColor(Color3B::RED);
 	sprite->setPosition(target_point);
 	root_node->addChild(sprite);
+
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::linearProgram2d() {
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+
+	float  length_l = 700.0f;
+	float length_w = 700;
+	const int array_size = 4 + 4;
+	//三角形平面
+	std::vector<gt::Line2D>  lines_array(array_size);
+
+	for (int j = 0; j < array_size - 4; ++j) {
+		Vec2 point = Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+		lines_array[j].start_point = point;
+		lines_array[j].direction = gt::normalize(Vec2(length_w * gt::randomf10(), length_l * gt::randomf10()));
+	}
+
+	float boundary = 1000;// 800000;
+	lines_array[array_size-4].start_point = Vec2(-boundary,-boundary);
+	lines_array[array_size - 4].direction = Vec2(1.0f, 0);
+
+	lines_array[array_size - 3].start_point = Vec2(boundary,-boundary);
+	lines_array[array_size - 3].direction = Vec2(0, 1.0f);
+
+	lines_array[array_size - 2].start_point = Vec2(boundary, boundary);
+	lines_array[array_size - 2].direction = Vec2(-1.0f, 0.0f);
+
+	lines_array[array_size - 1].start_point = Vec2(-boundary, boundary);
+	lines_array[array_size - 1].direction = Vec2(0.0f,-1.0f);
+
+	std::vector<cocos2d::Vec2>  intersect_array;
+	cocos2d::Vec2 intersect_point, direction;
+	float coeff_array[3] = {
+		gt::randomf10(),
+		gt::randomf10(),
+		gt::randomf10() * 100,
+	};
+	int solve_value = gt::linearly_program_2d(lines_array, coeff_array, intersect_array, intersect_point, direction);
+	//画出离散的边
+	for (int index_j = 0; index_j < array_size - 4; ++index_j) {
+		const gt::Line2D &line = lines_array[index_j];
+		const Vec2 normal = line.direction * 1200.0f;
+		draw_node->drawLine(line.start_point - normal,line.start_point + normal, Color4F::GREEN);
+		//以及相关的法线
+		draw_node->drawLine(line.start_point,line.start_point + Vec2(-line.direction.y,line.direction.x) * 200.0f,Color4F::BLUE);
+	}
+	for (int j = array_size-4; j < array_size ; ++j) {
+		const gt::Line2D &line = lines_array[j];
+		const Vec2 normal = line.direction * 2000.0f;
+		draw_node->drawLine(line.start_point, line.start_point + normal, Color4F::GREEN);
+		//以及相关的法线
+		draw_node->drawLine(line.start_point + normal * 0.5f, line.start_point +normal * 0.5f + Vec2(-line.direction.y, line.direction.x) * 200.0f, Color4F::BLUE);
+	}
+	//如果交集不为空
+	if (solve_value) {
+		//画出目标直线
+		const Vec2 &normal = *(const Vec2*)coeff_array;
+		draw_node->drawLine(intersect_point - normal * 200.0f,intersect_point + normal * 200.0f,Color4F::WHITE);
+		int array_size = intersect_array.size();
+		for (int j = 0; j < array_size; ++j) {
+			draw_node->drawLine(intersect_array[j],intersect_array[j < array_size-1?j+1:0],Color4F::RED);
+		}
+	}
 
 	root_node->setCameraMask(s_CameraMask);
 }

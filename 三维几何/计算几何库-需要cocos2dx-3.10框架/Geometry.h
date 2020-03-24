@@ -15,4 +15,6 @@
 #include "voronoi/Voronoi.h"
 #include "rotate_cliper/rotate_cliper.h"
 #include "convex_hull/convex_hull.h"
+
+#include "linear_program/linear_program.h"
 #endif

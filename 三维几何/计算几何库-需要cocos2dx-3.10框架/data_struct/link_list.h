@@ -272,6 +272,7 @@ public:
 			node = _mem_alloc->alloc(kt_value,b_recycle);
 			if (b_recycle) {
 				node->next = node->prev  = nullptr;
+				if(&node->tv_value != &kt_value)
 				node->tv_value = kt_value;
 			}
 			return node;
@@ -281,7 +282,8 @@ public:
 		{
 			node = _cache;
 			_cache = _cache->next;
-			node->tv_value = kt_value;
+			if(&node->tv_value != &kt_value)
+				node->tv_value = kt_value;
 			node->prev = node->next = nullptr;
 			--_cache_size;
 		}
