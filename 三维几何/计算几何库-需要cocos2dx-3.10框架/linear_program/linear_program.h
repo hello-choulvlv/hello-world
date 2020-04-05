@@ -13,6 +13,19 @@
 
 NS_GT_BEGIN
 /*
+  *单纯形算法实现
+  *2020年4月1日
+ */
+//单纯形算法返回的结果
+enum SimplexType {
+	SimplexType_Success = 0,//成功
+	SimplexType_Unboundary = 1,//无界
+	SimplexType_Failure = 2,//无界
+};
+//注意,与以前的假设不同,在当前的算法中,约束直线的右侧为约束条件
+//在算法的运行过程之中,有可能会改变输入数据
+SimplexType simplex_linear_program(std::vector<float*> &constraints,std::vector<float> &const_array,std::vector<float> &exp_array,std::vector<float> &record_array);
+/*
 *二维线性规划问题,函数约定,直线的左侧为半平面区域
 *函数已经假定,给出的直线边界条件中已经给出了最大区域边界框,也就是由四条直线限定的边界区域
 *并且其在输入数据的最后,顺序为下/右/上/左

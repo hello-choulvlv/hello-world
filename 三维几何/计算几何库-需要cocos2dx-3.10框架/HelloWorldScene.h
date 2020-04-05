@@ -169,6 +169,8 @@ public:
 	void simplePolygonContainsPoint();
 	//二维线性规划算法
 	void linearProgram2d();
+	//一般线性规划测试
+	void linearProgramTest();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

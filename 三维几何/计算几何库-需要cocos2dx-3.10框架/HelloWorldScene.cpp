@@ -32,7 +32,7 @@ bool HelloWorld::init()
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 	auto &winSize = _director->getWinSize();
-	int64_t seed = time(nullptr);//1572057392;
+	int64_t seed = time(nullptr);// 1585913882;// time(nullptr); ;// 1585913525;
 	CCLOG("seed->%ld", seed);
 	srand(seed);//14,23,27
 
@@ -125,7 +125,8 @@ bool HelloWorld::init()
 	//balanceTreeMemSlab();
 	//simplePolygonIntersect();
 	//simplePolygonContainsPoint();
-	linearProgram2d();
+	//linearProgram2d();
+	linearProgramTest();//1585913882/1586053580;// 
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -1032,5 +1033,114 @@ void HelloWorld::linearProgram2d() {
 		}
 	}
 
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::linearProgramTest() {
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	draw_node->setPosition(Vec2(-200.0f,-200.0f));
+	root_node->addChild(draw_node);
+
+	float width = 600.0f, height = 400.0f;
+#define test_sample_idx 3
+#if test_sample_idx == 0
+	std::vector<float>   matrix_array = {
+		1.0f,1.0f,3.0f,0.0f,0.0f,0.0f,//0
+		2.0f,2.0f,5.0f,0.0f,0.0f,0.0f,//1
+		4.0f,1.0f,2.0f,0.0f,0.0f,0.0f,//2
+	};
+	const int  nonebasic_num = 3;
+	const int basic_num = 3;
+
+	const int total_num = nonebasic_num + basic_num;
+	std::vector<float*> constraints = { matrix_array.data(),matrix_array.data() + total_num,matrix_array.data() + total_num * 2 };
+	std::vector<float>   const_array = { 30.0f,24.0f,36.0f };
+	std::vector<float>   exp_array = { 3.0f,1.0f,2.0f,0.0f,0.0f,0.0f,0.0f };
+#elif test_sample_idx == 1
+	std::vector<float>   matrix_array = {
+		1.0f,-1.0f,0.0f,0.0f,//0
+		2.0f,1.0f,0.0f,0.0f,//1
+	};
+	const int  nonebasic_num = 2;
+	const int basic_num = 2;
+
+	const int total_num = nonebasic_num + basic_num;
+	std::vector<float*> constraints = { matrix_array.data(),matrix_array.data() + total_num };
+	std::vector<float>   const_array = { 1.0f,2.0f};
+	std::vector<float>   exp_array = { -5.0f,-3.0f,0.0f,0.0f,0.0f,};
+#elif test_sample_idx == 2
+	std::vector<float>   matrix_array = {
+		2.0f,-1.0f,0.0f,0.0f,//0
+		1.0f,-5.0f,0.0f,0.0f,//1
+};
+	const int  nonebasic_num = 2;
+	const int basic_num = 2;
+
+	const int total_num = nonebasic_num + basic_num;
+	std::vector<float*> constraints = { matrix_array.data(),matrix_array.data() + total_num };
+	std::vector<float>   const_array = { 2.0f,-4.0f };
+	std::vector<float>   exp_array = { 2.0f,-1.0f,0.0f,0.0f,0.0f, };
+#else
+	//随机生成三条直线
+	std::vector<float> matrix_array(3 * 5);
+	std::vector<float>   const_array(3);
+	const int  nonebasic_num = 2;
+	const int basic_num = 3;
+	const int total_num = nonebasic_num + basic_num;
+	for (int j = 0; j < 3; ++j) {
+		float *target_array = matrix_array.data() + total_num * j;
+		//生成直线
+		const Vec2 origin_point(width * gt::random(),height * gt::random());
+		const Vec2 final_point(width * gt::random(), height * gt::random());
+		const Vec2 direction = gt::normalize(origin_point,final_point);
+		const Vec2 normal(-direction.y,direction.x);
+		const Vec2 center_point = (origin_point + final_point) * 0.5f;
+		draw_node->drawLine(origin_point - direction *400.0f,final_point + direction * 400.0f,Color4F::GREEN);
+		draw_node->drawLine(center_point, center_point - normal * 200.0f,Color4F::BLUE);//法线
+		//化简成直线方程式
+		target_array[0] = normal.x;
+		target_array[1] = normal.y;
+		const_array[j] = gt::dot(normal,origin_point);
+	}
+	
+	std::vector<float*> constraints = { matrix_array.data(),matrix_array.data() + total_num,matrix_array.data() + 2 * total_num};
+	//最后增加一条目标表达式
+	const Vec2 origin_point(width * gt::random(), height * gt::random());
+	const Vec2 final_point(width * gt::random(), height * gt::random());
+	const Vec2 direction = gt::normalize(origin_point, final_point);
+	const Vec2 normal(-direction.y, direction.x);
+	const Vec2 center_point = (origin_point + final_point) * 0.5f;
+	std::vector<float>   exp_array = { normal.x,normal.y,0.0f,0.0f,0.0f,0.0f};
+
+	//将目标直线穿过原点
+	float distance = -gt::dot(origin_point,normal);
+	draw_node->drawLine(origin_point - direction * 200.0f + normal * distance,final_point + normal * distance + direction * 200.0f,Color4F::WHITE);
+	draw_node->drawLine(center_point + normal * distance,center_point + normal * distance + normal * 400.0f,Color4F::RED);
+#endif
+	std::vector<float>   record_array(nonebasic_num + basic_num);
+	//首先画出线性规划所有约束
+	draw_node->drawLine(Vec2::ZERO,Vec2(width,0.0f),Color4F::YELLOW);
+	draw_node->drawLine(Vec2::ZERO,Vec2(0.0f,height),Color4F::YELLOW);
+	gt::SimplexType type_ref = gt::simplex_linear_program(constraints, const_array, exp_array, record_array);
+	CCLOG("final result-->%s",type_ref == gt::SimplexType_Success?"Success":type_ref == gt::SimplexType_Unboundary?"Unboundary":"Failed");
+	if (type_ref == gt::SimplexType_Success) {
+		CCLOG("total-->%.2f",exp_array.back());
+		char buffer[512];
+		char *buffer_ptr = buffer;
+		for (int j = 0; j < record_array.size(); ++j) {
+			buffer_ptr += sprintf(buffer_ptr,"%d->%.2f\n",j,record_array[j]);
+		}
+		CCLOG("%s",buffer);
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(draw_node->getPosition() + Vec2(record_array[0], record_array[1]));
+		root_node->addChild(sprite);
+#if test_sample_idx > 2 
+		float f = gt::dot(normal,Vec2(record_array[0],record_array[1]));
+		CCLOG("as verify result-->%.2f.",f);
+#endif
+	}
 	root_node->setCameraMask(s_CameraMask);
 }

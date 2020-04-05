@@ -8,6 +8,8 @@
 #include "matrix/matrix.h"
 #include <math.h>
 #include <functional>
+#include <assert.h>
+#include <map>
 using namespace cocos2d ;
 
 NS_GT_BEGIN
@@ -92,5 +94,167 @@ int linearly_program_2d(const std::vector<Line2D> &line_array, float coeff_array
 
 	return 1;
 }
+//主元变换
+void simplex_pivot_swap(std::vector<float*> &constraints, std::vector<float> &const_array, std::vector<float> &exp_array,std::map<int, int> &basic_variables, std::map<int, int> &nonebasic_variables, int row_idx,int swap_idx) {
+	float *target_array = constraints[row_idx];
+	float coef = 1.0f/target_array[swap_idx];
+	int basic_idx = basic_variables[row_idx];
+	int array_size = constraints.size();
 
+	//需要更新常系数以及交换位置后基变量所对应的系数
+	const_array[row_idx] *= coef;
+	target_array[basic_idx] = coef;
+	//代入其他的表达式
+	for (auto it = nonebasic_variables.begin(); it != nonebasic_variables.end(); ++it) {
+		int none_idx = it->first;
+		target_array[none_idx] *= coef;
+		//针对所有的组进行遍历
+		for (int j = 0; j < array_size; ++j) {
+			if (j == row_idx)continue;
+			float *target_array2 = constraints[j];
+			//首先针对系数,以及新增的另一个非基本变量
+			if (none_idx != swap_idx) 
+				target_array2[none_idx] -= target_array2[swap_idx] * target_array[none_idx];
+			else {
+				const_array[j] -= target_array2[none_idx] * const_array[row_idx];
+				target_array2[basic_idx] = -target_array2[none_idx] * coef;
+			}
+		}
+		if (none_idx != swap_idx)
+			exp_array[none_idx] -= exp_array[swap_idx] * target_array[none_idx];
+	}
+	//针对目标表达式需要做出一番调整
+	target_array[swap_idx] = 0.0f;
+	exp_array[basic_idx] = -coef * exp_array[swap_idx];
+	exp_array.back() += exp_array[swap_idx] * const_array[row_idx];
+	exp_array[swap_idx] = 0.0f;
+	//最后交换基变量与非基变量索引
+	basic_variables[row_idx] = swap_idx;
+	nonebasic_variables.erase(swap_idx);
+	nonebasic_variables[basic_idx] = basic_idx;
+}
+//求解线性规划,松弛变量过程
+//在当前的版本中,暂时不做优化
+//在后续的版本中,我们将使用一些高级数据结构进行优化
+SimplexType simplex_slack_variable(std::vector<float*> &constraints, std::vector<float> &const_array, std::vector<float> &exp_array,std::vector<float>&record_array, std::map<int, int> &basic_variables, std::map<int, int> &nonebasic_variables) {
+	assert(basic_variables.size() + nonebasic_variables.size() + 1 == exp_array.size());
+	assert(constraints.size() == const_array.size());
+	while (true){
+		int target_idx = -1;
+		for (auto it = nonebasic_variables.begin(); it != nonebasic_variables.end(); ++it) {
+			if (exp_array[it->first] > 0.0f && (target_idx == -1 || exp_array[it->first] > exp_array[target_idx]))
+				target_idx = it->first;
+		}
+		if (target_idx == -1)
+			break;
+		float inf = FLT_MAX;
+		int    row_idx = -1;
+		for (int j = 0; j < constraints.size(); ++j) {
+			float *array_ptr = constraints[j];
+			if (array_ptr[target_idx] > 0.0f) {
+				float f2 = const_array[j] / array_ptr[target_idx];
+				if (inf > f2) {
+					inf = f2;
+					row_idx = j;
+				}
+			}
+		}
+		if (inf == FLT_MAX)
+			return SimplexType::SimplexType_Unboundary;
+		//选取新的主元
+		simplex_pivot_swap(constraints, const_array, exp_array, basic_variables, nonebasic_variables, row_idx, target_idx);
+	}
+	//最后整理结果,所有的基变量的取值都是对应着相关行的常系数值,所有的非基变量都对应着0
+	for (auto it = nonebasic_variables.begin(); it != nonebasic_variables.end(); ++it) {
+		record_array[it->first] = 0.0f;
+	}
+	for (auto it = basic_variables.begin(); it != basic_variables.end(); ++it) {
+		record_array[it->second] = const_array[it->first];
+	}
+	return SimplexType::SimplexType_Success;
+}
+/*
+  *初始化单纯型算法
+  *该算法或者返回可行,并给出一个经过初次迭代后的初始解
+  *或者返回无解
+ */
+SimplexType simplex_initialize_program(std::vector<float*> &constraints, std::vector<float> &const_array, std::vector<float> &exp_array,std::vector<float> &record_array,std::map<int,int> &basic_variables,std::map<int,int> &nonebasic_variables) {
+	assert(constraints.size() == const_array.size());
+	assert(record_array.size() + 1 == exp_array.size());
+	assert(nonebasic_variables.size() + basic_variables.size() == record_array.size());
+	assert(basic_variables.size() == const_array.size());
+	//第一步,遍历常系数
+	float f = FLT_MAX;
+	int swap_l = -1;
+	int array_size = const_array.size();
+	for (int j = 0; j < array_size; ++j) {
+		if (const_array[j] < f) {
+			f = const_array[j];
+			swap_l = j;
+		}
+	}
+	//如果最小的系数大于等于0,则可以直接返回
+	if (f >= 0.0f)return SimplexType::SimplexType_Success;
+	int variable_num = nonebasic_variables.size() + basic_variables.size();
+	//否则,进行计算是否有可行解,增加另一个变量 Xn+1,求表达式f(x) = Xn+1的最优解
+	std::vector<float*> other_constraints(constraints.size());
+	std::vector<float>  other_exp_array(exp_array.size() +1);
+	std::vector<float>  other_record_array(record_array.size() + 1);
+
+	std::vector<float>  matrix_array(constraints.size() * other_record_array.size());
+	for (int j = 0; j < other_constraints.size(); ++j) {
+		other_constraints[j] = matrix_array.data() + j * other_record_array.size();
+		memcpy(other_constraints[j],constraints[j],sizeof(float) * variable_num);
+		other_constraints[j][variable_num] = -1.0f;
+	}
+	other_exp_array[variable_num] = -1.0f;
+	nonebasic_variables[variable_num] = variable_num;
+	//第一步,交换主元
+	simplex_pivot_swap(other_constraints,const_array,other_exp_array,basic_variables,nonebasic_variables,swap_l, variable_num);
+	//第二部求解
+	SimplexType type_ref = simplex_slack_variable(other_constraints, const_array, other_exp_array, other_record_array, basic_variables, nonebasic_variables);
+	assert(other_exp_array.back() <=0.0f);//注意有时因为浮点数的不稳定性,也有可能会稍大于0,此时需要使用者自己调整
+	if (fabsf(other_exp_array.back()) > gt_eps)return SimplexType::SimplexType_Failure;
+	//否则转换为原来的方程式
+	for (int j = 0; j < other_constraints.size(); ++j) 
+		memcpy(constraints[j],other_constraints[j],sizeof(float)*variable_num);
+	//将原目标表达式中的基变量重新表达为非基变量
+	nonebasic_variables.erase(variable_num);
+	for (auto it = basic_variables.begin(); it != basic_variables.end(); ++it) {
+		int row_idx = it->first;
+		int basic_idx = it->second;//基变量的索引号
+		float f = exp_array[basic_idx];
+		assert(basic_idx != variable_num);
+		if (f != 0.0f) {
+			//首先更新常系数值
+			exp_array.back() += f * const_array[row_idx];
+			float *target_array = constraints[row_idx];
+			//再更新每一个其他的非基变量前面的系数
+			for (auto ot = nonebasic_variables.begin(); ot != nonebasic_variables.end(); ++ot) {
+				exp_array[ot->first] -= f * target_array[ot->first];
+			}
+			//同时将该基变量前面的系数清零,因为后续的计算将依赖该系数的值
+			exp_array[basic_idx] = 0.0f;
+		}
+	}
+	return SimplexType::SimplexType_Success;
+}
+
+SimplexType simplex_linear_program(std::vector<float*> &constraints, std::vector<float> &const_array, std::vector<float> &exp_array,std::vector<float> &record_array) {
+	assert(constraints.size() == const_array.size());
+	assert(record_array.size() +1 == exp_array.size());//目标表达式数组的长度比实际参变量的数目大1,最后一个位置将存储最终的目标值
+	//定义基本变量,非基本变量
+	std::map<int,int>	basic_variables,nonebasic_variables;
+	int array_size1 = record_array.size() - const_array.size();
+	int array_size2 = const_array.size();
+	for (int j = 0; j < array_size1; ++j)
+		nonebasic_variables[j] = j;
+	for (int j = 0; j < array_size2; ++j)
+		basic_variables[j] = j+array_size1;
+
+	SimplexType type_ref = simplex_initialize_program(constraints, const_array, exp_array, record_array, basic_variables, nonebasic_variables);
+	if (type_ref != SimplexType::SimplexType_Success)
+		return SimplexType::SimplexType_Failure;
+	return simplex_slack_variable(constraints, const_array, exp_array, record_array, basic_variables, nonebasic_variables);
+}
 NS_GT_END
