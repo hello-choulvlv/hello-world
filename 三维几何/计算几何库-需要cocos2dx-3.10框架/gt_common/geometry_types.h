@@ -13,6 +13,9 @@
 
 #define min_f(x,y)  ((x) < (y) ?(x):(y))
 #define max_f(x,y)  ((x) > (y)?(x):(y))
+
+#define gt_radian(angle) ((angle) * M_PI /180.0f)
+#define gt_angle(r) ((r) * 180.0f/M_PI)
 /*
   *std::vector快速追加元素
  */

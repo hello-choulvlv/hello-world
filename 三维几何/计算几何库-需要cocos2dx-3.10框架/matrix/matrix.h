@@ -72,6 +72,7 @@ float cross_normalize(const cocos2d::Vec2 &base, const cocos2d::Vec2 &fc1, const
 *向量规范化
 */
 cocos2d::Vec3 normalize(const cocos2d::Vec3 &v);
+cocos2d::Vec3 normalize(const cocos2d::Vec3 &a,const cocos2d::Vec3 &b);
 cocos2d::Vec3 normalize(float x, float y, float z);
 cocos2d::Vec2 normalize(const cocos2d::Vec2 &v);
 cocos2d::Vec2 normalize(const cocos2d::Vec2 &u, const cocos2d::Vec2 &v);
@@ -86,6 +87,9 @@ float radian_from(const cocos2d::Vec2 &a,const cocos2d::Vec2 &b);
  */
 float randian_fromy(const cocos2d::Vec2 &axis);
 float randian_fromy(float x,float y);
+
+float radians(float angle);
+float angles(float r);
 /*
   *3x3矩阵变换
  */

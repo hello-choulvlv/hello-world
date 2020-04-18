@@ -126,7 +126,8 @@ bool HelloWorld::init()
 	//simplePolygonIntersect();
 	//simplePolygonContainsPoint();
 	//linearProgram2d();
-	linearProgramTest();//1585913882/1586053580;// 
+	//linearProgramTest();//1585913882/1586053580;// 
+	frustumClippingTest();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -1142,5 +1143,108 @@ void HelloWorld::linearProgramTest() {
 		CCLOG("as verify result-->%.2f.",f);
 #endif
 	}
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::frustumClippingTest() {
+	//对于目前的视锥体算法来说,无论规则与否,都是可以正常处理的
+	//在这里,为了简化测试流程,我们使用标准的规则视锥体
+	float fov = 45.0f;
+	float zeye = 100.0f;
+	float height = _director->getWinSize().height * 0.5f;
+	//计算视图/投影矩阵
+	Mat4  view_matrix, proj_matrix;
+
+	Vec3 eye_position(0, 0, zeye),target_position(gt::randomf10() * 100.0f, gt::randomf10() * 100.0f, zeye - 500.0f);
+	float rate_ratio = _director->getWinSize().width / _director->getWinSize().height;
+	float near_f = 100.0f;
+	float far_f = 500.0f;
+
+	Mat4::createLookAt(eye_position, target_position,Vec3::UNIT_Y,&view_matrix);
+	Mat4::createPerspective(fov, rate_ratio, near_f, far_f, &proj_matrix);
+
+	Mat4  view_proj_matrix = proj_matrix * view_matrix;
+
+	//计算8个视锥体顶点
+	Vec3 zaxis = gt::normalize(target_position,eye_position);
+	Vec3 xaxis = gt::cross_normalize(Vec3::UNIT_Y,zaxis);
+	Vec3 yaxis = gt::cross_normalize(zaxis,xaxis);
+
+	Vec3 near_center = eye_position - zaxis * near_f;
+	Vec3 far_center = eye_position - zaxis * far_f;
+
+	float f = tanf(gt_radian(fov) * 0.5f);
+	float near_height = f * near_f;
+	float far_height = f * far_f;
+
+	Vec3 near_y_step = yaxis * near_height;
+	Vec3 near_x_step = xaxis * (rate_ratio * near_height);
+
+	Vec3 far_y_step = yaxis * far_height;
+	Vec3 far_x_step = xaxis * (rate_ratio * far_height);
+
+	Vec3  frustum_vertex[8] = {
+		near_center - near_x_step - near_y_step,
+		near_center + near_x_step - near_y_step,
+		near_center + near_x_step + near_y_step,
+		near_center - near_x_step + near_y_step,
+
+		far_center - far_x_step - far_y_step,
+		far_center + far_x_step - far_y_step,
+		far_center + far_x_step + far_y_step,
+		far_center - far_x_step + far_y_step,
+	};
+
+	gt::Frustum2  frustum;
+	Vec3 light_direction = gt::normalize((gt::random() + 0.6f) * 1000.0f,(gt::random() + 0.6f) * 1000.0f,(gt::random()+0.6f) * 1000.0f);
+	frustum.initGeometryPlanes(view_proj_matrix);
+	frustum.initShadowPlanes(frustum_vertex, light_direction);
+
+	//画出视锥体的结构,12条棱
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode3D  *draw_node = DrawNode3D::create();
+	root_node->addChild(draw_node);
+
+#define gt_draw_line(s1,s2) draw_node->drawLine(frustum_vertex[s1], frustum_vertex[s2],Color4F::GREEN);
+	gt_draw_line(0,1);
+	gt_draw_line(1,2);
+	gt_draw_line(2,3);
+	gt_draw_line(3,0);
+
+	gt_draw_line(4, 5);
+	gt_draw_line(5,6);
+	gt_draw_line(6,7);
+	gt_draw_line(7,4);
+
+	gt_draw_line(3,7);
+	gt_draw_line(2,6);
+	gt_draw_line(0,4);
+	gt_draw_line(1,5);
+#undef gt_draw_line
+	//测试几何体裁剪
+	float length_l = 200.0f;
+	Vec3 min_bb(gt::randomf10() * length_l, gt::randomf10() * length_l, gt::randomf10() * length_l);
+	Vec3 extent(gt::random() * length_l, gt::random() * length_l, gt::random() * length_l);
+#if 0
+	gt::AABB aabb;
+
+	gt::aabb_create(aabb, min_bb, min_bb + extent);
+	bool b2 = frustum.isLocateInFrustum(aabb);
+	const Color4F &color = b2 ?Color4F::RED:Color4F::WHITE ;
+	draw_node->drawAABB(min_bb, aabb.bb_max, color);
+#else
+	Vec3 normal = gt::normalize(gt::randomf10(), gt::randomf10(), gt::randomf10());
+	float angle = 360 * gt::random();
+	gt::OBB  obb;
+	gt::obb_create(obb, min_bb, min_bb + extent, normal, angle);
+	Vec3 vertex[8];
+	gt::obb_create_obb_vertex8(obb, vertex);
+	bool b2 = frustum.isLocateInFrustum(obb);
+	const Color4F &color = b2 ? Color4F::RED : Color4F::WHITE;
+	draw_node->drawCube2(vertex, color, color, color);
+#endif
+
 	root_node->setCameraMask(s_CameraMask);
 }

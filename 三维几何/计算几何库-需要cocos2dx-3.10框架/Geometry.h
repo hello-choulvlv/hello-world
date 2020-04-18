@@ -17,4 +17,5 @@
 #include "convex_hull/convex_hull.h"
 
 #include "linear_program/linear_program.h"
+#include "frustum/frustum.h"
 #endif

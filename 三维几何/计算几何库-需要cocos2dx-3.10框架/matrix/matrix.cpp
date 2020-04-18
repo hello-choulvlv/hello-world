@@ -137,6 +137,17 @@ cocos2d::Vec3 normalize(const cocos2d::Vec3 &v)
 	return Vec3(v.x*d, v.y*d, v.z*d);
 }
 
+cocos2d::Vec3 normalize(const cocos2d::Vec3 &a, const cocos2d::Vec3 &b) {
+	float x = b.x - a.x;
+	float y = b.y - a.y;
+	float z = b.z - a.z;
+
+	float d = x * x + y * y + z*z;
+	d = d != 0 ? sqrtf(1.0f / d) : 0.0f;
+
+	return Vec3(x*d, y*d, z*d);
+}
+
 cocos2d::Vec3 normalize(float x,float y,float z)
 {
 	float d = x * x + y * y + z*z;
@@ -197,6 +208,14 @@ float randian_fromy(float x, float y) {
 
 	float asin_f = asinf(x * d);
 	return asin_f >= 0.0f ? M_PI_2 - asin_f : asin_f + M_PI_2;
+}
+
+float radians(float angle) {
+	return angle / 180.0f * M_PI;
+}
+
+float angles(float r) {
+	return r * 180.0f /M_PI;
 }
 
 float cross(const cocos2d::Vec2 &a, const cocos2d::Vec2 &b)

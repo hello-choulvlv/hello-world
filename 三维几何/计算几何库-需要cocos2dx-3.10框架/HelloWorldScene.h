@@ -171,6 +171,8 @@ public:
 	void linearProgram2d();
 	//一般线性规划测试
 	void linearProgramTest();
+	//视锥体几何体/阴影体裁剪算法测试
+	void frustumClippingTest();
 };
 
 #endif // __HELLOWORLD_SCENE_H__
