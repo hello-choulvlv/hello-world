@@ -18,4 +18,6 @@
 
 #include "linear_program/linear_program.h"
 #include "frustum/frustum.h"
+
+#include "point_location/point_location.h"
 #endif

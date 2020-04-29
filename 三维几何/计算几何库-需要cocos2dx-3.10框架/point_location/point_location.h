@@ -58,6 +58,10 @@ struct LocationLexer {
 	~LocationLexer();
 };
 /*
+  *遍历
+ */
+void local_point_visit(LocationLexer &lexer, std::vector<NodeLocal *> &node_array, short ref_result);
+/*
 *点查找算法实现
 */
 NodeLocal*   local_point_find_location(LocationLexer &lexer, const cocos2d::Vec2 &point);

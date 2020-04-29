@@ -14,6 +14,29 @@ NS_GT_BEGIN
 LocationLexer::~LocationLexer() {
 
 }
+
+void local_point_visit(LocationLexer &lexer, std::vector<NodeLocal *> &node_array,short ref_result) {
+	link_list<NodeLocal*>  node_queue;
+	NodeLocal *root_node = lexer.root;
+
+	node_queue.push_back(root_node);
+	root_node->ref = ref_result;
+	while (node_queue.size() != 0) {
+		root_node = node_queue.head()->tv_value;
+		vector_fast_push_back(node_array, root_node);
+		node_queue.pop_front();
+
+		if (root_node->child_l != nullptr && root_node->child_l->ref != ref_result) {
+			node_queue.push_back(root_node->child_l);
+			root_node->child_l->ref = ref_result;
+		}
+
+		if (root_node->child_r != nullptr && root_node->child_r->ref != ref_result) {
+			node_queue.push_back(root_node->child_r);
+			root_node->child_r->ref = ref_result;
+		}
+	}
+}
 /*
   *初始化梯形图
  */
@@ -24,9 +47,10 @@ void local_point_init_trapzoid(LocationLexer &lexer, std::vector<Segment2D> &seg
 	NodeLocal  *node_local = new NodeLocal(LocalType::LocalType_Trapzoid);
 	lexer.root = node_local;
 
-	Trapzoid *trap = new Trapzoid(low_segment.start_point,low_segment.final_point);
-	trap->up_seg_ptr = &up_segment;
-	trap->low_seg_ptr = &low_segment;
+	Trapzoid *trap_ptr = new Trapzoid(low_segment.start_point,low_segment.final_point);
+	trap_ptr->up_seg_ptr = &up_segment;
+	trap_ptr->low_seg_ptr = &low_segment;
+	node_local->trap_ptr = trap_ptr;
 	//其它的指针皆为nullptr
 	lexer.size +=1;
 }
@@ -56,7 +80,7 @@ NodeLocal*   local_point_find_location(LocationLexer &lexer, const cocos2d::Vec2
 			//再一次的计算了包含关系,实际上在有限范围限定下,必有包含关系,否则一定是程序错误
 			Trapzoid  *trap = node_local->trap_ptr;
 			bool b1 = point.x > trap->left_point.x && point.x < trap->right_point.x;
-			bool b2 = cross(trap->low_seg_ptr->start_point,trap->up_seg_ptr->final_point,point) > 0.0f;
+			bool b2 = cross(trap->low_seg_ptr->start_point,trap->low_seg_ptr->final_point,point) > 0.0f;
 			bool b3 = cross(trap->up_seg_ptr->start_point,trap->up_seg_ptr->final_point,point) < 0.0f;
 			assert(b1 & b2 & b3);
 			break;
@@ -206,8 +230,6 @@ static void local_point_split_trapzoid(NodeLocal  *node_local,Segment2D &seg) {
 void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLocal*> &follow_nodes,Segment2D &seg) {
 	//开头的梯形
 	NodeLocal *secondary_local = follow_nodes.head()->tv_value;
-	//最后的梯形
-	NodeLocal *tripple_local = follow_nodes.back()->tv_value;
 	//最先生成的梯形
 	NodeLocal	 *a_node_ptr = new NodeLocal(LocalType_Trapzoid);
 	Trapzoid     *a_trap_ptr = new Trapzoid(secondary_local->trap_ptr->left_point,seg.start_point);
@@ -253,9 +275,10 @@ void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLoca
 	a_node_ptr->trap_ptr->right_low = other_node_ptr;
 	//在遍历的过程中,将伴随着新的邻接关系的生成
 	follow_nodes.pop_front();
-	follow_nodes.pop_back();
+	//follow_nodes.pop_back();
 	//经过相关运算之后,one_node_ptr正在线段seg之上,other_node_ptr在线段seg之下
 	NodeLocal *origin_node = secondary_local;
+	//Trapzoid     *origin_trap = secondary_local->trap_ptr;
 	for (auto *it_ptr = follow_nodes.head(); it_ptr != nullptr; it_ptr = follow_nodes.next(it_ptr)) {
 		NodeLocal	 *node_local = it_ptr->tv_value;
 		NodeLocal  *top_node_ptr = nullptr, *low_node_ptr = nullptr;
@@ -279,7 +302,7 @@ void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLoca
 		//变更当前梯形顶点的结构,以及其邻接梯形之间的拓扑关系
 		node_local->node_type = LocalType_Segment;
 		Trapzoid *trap_ptr = node_local->trap_ptr;
-		node_local->trap_ptr = nullptr;
+		//node_local->trap_ptr = nullptr;
 		node_local->segment_ptr = &seg;
 
 		if (f > 0.0f) {
@@ -291,6 +314,11 @@ void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLoca
 				top_node_ptr->trap_ptr->left_low = origin_node;
 			if (trap_ptr->left_up == origin_node)
 				top_node_ptr->trap_ptr->left_up = origin_node;
+
+			if (origin_trap->right_low == node_local)
+				one_node_ptr->trap_ptr->right_low = top_node_ptr;
+			if (origin_trap->right_up == node_local)
+				one_node_ptr->trap_ptr->right_up = top_node_ptr;
 		}
 		else {
 			node_local->child_l = one_node_ptr;
@@ -301,11 +329,63 @@ void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLoca
 				low_node_ptr->trap_ptr->left_low = origin_node;
 			if (trap_ptr->left_up == origin_node)
 				low_node_ptr->trap_ptr->left_up = origin_node;
+
+			if (origin_trap->right_low == node_local)
+				other_node_ptr->trap_ptr->right_low = low_node_ptr;
+			if (origin_trap->right_up == node_local)
+				other_node_ptr->trap_ptr->right_up = low_node_ptr;
 		}
 
 		origin_node = node_local;
+		origin_trap = node_local->trap_ptr;
+		node_local->trap_ptr = nullptr;
 	}
 	//剩下的代码为最后一个梯形的处理,与第一个梯形的处理方式类似,也需要分裂与关系重构
+	one_node_ptr->trap_ptr->right_point = seg.final_point;
+	other_node_ptr->trap_ptr->right_point = seg.final_point;
+	//需要新建立一个梯形,最右侧的梯形
+	//最后的梯形
+	NodeLocal *tripple_local = follow_nodes.back()->tv_value;
+	NodeLocal *right_node = new NodeLocal(LocalType_Trapzoid);
+	right_node->trap_ptr = new Trapzoid(seg.final_point, tripple_local->trap_ptr->right_point);
+	right_node->trap_ptr->up_seg_ptr = tripple_local->trap_ptr->up_seg_ptr;
+	right_node->trap_ptr->low_seg_ptr = tripple_local->trap_ptr->low_seg_ptr;
+	//新的线段节点
+	NodeLocal	 *right_seg_node = new NodeLocal(LocalType_Segment);
+	right_seg_node->segment_ptr = &seg;
+	right_seg_node->child_l = one_node_ptr;
+	right_seg_node->child_r = other_node_ptr;
+	//修改最后一个节点的类型
+	tripple_local->node_type = LocalType_Endpoint;
+	tripple_local->endpoint_ptr = &seg.final_point;
+	tripple_local->child_l = right_seg_node;
+	tripple_local->child_r = right_node;
+	//邻接关系修正
+	other_node_ptr->trap_ptr->right_low = right_node;
+	other_node_ptr->trap_ptr->right_up = right_node;
+	right_node->trap_ptr->left_low = other_node_ptr;
+	right_node->trap_ptr->left_up = one_node_ptr;
+	//right_node对应着原tripple节点的右侧邻接关系
+	origin_trap = tripple_local->trap_ptr;
+	right_node->trap_ptr->right_low = tripple_local->trap_ptr->right_low;
+	right_node->trap_ptr->right_up = tripple_local->trap_ptr->right_up;
+
+	if (origin_trap->right_low) {
+		NodeLocal *st = origin_trap->right_low;
+		if (st->trap_ptr->left_low == tripple_local)
+			st->trap_ptr->left_low = right_node;
+		if (st->trap_ptr->left_up == tripple_local)
+			st->trap_ptr->left_up = right_node;
+	}
+
+	if (origin_trap->right_up) {
+		NodeLocal *st = origin_trap->right_up;
+		if (st->trap_ptr->left_low == tripple_local)
+			st->trap_ptr->left_low = right_node;
+		if (st->trap_ptr->left_up == tripple_local)
+			st->trap_ptr->left_up = right_node;
+	}
+	tripple_local->trap_ptr = nullptr;
 }
 
 void local_point_create_trapzoid(LocationLexer &lexer, std::vector<Segment2D> &segments) {

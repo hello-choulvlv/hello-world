@@ -281,6 +281,15 @@ float line_point_distance(const cocos2d::Vec2 &start_point, const cocos2d::Vec2 
 
 	return -direction.y * d_x + direction.x * d_y;
 }
+bool segment_vertical_intersent(const cocos2d::Vec2 &start_point, const cocos2d::Vec2 &final_point, float x0, cocos2d::Vec2 &intersect_point) {
+	float d_x = final_point.x - start_point.x;
+	float d_y = final_point.y - start_point.y;
+
+	d_x = d_x != 0.0f ? 1.0f / d_x : 0.0f;
+	intersect_point.x = x0;
+	intersect_point.y = start_point.y + (x0 - start_point.x) * d_x * d_y;
+	return true;
+}
 //////////////////////////æÿ’Û±‰ªª///////////////////////////////////
 void vec3_transfrom_mat3(const cocos2d::Vec3 &t, const mat3x3 &mat, cocos2d::Vec3 &dst)
 {
