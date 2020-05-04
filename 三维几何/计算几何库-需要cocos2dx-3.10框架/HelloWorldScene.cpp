@@ -32,7 +32,7 @@ bool HelloWorld::init()
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 	auto &winSize = _director->getWinSize();
-	int64_t seed = 1588158413;// time(nullptr);// 1585913882;// time(nullptr); ;// 1585913525;
+	int64_t seed = 1588415545;// time(nullptr);// 1585913882;// time(nullptr); ;// 1585913525;
 	CCLOG("seed->%ld", seed);
 	srand(seed);//14,23,27
 
@@ -254,7 +254,7 @@ void HelloWorld::pointLocationTest() {
 	float local_x = winSize.width * 0.5f;
 	float local_y = winSize.height * 0.5f;
 
-	int array_size = 7;
+	int array_size = 11;
 	Vec2  bb_min(FLT_MAX,FLT_MAX), bb_max(-FLT_MAX,-FLT_MAX);
 	std::vector<gt::Segment2D>  seg_array(array_size);
 
