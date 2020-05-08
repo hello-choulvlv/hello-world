@@ -32,7 +32,7 @@ bool HelloWorld::init()
     auto visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 	auto &winSize = _director->getWinSize();
-	int64_t seed = 1588415545;// time(nullptr);// 1585913882;// time(nullptr); ;// 1585913525;
+	int64_t seed = time(nullptr);// 1585913882;// time(nullptr); ;// 1585913525; 
 	CCLOG("seed->%ld", seed);
 	srand(seed);//14,23,27
 
@@ -240,7 +240,20 @@ void HelloWorld::menuCloseCallback(Ref* pSender)
     //_eventDispatcher->dispatchEvent(&customEndEvent);
 }
 
+void static_draw_line(gt::NodeLocal *node_local,DrawNode *draw_node,const Color4F *color_target) {
+	gt::Trapzoid *trap_ptr = node_local->trap_ptr;
+	Vec2 p0, p1, p2, p3;
+	gt::segment_vertical_intersent(trap_ptr->low_seg_ptr->start_point, trap_ptr->low_seg_ptr->final_point, trap_ptr->left_point.x, p0);
+	gt::segment_vertical_intersent(trap_ptr->low_seg_ptr->start_point, trap_ptr->low_seg_ptr->final_point, trap_ptr->right_point.x, p1);
+	gt::segment_vertical_intersent(trap_ptr->up_seg_ptr->start_point, trap_ptr->up_seg_ptr->final_point, trap_ptr->right_point.x, p2);
+	gt::segment_vertical_intersent(trap_ptr->up_seg_ptr->start_point, trap_ptr->up_seg_ptr->final_point, trap_ptr->left_point.x, p3);
 
+	Color4F  color(gt::random(), gt::random(), gt::random(), 1.0f);
+	draw_node->drawLine(p0, p1, color_target?*color_target:color);
+	draw_node->drawLine(p1, p2, color_target ? *color_target : color);
+	draw_node->drawLine(p2, p3, color_target ? *color_target : color);
+	draw_node->drawLine(p3, p0, color_target ? *color_target : color);
+}
 
 void HelloWorld::pointLocationTest() {
 	Node *root_node = Node::create();
@@ -254,7 +267,7 @@ void HelloWorld::pointLocationTest() {
 	float local_x = winSize.width * 0.5f;
 	float local_y = winSize.height * 0.5f;
 
-	int array_size = 11;
+	int array_size = 17;
 	Vec2  bb_min(FLT_MAX,FLT_MAX), bb_max(-FLT_MAX,-FLT_MAX);
 	std::vector<gt::Segment2D>  seg_array(array_size);
 
@@ -287,25 +300,24 @@ void HelloWorld::pointLocationTest() {
 	gt::local_point_create_trapzoid(local_lexer, seg_array);
 	//画出所有的梯形,其过程是对生成的数据结构的一次遍历
 	std::vector<gt::NodeLocal*> nodes_array;
-	local_point_visit(local_lexer, nodes_array,1);
+	local_point_visit(local_lexer, nodes_array,-1);
 	for (int j = 0; j < nodes_array.size(); ++j) {
 		gt::NodeLocal *node_local = nodes_array[j];
 		if (node_local->node_type == gt::LocalType_Trapzoid) {
-			gt::Trapzoid *trap_ptr = node_local->trap_ptr;
-			//求四个顶点
-			Vec2 p0,p1,p2,p3;
-			gt::segment_vertical_intersent(trap_ptr->low_seg_ptr->start_point, trap_ptr->low_seg_ptr->final_point, trap_ptr->left_point.x, p0);
-			gt::segment_vertical_intersent(trap_ptr->low_seg_ptr->start_point, trap_ptr->low_seg_ptr->final_point, trap_ptr->right_point.x, p1);
-			gt::segment_vertical_intersent(trap_ptr->up_seg_ptr->start_point, trap_ptr->up_seg_ptr->final_point, trap_ptr->right_point.x, p2);
-			gt::segment_vertical_intersent(trap_ptr->up_seg_ptr->start_point, trap_ptr->up_seg_ptr->final_point, trap_ptr->left_point.x, p3);
-
-			Color4F  color(gt::random(),gt::random(),gt::random(),1.0f);
-			draw_node->drawLine(p0,p1,color);
-			draw_node->drawLine(p1,p2,color);
-			draw_node->drawLine(p2,p3,color);
-			draw_node->drawLine(p3,p0,color);
+			static_draw_line(node_local, draw_node,nullptr);
 		}
 	}
+	//点定位查询
+	const Vec2 target_location(gt::randomf10() * local_x * 0.8f,gt::randomf10() * local_y * 0.8f);
+	gt::NodeLocal *node_local = gt::local_point_find_location(local_lexer, target_location);
+	assert(!node_local || node_local && node_local->node_type == gt::LocalType_Trapzoid);
+	//画出相关的点,以及所在的梯形
+	Sprite *sprite = Sprite::create("llk_yd.png");
+	sprite->setPosition(target_location);
+	root_node->addChild(sprite);
+
+	if(node_local != nullptr)
+		static_draw_line(node_local, draw_node,&Color4F::RED);
 
 	root_node->setCameraMask(s_CameraMask);
 }

@@ -114,36 +114,72 @@ static void local_point_follow_segment(LocationLexer &lexer,const Segment2D  &se
 		follow_nodes.push_back(node_local);
 	}
 }
+void local_point_debug(std::vector<NodeLocal *> &debug_array,bool debug_force) {
+	for (int j = 0; j < debug_array.size(); ++j) {
+		NodeLocal *node_local = debug_array[j];
+		if (node_local->node_type == LocalType_Trapzoid || debug_force) {
+
+			NodeLocal *left_node1 = node_local->trap_ptr->left_low;
+			Trapzoid *left_trap_ptr1 = left_node1 ? left_node1->trap_ptr : nullptr;
+			assert(!left_node1 || left_node1->node_type == LocalType_Trapzoid && (left_trap_ptr1->right_low == node_local || left_trap_ptr1->right_up == node_local));
+
+			NodeLocal *left_node2 = node_local->trap_ptr->left_up;
+			Trapzoid *left_trap_ptr2 = left_node2 ? left_node2->trap_ptr : nullptr;
+			assert(!left_node2 || left_node2->node_type == LocalType_Trapzoid && (left_trap_ptr2->right_low == node_local || left_trap_ptr2->right_up == node_local));
+
+			NodeLocal *right_node1 = node_local->trap_ptr->right_low;
+			Trapzoid *right_trap_ptr1 = right_node1 ? right_node1->trap_ptr : nullptr;
+			assert(!right_node1 || right_node1->node_type == LocalType_Trapzoid && (right_trap_ptr1->left_low == node_local || right_trap_ptr1->left_up == node_local));
+
+			NodeLocal *right_node2 = node_local->trap_ptr->right_up;
+			Trapzoid *right_trap_ptr2 = right_node2 ? right_node2->trap_ptr : nullptr;
+			assert(!right_node2 || right_node2->node_type == LocalType_Trapzoid && (right_trap_ptr2->left_low == node_local || right_trap_ptr2->left_up == node_local));
+		}
+	}
+}
+
+void local_point_debug(link_list<NodeLocal *> &debug_array, bool debug_force) {
+	std::vector<NodeLocal*> debug_array2(debug_array.size());
+	int j = 0;
+	for (auto *it_ptr = debug_array.head(); it_ptr != nullptr; it_ptr = debug_array.next(it_ptr)) {
+		debug_array2[j++] = it_ptr->tv_value;
+	}
+	local_point_debug(debug_array2, debug_force);
+}
 /*
   *一个完全落在梯形内部的线段分裂梯形
  */
 static void local_point_split_trapzoid(NodeLocal  *node_local,Segment2D &seg) {
 	assert(node_local && node_local->node_type == LocalType_Trapzoid);
-
+	std::vector<NodeLocal*> debug_array;
 	//需要同时生成四个梯形,其中最后一个可以复用第一个
 	NodeLocal *a_node_ptr = new NodeLocal(LocalType_Trapzoid);
 	Trapzoid  *a_trap = new Trapzoid(node_local->trap_ptr->left_point, seg.start_point);
 	a_trap->low_seg_ptr = node_local->trap_ptr->low_seg_ptr;
 	a_trap->up_seg_ptr = node_local->trap_ptr->up_seg_ptr;
 	a_node_ptr->trap_ptr = a_trap;
+	debug_array.push_back(a_node_ptr);
 
 	NodeLocal *b_node_ptr = new NodeLocal(LocalType::LocalType_Trapzoid);//最右侧的梯形
 	Trapzoid  *b_trap = new Trapzoid(seg.final_point,node_local->trap_ptr->right_point);
 	b_trap->low_seg_ptr = node_local->trap_ptr->low_seg_ptr; 
 	b_trap->up_seg_ptr = node_local->trap_ptr->up_seg_ptr;
 	b_node_ptr->trap_ptr = b_trap;
+	debug_array.push_back(b_node_ptr);
 	//C
 	NodeLocal *c_node_ptr = new NodeLocal(LocalType::LocalType_Trapzoid);
 	Trapzoid    *c_trap = new Trapzoid(seg.start_point,seg.final_point);
 	c_trap->low_seg_ptr = &seg;
 	c_trap->up_seg_ptr = node_local->trap_ptr->up_seg_ptr;
 	c_node_ptr->trap_ptr = c_trap;
+	debug_array.push_back(c_node_ptr);
 
 	NodeLocal *d_node_ptr = new NodeLocal(LocalType_Trapzoid);
 	Trapzoid   *d_trap = new Trapzoid(seg.start_point,seg.final_point);
 	d_trap->low_seg_ptr = node_local->trap_ptr->low_seg_ptr;
 	d_trap->up_seg_ptr = &seg;
 	d_node_ptr->trap_ptr = d_trap;
+	debug_array.push_back(d_node_ptr);
 	//新生成的梯形与原邻接梯形之间的关系重构
 	Trapzoid  *origin_trap = node_local->trap_ptr;
 	a_node_ptr->trap_ptr->left_low = origin_trap->left_low;
@@ -187,7 +223,8 @@ static void local_point_split_trapzoid(NodeLocal  *node_local,Segment2D &seg) {
 	NodeLocal *p_ptr = node_local;
 	p_ptr->node_type = LocalType_Endpoint;
 	p_ptr->endpoint_ptr = &seg.start_point;
-	delete p_ptr->trap_ptr;
+	//delete p_ptr->trap_ptr;
+	p_ptr->trap2_ptr = p_ptr->trap_ptr;
 	p_ptr->trap_ptr = nullptr;
 
 	NodeLocal *q_ptr = new NodeLocal(LocalType::LocalType_Endpoint);
@@ -223,22 +260,137 @@ static void local_point_split_trapzoid(NodeLocal  *node_local,Segment2D &seg) {
 
 	d_trap->right_low = b_node_ptr;
 	d_trap->right_up = b_node_ptr;
+
+	local_point_debug(debug_array,true);
 }
 //公共函数,梯形的邻接关系重构
+#if 0
 void static_local_point_adj_rearrange(NodeLocal *node_local, NodeLocal *origin_node, NodeLocal *one_node_ptr, NodeLocal *next_node_ptr) {
+	if (origin_node->trap_ptr->right_low == node_local) {
+		one_node_ptr->trap_ptr->right_low = next_node_ptr;
+		assert(node_local->trap_ptr->left_low == origin_node || node_local->trap_ptr->left_up == origin_node);
+
+		if (node_local->trap_ptr->left_low == origin_node)
+			next_node_ptr->trap_ptr->left_low = one_node_ptr;
+		else {
+			NodeLocal *left_node_ptr = node_local->trap_ptr->left_low;
+			if (left_node_ptr != nullptr) {
+				assert(left_node_ptr->trap_ptr->right_low == node_local || left_node_ptr->trap_ptr->right_up == node_local);
+				if (left_node_ptr->trap_ptr->right_low == node_local)
+					left_node_ptr->trap_ptr->right_low = next_node_ptr;
+				if (left_node_ptr->trap_ptr->right_up == node_local)
+					left_node_ptr->trap_ptr->right_up = next_node_ptr;
+			}
+		}
+
+		if (node_local->trap_ptr->left_up == origin_node)
+			next_node_ptr->trap_ptr->left_up = one_node_ptr;
+		else {
+			NodeLocal *left_node_ptr = node_local->trap_ptr->left_up;
+			if (left_node_ptr != nullptr) {
+				assert(left_node_ptr->trap_ptr->right_low == node_local || left_node_ptr->trap_ptr->right_up == node_local);
+				if (left_node_ptr->trap_ptr->right_low == node_local)
+					left_node_ptr->trap_ptr->right_low = next_node_ptr;
+				if (left_node_ptr->trap_ptr->right_up == node_local)
+					left_node_ptr->trap_ptr->right_up = next_node_ptr;
+			}
+		}
+	}
+	else {
+		NodeLocal  *right_node_ptr = origin_node->trap_ptr->right_low;
+		one_node_ptr->trap_ptr->right_low = right_node_ptr;
+		if (right_node_ptr != nullptr) {
+			assert(right_node_ptr->trap_ptr->left_low == origin_node || right_node_ptr->trap_ptr->left_up == origin_node);
+			if (right_node_ptr->trap_ptr->left_low == origin_node)
+				right_node_ptr->trap_ptr->left_low = one_node_ptr;
+			if (right_node_ptr->trap_ptr->left_up == origin_node)
+				right_node_ptr->trap_ptr->left_up = one_node_ptr;
+		}
+	}
+	//右上 
+	if (origin_node->trap_ptr->right_up == node_local) {
+		one_node_ptr->trap_ptr->right_up = next_node_ptr;
+		assert(node_local->trap_ptr->left_low == origin_node || node_local->trap_ptr->left_up == origin_node);
+
+		if (node_local->trap_ptr->left_low == origin_node)
+			next_node_ptr->trap_ptr->left_low = one_node_ptr;
+		else {
+			NodeLocal *left_node_ptr = node_local->trap_ptr->left_low;
+			if (left_node_ptr != nullptr) {
+				if (left_node_ptr->trap_ptr->right_low == node_local)
+					left_node_ptr->trap_ptr->right_low = next_node_ptr;
+				if (left_node_ptr->trap_ptr->right_up == node_local)
+					left_node_ptr->trap_ptr->right_up = next_node_ptr;
+			}
+		}
+		if (node_local->trap_ptr->left_up == origin_node)
+			next_node_ptr->trap_ptr->left_up = one_node_ptr;
+		else {
+			NodeLocal *left_node_ptr = node_local->trap_ptr->left_up;
+			if (left_node_ptr != nullptr) {
+				if (left_node_ptr->trap_ptr->right_low == node_local)
+					left_node_ptr->trap_ptr->right_low = next_node_ptr;
+				if (left_node_ptr->trap_ptr->right_up == node_local)
+					left_node_ptr->trap_ptr->right_up = next_node_ptr;
+			}
+		}
+	}
+	else {
+		NodeLocal  *right_node_ptr = origin_node->trap_ptr->right_up;
+		one_node_ptr->trap_ptr->right_up = right_node_ptr;
+		if (right_node_ptr != nullptr) {
+			assert(right_node_ptr->trap_ptr->left_low == origin_node || right_node_ptr->trap_ptr->left_up == origin_node);
+			if (right_node_ptr->trap_ptr->left_low == origin_node)
+				right_node_ptr->trap_ptr->left_low = one_node_ptr;
+			if (right_node_ptr->trap_ptr->left_up == origin_node)
+				right_node_ptr->trap_ptr->left_up = one_node_ptr;
+		}
+	}
+}
+#else
+//公共函数,梯形的邻接关系重构
+void static_local_point_adj_rearrange(NodeLocal *node_local, NodeLocal *origin_node, NodeLocal *one_node_ptr, NodeLocal *next_node_ptr) {
+	assert(node_local->trap_ptr->left_low == origin_node || node_local->trap_ptr->left_up == origin_node);
 	Trapzoid *trap_ptr = node_local->trap_ptr;
 	if (trap_ptr->left_low == origin_node) {
+		assert(origin_node->trap_ptr->right_low == node_local || origin_node->trap_ptr->right_up == node_local);
 		if (origin_node->trap_ptr->right_low == node_local)
 			one_node_ptr->trap_ptr->right_low = next_node_ptr;
+		else {
+			NodeLocal *right_node_ptr = origin_node->trap_ptr->right_low;
+			one_node_ptr->trap_ptr->right_low = right_node_ptr;
+			if (right_node_ptr != nullptr) {
+				assert(right_node_ptr->trap_ptr->left_low == origin_node || right_node_ptr->trap_ptr->left_up == origin_node);
+				if (right_node_ptr->trap_ptr->left_low == origin_node)
+					right_node_ptr->trap_ptr->left_low = one_node_ptr;
+				if (right_node_ptr->trap_ptr->left_up == origin_node)
+					right_node_ptr->trap_ptr->left_up = one_node_ptr;
+			}
+		}
+
 		if (origin_node->trap_ptr->right_up == node_local)
 			one_node_ptr->trap_ptr->right_up = next_node_ptr;
+		else {
+			NodeLocal *right_node_ptr = origin_node->trap_ptr->right_up;
+			one_node_ptr->trap_ptr->right_up = right_node_ptr;
+			if (right_node_ptr != nullptr) {
+				assert(right_node_ptr->trap_ptr->left_low == origin_node || right_node_ptr->trap_ptr->left_up == origin_node);
+				if (right_node_ptr->trap_ptr->left_low == origin_node)
+					right_node_ptr->trap_ptr->left_low = one_node_ptr;
+				if (right_node_ptr->trap_ptr->left_up == origin_node)
+					right_node_ptr->trap_ptr->left_up = one_node_ptr;
+			}
+		}
+
 		next_node_ptr->trap_ptr->left_low = one_node_ptr;
 	}
 	else {
 		NodeLocal  *quad_node_ptr = trap_ptr->left_low;
 		if (quad_node_ptr) {
+			assert(quad_node_ptr->trap_ptr->right_low == node_local || quad_node_ptr->trap_ptr->right_up == node_local);
 			if (quad_node_ptr->trap_ptr->right_low == node_local)
 				quad_node_ptr->trap_ptr->right_low = next_node_ptr;
+
 			if (quad_node_ptr->trap_ptr->right_up == node_local)
 				quad_node_ptr->trap_ptr->right_up = next_node_ptr;
 		}
@@ -246,15 +398,42 @@ void static_local_point_adj_rearrange(NodeLocal *node_local, NodeLocal *origin_n
 	}
 
 	if (trap_ptr->left_up == origin_node) {
-		if (origin_node->trap_ptr->right_up == node_local)
-			one_node_ptr->trap_ptr->right_up = next_node_ptr;
-		if (origin_node->trap_ptr->right_low == node_local)
-			one_node_ptr->trap_ptr->right_low = next_node_ptr;
+		if (trap_ptr->left_up != trap_ptr->left_low) {
+			assert(origin_node->trap_ptr->right_up == node_local || origin_node->trap_ptr->right_low == node_local);
+			if (origin_node->trap_ptr->right_up == node_local)
+				one_node_ptr->trap_ptr->right_up = next_node_ptr;
+			else {
+				NodeLocal *right_node_ptr = origin_node->trap_ptr->right_up;
+				one_node_ptr->trap_ptr->right_up = right_node_ptr;
+				if (right_node_ptr != nullptr) {
+					assert(right_node_ptr->trap_ptr->left_low == origin_node || right_node_ptr->trap_ptr->left_up == origin_node);
+					if (right_node_ptr->trap_ptr->left_low == origin_node)
+						right_node_ptr->trap_ptr->left_low = one_node_ptr;
+					if (right_node_ptr->trap_ptr->left_up == origin_node)
+						right_node_ptr->trap_ptr->left_up = one_node_ptr;
+				}
+			}
+
+			if (origin_node->trap_ptr->right_low == node_local)
+				one_node_ptr->trap_ptr->right_low = next_node_ptr;
+			else {
+				NodeLocal *right_node_ptr = origin_node->trap_ptr->right_low;
+				one_node_ptr->trap_ptr->right_low = right_node_ptr;
+				if (right_node_ptr != nullptr) {
+					assert(right_node_ptr->trap_ptr->left_low == origin_node || right_node_ptr->trap_ptr->left_up == origin_node);
+					if (right_node_ptr->trap_ptr->left_low == origin_node)
+						right_node_ptr->trap_ptr->left_low = one_node_ptr;
+					if (right_node_ptr->trap_ptr->left_up == origin_node)
+						right_node_ptr->trap_ptr->left_up = one_node_ptr;
+				}
+			}
+		}
 		next_node_ptr->trap_ptr->left_up = one_node_ptr;
 	}
 	else {
 		NodeLocal  *quad_node_ptr = trap_ptr->left_up;
-		if (quad_node_ptr) {
+		if (quad_node_ptr && quad_node_ptr != trap_ptr->left_low) {
+			assert(quad_node_ptr->trap_ptr->right_low == node_local || quad_node_ptr->trap_ptr->right_up == node_local);
 			if (quad_node_ptr->trap_ptr->right_low == node_local)
 				quad_node_ptr->trap_ptr->right_low = next_node_ptr;
 			if (quad_node_ptr->trap_ptr->right_up == node_local)
@@ -263,11 +442,12 @@ void static_local_point_adj_rearrange(NodeLocal *node_local, NodeLocal *origin_n
 		next_node_ptr->trap_ptr->left_up = quad_node_ptr;
 	}
 }
+#endif
 /*
   *分裂梯形序列
   *注意:第一个跟最后一个梯形比较特殊,需要单独的处理
  */
-void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLocal*> &follow_nodes,Segment2D &seg) {
+void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLocal*> &follow_nodes,Segment2D &seg,int debug_idx) {
 	//开头的梯形
 	NodeLocal *secondary_local = follow_nodes.head()->tv_value;
 	//最先生成的梯形
@@ -284,13 +464,15 @@ void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLoca
 
 	if (origin_trap->left_low) {
 		Trapzoid *left_trap = origin_trap->left_low->trap_ptr;
+		assert(left_trap->right_low == secondary_local || left_trap->right_up == secondary_local);
 		if (left_trap->right_low == secondary_local)
 			left_trap->right_low = a_node_ptr;
 		if (left_trap->right_up == secondary_local)
 			left_trap->right_up = a_node_ptr;
 	}
-	if (origin_trap->left_up) {
+	if (origin_trap->left_up && origin_trap->left_up != origin_trap->left_low) {
 		Trapzoid *left_trap = origin_trap->left_up->trap_ptr;
+		assert(left_trap->right_low == secondary_local || left_trap->right_up == secondary_local);
 		if (left_trap->right_low == secondary_local)
 			left_trap->right_low = a_node_ptr;
 		if (left_trap->right_up == secondary_local)
@@ -321,11 +503,22 @@ void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLoca
 	si_ptr->child_r = other_node_ptr;
 	a_node_ptr->trap_ptr->right_up = one_node_ptr;
 	a_node_ptr->trap_ptr->right_low = other_node_ptr;
+
+	one_node_ptr->trap_ptr->left_low = a_node_ptr;
+	one_node_ptr->trap_ptr->left_up = a_node_ptr;
+
+	other_node_ptr->trap_ptr->left_low = a_node_ptr;
+	other_node_ptr->trap_ptr->left_up = a_node_ptr;
 	//在遍历的过程中,将伴随着新的邻接关系的生成
 	//最后的梯形
 	NodeLocal *tripple_local = follow_nodes.back()->tv_value;
 	follow_nodes.pop_front();
 	follow_nodes.pop_back();
+	//记录新的节点
+	std::vector<NodeLocal*> debug_array;
+	debug_array.push_back(a_node_ptr);
+	debug_array.push_back(one_node_ptr);
+	debug_array.push_back(other_node_ptr);
 	//经过相关运算之后,one_node_ptr正在线段seg之上,other_node_ptr在线段seg之下
 	NodeLocal *origin_node = secondary_local;
 	for (auto *it_ptr = follow_nodes.head(); it_ptr != nullptr; it_ptr = follow_nodes.next(it_ptr)) {
@@ -340,6 +533,8 @@ void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLoca
 			top_node_ptr->trap_ptr = new Trapzoid(left_point,Vec2::ZERO);
 			top_node_ptr->trap_ptr->low_seg_ptr = &seg;
 			top_node_ptr->trap_ptr->up_seg_ptr = node_local->trap_ptr->up_seg_ptr;
+
+			debug_array.push_back(top_node_ptr);
 		}
 		else {
 			other_node_ptr->trap_ptr->right_point = left_point;
@@ -347,6 +542,8 @@ void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLoca
 			low_node_ptr->trap_ptr = new Trapzoid(left_point, Vec2::ZERO);
 			low_node_ptr->trap_ptr->up_seg_ptr = &seg;
 			low_node_ptr->trap_ptr->low_seg_ptr = node_local->trap_ptr->low_seg_ptr;
+
+			debug_array.push_back(low_node_ptr);
 		}
 		//变更当前梯形顶点的结构,以及其邻接梯形之间的拓扑关系
 		Trapzoid *trap_ptr = node_local->trap_ptr;
@@ -387,6 +584,7 @@ void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLoca
 		one_node_ptr = top_node_ptr;
 
 		other_node_ptr->trap_ptr->right_point = seg.final_point;
+		debug_array.push_back(top_node_ptr);
 	}
 	else {
 		other_node_ptr->trap_ptr->right_point = tripple_local->trap_ptr->left_point;
@@ -399,12 +597,14 @@ void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLoca
 		other_node_ptr = low_node_ptr;
 
 		one_node_ptr->trap_ptr->right_point = seg.final_point;
+		debug_array.push_back(low_node_ptr);
 	}
 	//需要新建立一个梯形,最右侧的梯形
 	NodeLocal *right_node = new NodeLocal(LocalType_Trapzoid);
 	right_node->trap_ptr = new Trapzoid(seg.final_point, tripple_local->trap_ptr->right_point);
 	right_node->trap_ptr->up_seg_ptr = tripple_local->trap_ptr->up_seg_ptr;
 	right_node->trap_ptr->low_seg_ptr = tripple_local->trap_ptr->low_seg_ptr;
+	debug_array.push_back(right_node);
 	//新的线段节点
 	NodeLocal	 *right_seg_node = new NodeLocal(LocalType_Segment);
 	right_seg_node->segment_ptr = &seg;
@@ -415,6 +615,7 @@ void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLoca
 	tripple_local->endpoint_ptr = &seg.final_point;
 	tripple_local->child_l = right_seg_node;
 	tripple_local->child_r = right_node;
+	
 	//邻接关系修正
 	one_node_ptr->trap_ptr->right_low = right_node;
 	one_node_ptr->trap_ptr->right_up = right_node;
@@ -431,29 +632,37 @@ void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLoca
 
 	if (origin_trap->right_low) {
 		NodeLocal *st = origin_trap->right_low;
+		assert(st->trap_ptr->left_low == tripple_local || st->trap_ptr->left_up == tripple_local);
 		if (st->trap_ptr->left_low == tripple_local)
 			st->trap_ptr->left_low = right_node;
 		if (st->trap_ptr->left_up == tripple_local)
 			st->trap_ptr->left_up = right_node;
 	}
 
-	if (origin_trap->right_up) {
+	if (origin_trap->right_up && origin_trap->right_up != origin_trap->right_low) {
 		NodeLocal *st = origin_trap->right_up;
+		assert(st->trap_ptr->left_low == tripple_local || st->trap_ptr->left_up == tripple_local);
 		if (st->trap_ptr->left_low == tripple_local)
 			st->trap_ptr->left_low = right_node;
 		if (st->trap_ptr->left_up == tripple_local)
 			st->trap_ptr->left_up = right_node;
 	}
 	//销毁所有的已过时的梯形数据结构
-	delete secondary_local->trap_ptr;
+	//delete secondary_local->trap_ptr;
+	secondary_local->trap2_ptr = secondary_local->trap_ptr;
 	secondary_local->trap_ptr = nullptr;
 
-	delete tripple_local->trap_ptr;
+	//delete tripple_local->trap_ptr;
+	tripple_local->trap2_ptr = tripple_local->trap_ptr;
 	tripple_local->trap_ptr = nullptr;
 	for (auto *it_ptr = follow_nodes.head(); it_ptr != nullptr; it_ptr = follow_nodes.next(it_ptr)) {
-		delete it_ptr->tv_value->trap_ptr;
+		//delete it_ptr->tv_value->trap_ptr;
+		it_ptr->tv_value->trap2_ptr = it_ptr->tv_value->trap_ptr;
 		it_ptr->tv_value->trap_ptr = nullptr;
 	}
+
+	//assert
+	local_point_debug(debug_array,true);
 }
 
 void local_point_create_trapzoid(LocationLexer &lexer, std::vector<Segment2D> &segments) {
@@ -464,13 +673,24 @@ void local_point_create_trapzoid(LocationLexer &lexer, std::vector<Segment2D> &s
 	int array_size = segments.size();
 	for (int j = 0; j < array_size - 2; ++j) {
 		Segment2D &seg = segments[j];
+		if (j == 5) {
+			int x = 0;
+			int y = 0;
+		}
 		local_point_follow_segment(lexer, seg, follow_nodes);
+		local_point_debug(follow_nodes,true);
 		auto *it_ptr = follow_nodes.head();
 		//队列中有一个节点/多个节点的处理情况大不相同,需要分开处理
 		if (follow_nodes.size() == 1) 
 			local_point_split_trapzoid(it_ptr->tv_value, seg);
 		else 
-			local_point_split_trapzoid_sequence(lexer,follow_nodes,seg);
+			local_point_split_trapzoid_sequence(lexer,follow_nodes,seg,j);
+
+		//每一次处理之后,需要debug一遍
+		std::vector<gt::NodeLocal*> nodes_array;
+		local_point_visit(lexer, nodes_array, j + 1);
+		local_point_debug(nodes_array,false);
+
 		follow_nodes.clear();
 	}
 }

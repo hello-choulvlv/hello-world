@@ -37,14 +37,14 @@ struct NodeLocal {
 	LocalType  node_type;
 	cocos2d::Vec2   *endpoint_ptr;//端点
 	Segment2D         *segment_ptr;//线段
-	Trapzoid              *trap_ptr;//梯形
+	Trapzoid              *trap_ptr,*trap2_ptr;//梯形
 	NodeLocal  *child_l, *child_r;
 	int                           ref;//访问标志,在相关节点被销毁时使用
 
 	NodeLocal(LocalType  atype) :node_type(atype)
 		,endpoint_ptr(nullptr)
 		,segment_ptr(nullptr)
-		,trap_ptr(nullptr)
+		,trap_ptr(nullptr), trap2_ptr(nullptr)
 		,child_l(nullptr)
 		,child_r(nullptr)
 		, ref(0){};
