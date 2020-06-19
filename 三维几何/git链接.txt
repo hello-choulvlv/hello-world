@@ -1,0 +1,5 @@
+//Voronoi图算法Fortune海滩线算法实现
+https://github.com/pvigier/FortuneAlgorithm.git
+
+//SFML库
+https://github.com/SFML/SFML.git

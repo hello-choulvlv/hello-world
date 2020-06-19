@@ -128,7 +128,8 @@ bool HelloWorld::init()
 	//linearProgram2d();
 	//linearProgramTest();//1585913882/1586053580;// 
 	//frustumClippingTest();
-	pointLocationTest();
+	//pointLocationTest();
+	fortuneAlgorithmTest();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -318,6 +319,46 @@ void HelloWorld::pointLocationTest() {
 
 	if(node_local != nullptr)
 		static_draw_line(node_local, draw_node,&Color4F::RED);
+
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::fortuneAlgorithmTest() {
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+	//随机生成离散点集
+	int64_t seed = 1592362715;// time(nullptr);
+	CCLOG("new seed -->%ld",seed);
+	std::default_random_engine  random_engine(seed);
+	std::uniform_real_distribution<float> distribution;
+
+	const int array_size = 16;
+	float fx_width = _director->getWinSize().width * 0.5f;
+	float fx_height = _director->getWinSize().height * 0.5f;
+
+	std::vector<Vec2>  discard_points(array_size);
+	for (int j = 0; j < array_size; ++j) {
+		discard_points[j] = Vec2((distribution(random_engine) * 2.0f - 1.0f) * fx_width, (distribution(random_engine) * 2.0f -1.0f) * fx_height);
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(discard_points[j]);
+		root_node->addChild(sprite);
+	}
+
+	gt::FortuneAlgorithm   fx_algorithm(discard_points);
+	fx_algorithm.build();
+	fx_algorithm.bound();
+	//画出各条边,包括无界边,目前先暂时画出有限边
+	gt::FkDiagram  &fx_diagram = fx_algorithm.getDiagram();
+	gt::link_list<gt::FxEdge*>  &half_edges = fx_diagram.getHalfEdges();
+	for (auto *it_ptr = half_edges.head(); it_ptr != nullptr; it_ptr = it_ptr->next) {
+		gt::FxEdge  *half_edge = it_ptr->tv_value;
+		if (half_edge->origin_ptr != nullptr && half_edge->destination_ptr != nullptr) {
+			draw_node->drawLine(*half_edge->origin_ptr, *half_edge->destination_ptr, Color4F::GREEN);
+		}
+	}
 
 	root_node->setCameraMask(s_CameraMask);
 }

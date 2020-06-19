@@ -20,4 +20,5 @@
 #include "frustum/frustum.h"
 
 #include "point_location/point_location.h"
+#include "fortune/fk_algorithm.h"
 #endif

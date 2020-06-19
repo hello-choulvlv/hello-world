@@ -175,6 +175,8 @@ public:
 	void frustumClippingTest();
 	//点定位算法测试
 	void pointLocationTest();
+	//离散点集的Voronoi图算法之Fortune算法实现
+	void fortuneAlgorithmTest();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

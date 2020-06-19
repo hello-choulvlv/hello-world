@@ -8,7 +8,6 @@
 #ifndef __BALANCE_TREE_H__
 #define __BALANCE_TREE_H__
 #include "gt_common/geometry_types.h"
-#include "memory_alloc.h"
 #include<assert.h>
 #include<functional>
 NS_GT_BEGIN

@@ -6,9 +6,12 @@
   *@data:2020年2月17日支持任意位置的删除,只是需要增加一些限制条件
   *注意modify_function,如果传入的值是-1,则说明需要返回该节点的实际位置,否则为实际的位置
  */
+#ifndef __Priority_queue_h__
+#define __Priority_queue_h__
 #include "gt_common/geometry_types.h"
 #include<string.h>
 #include<assert.h>
+#include <functional>
 NS_GT_BEGIN
 template<typename KP>
 class priority_queue
@@ -169,3 +172,4 @@ public:
 	KP*   data()const { return _root_heap +1; };
 };
 NS_GT_END
+#endif

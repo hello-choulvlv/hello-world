@@ -10,6 +10,8 @@
 
 using namespace cocos2d;
 NS_GT_BEGIN
+//是否调试算法
+#define __debug_local_test 0
 
 LocationLexer::~LocationLexer() {
 
@@ -78,11 +80,13 @@ NodeLocal*   local_point_find_location(LocationLexer &lexer, const cocos2d::Vec2
 		else {
 			//如果具体到梯形,此时一定走到了叶子节点,于是要么属于包含关系,要么发生了错误,这里为了调试起见,
 			//再一次的计算了包含关系,实际上在有限范围限定下,必有包含关系,否则一定是程序错误
+#if __debug_local_test
 			Trapzoid  *trap = node_local->trap_ptr;
 			bool b1 = point.x > trap->left_point.x && point.x < trap->right_point.x;
 			bool b2 = cross(trap->low_seg_ptr->start_point,trap->low_seg_ptr->final_point,point) > 0.0f;
 			bool b3 = cross(trap->up_seg_ptr->start_point,trap->up_seg_ptr->final_point,point) < 0.0f;
 			assert(b1 & b2 & b3);
+#endif
 			break;
 		}
 	}
@@ -151,35 +155,45 @@ void local_point_debug(link_list<NodeLocal *> &debug_array, bool debug_force) {
  */
 static void local_point_split_trapzoid(NodeLocal  *node_local,Segment2D &seg) {
 	assert(node_local && node_local->node_type == LocalType_Trapzoid);
+#if __debug_local_test
 	std::vector<NodeLocal*> debug_array;
+#endif
 	//需要同时生成四个梯形,其中最后一个可以复用第一个
 	NodeLocal *a_node_ptr = new NodeLocal(LocalType_Trapzoid);
 	Trapzoid  *a_trap = new Trapzoid(node_local->trap_ptr->left_point, seg.start_point);
 	a_trap->low_seg_ptr = node_local->trap_ptr->low_seg_ptr;
 	a_trap->up_seg_ptr = node_local->trap_ptr->up_seg_ptr;
 	a_node_ptr->trap_ptr = a_trap;
+#if __debug_local_test
 	debug_array.push_back(a_node_ptr);
+#endif
 
 	NodeLocal *b_node_ptr = new NodeLocal(LocalType::LocalType_Trapzoid);//最右侧的梯形
 	Trapzoid  *b_trap = new Trapzoid(seg.final_point,node_local->trap_ptr->right_point);
 	b_trap->low_seg_ptr = node_local->trap_ptr->low_seg_ptr; 
 	b_trap->up_seg_ptr = node_local->trap_ptr->up_seg_ptr;
 	b_node_ptr->trap_ptr = b_trap;
+#if __debug_local_test
 	debug_array.push_back(b_node_ptr);
+#endif
 	//C
 	NodeLocal *c_node_ptr = new NodeLocal(LocalType::LocalType_Trapzoid);
 	Trapzoid    *c_trap = new Trapzoid(seg.start_point,seg.final_point);
 	c_trap->low_seg_ptr = &seg;
 	c_trap->up_seg_ptr = node_local->trap_ptr->up_seg_ptr;
 	c_node_ptr->trap_ptr = c_trap;
+#if __debug_local_test
 	debug_array.push_back(c_node_ptr);
+#endif
 
 	NodeLocal *d_node_ptr = new NodeLocal(LocalType_Trapzoid);
 	Trapzoid   *d_trap = new Trapzoid(seg.start_point,seg.final_point);
 	d_trap->low_seg_ptr = node_local->trap_ptr->low_seg_ptr;
 	d_trap->up_seg_ptr = &seg;
 	d_node_ptr->trap_ptr = d_trap;
+#if __debug_local_test
 	debug_array.push_back(d_node_ptr);
+#endif
 	//新生成的梯形与原邻接梯形之间的关系重构
 	Trapzoid  *origin_trap = node_local->trap_ptr;
 	a_node_ptr->trap_ptr->left_low = origin_trap->left_low;
@@ -261,7 +275,9 @@ static void local_point_split_trapzoid(NodeLocal  *node_local,Segment2D &seg) {
 	d_trap->right_low = b_node_ptr;
 	d_trap->right_up = b_node_ptr;
 
+#if __debug_local_test
 	local_point_debug(debug_array,true);
+#endif
 }
 //公共函数,梯形的邻接关系重构
 #if 0
@@ -515,10 +531,12 @@ void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLoca
 	follow_nodes.pop_front();
 	follow_nodes.pop_back();
 	//记录新的节点
+#if __debug_local_test
 	std::vector<NodeLocal*> debug_array;
 	debug_array.push_back(a_node_ptr);
 	debug_array.push_back(one_node_ptr);
 	debug_array.push_back(other_node_ptr);
+#endif
 	//经过相关运算之后,one_node_ptr正在线段seg之上,other_node_ptr在线段seg之下
 	NodeLocal *origin_node = secondary_local;
 	for (auto *it_ptr = follow_nodes.head(); it_ptr != nullptr; it_ptr = follow_nodes.next(it_ptr)) {
@@ -533,8 +551,9 @@ void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLoca
 			top_node_ptr->trap_ptr = new Trapzoid(left_point,Vec2::ZERO);
 			top_node_ptr->trap_ptr->low_seg_ptr = &seg;
 			top_node_ptr->trap_ptr->up_seg_ptr = node_local->trap_ptr->up_seg_ptr;
-
+#if __debug_local_test
 			debug_array.push_back(top_node_ptr);
+#endif
 		}
 		else {
 			other_node_ptr->trap_ptr->right_point = left_point;
@@ -542,8 +561,9 @@ void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLoca
 			low_node_ptr->trap_ptr = new Trapzoid(left_point, Vec2::ZERO);
 			low_node_ptr->trap_ptr->up_seg_ptr = &seg;
 			low_node_ptr->trap_ptr->low_seg_ptr = node_local->trap_ptr->low_seg_ptr;
-
+#if __debug_local_test
 			debug_array.push_back(low_node_ptr);
+#endif
 		}
 		//变更当前梯形顶点的结构,以及其邻接梯形之间的拓扑关系
 		Trapzoid *trap_ptr = node_local->trap_ptr;
@@ -584,7 +604,9 @@ void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLoca
 		one_node_ptr = top_node_ptr;
 
 		other_node_ptr->trap_ptr->right_point = seg.final_point;
+#if __debug_local_test
 		debug_array.push_back(top_node_ptr);
+#endif
 	}
 	else {
 		other_node_ptr->trap_ptr->right_point = tripple_local->trap_ptr->left_point;
@@ -597,14 +619,18 @@ void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLoca
 		other_node_ptr = low_node_ptr;
 
 		one_node_ptr->trap_ptr->right_point = seg.final_point;
+#if __debug_local_test
 		debug_array.push_back(low_node_ptr);
+#endif
 	}
 	//需要新建立一个梯形,最右侧的梯形
 	NodeLocal *right_node = new NodeLocal(LocalType_Trapzoid);
 	right_node->trap_ptr = new Trapzoid(seg.final_point, tripple_local->trap_ptr->right_point);
 	right_node->trap_ptr->up_seg_ptr = tripple_local->trap_ptr->up_seg_ptr;
 	right_node->trap_ptr->low_seg_ptr = tripple_local->trap_ptr->low_seg_ptr;
+#if __debug_local_test
 	debug_array.push_back(right_node);
+#endif
 	//新的线段节点
 	NodeLocal	 *right_seg_node = new NodeLocal(LocalType_Segment);
 	right_seg_node->segment_ptr = &seg;
@@ -648,21 +674,32 @@ void local_point_split_trapzoid_sequence(LocationLexer &lexer,link_list<NodeLoca
 			st->trap_ptr->left_up = right_node;
 	}
 	//销毁所有的已过时的梯形数据结构
-	//delete secondary_local->trap_ptr;
+#if !__debug_local_test
+	delete secondary_local->trap_ptr;
+#else
 	secondary_local->trap2_ptr = secondary_local->trap_ptr;
+#endif
 	secondary_local->trap_ptr = nullptr;
 
-	//delete tripple_local->trap_ptr;
+#if !__debug_local_test
+	delete tripple_local->trap_ptr;
+#else
 	tripple_local->trap2_ptr = tripple_local->trap_ptr;
+#endif
 	tripple_local->trap_ptr = nullptr;
+
 	for (auto *it_ptr = follow_nodes.head(); it_ptr != nullptr; it_ptr = follow_nodes.next(it_ptr)) {
-		//delete it_ptr->tv_value->trap_ptr;
+#if !__debug_local_test
+		delete it_ptr->tv_value->trap_ptr;
+#else
 		it_ptr->tv_value->trap2_ptr = it_ptr->tv_value->trap_ptr;
+#endif
 		it_ptr->tv_value->trap_ptr = nullptr;
 	}
-
+#if __debug_local_test
 	//assert
 	local_point_debug(debug_array,true);
+#endif
 }
 
 void local_point_create_trapzoid(LocationLexer &lexer, std::vector<Segment2D> &segments) {
@@ -673,10 +710,6 @@ void local_point_create_trapzoid(LocationLexer &lexer, std::vector<Segment2D> &s
 	int array_size = segments.size();
 	for (int j = 0; j < array_size - 2; ++j) {
 		Segment2D &seg = segments[j];
-		if (j == 5) {
-			int x = 0;
-			int y = 0;
-		}
 		local_point_follow_segment(lexer, seg, follow_nodes);
 		local_point_debug(follow_nodes,true);
 		auto *it_ptr = follow_nodes.head();
@@ -685,12 +718,12 @@ void local_point_create_trapzoid(LocationLexer &lexer, std::vector<Segment2D> &s
 			local_point_split_trapzoid(it_ptr->tv_value, seg);
 		else 
 			local_point_split_trapzoid_sequence(lexer,follow_nodes,seg,j);
-
+#if __debug_local_test
 		//每一次处理之后,需要debug一遍
 		std::vector<gt::NodeLocal*> nodes_array;
 		local_point_visit(lexer, nodes_array, j + 1);
 		local_point_debug(nodes_array,false);
-
+#endif
 		follow_nodes.clear();
 	}
 }
