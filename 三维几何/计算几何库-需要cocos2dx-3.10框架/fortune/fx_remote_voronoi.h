@@ -2,12 +2,12 @@
   *最远点Voronoi图算法
   *@date:2020年6月25日
   *@author:xiaohuaxiong
+  *@version 2.0:2020年6月27日 优化内存分配+释放
  */
 #ifndef __fx_remote_vronoi_h__
 #define __fx_remote_vronoi_h__
 #include "gt_common/geometry_types.h"
 #include "data_struct/link_list.h"
-#include "fk_data.h"
 #include "math/Vec2.h"
 #include <vector>
 NS_GT_BEGIN
@@ -28,7 +28,35 @@ struct FxvSite {
 
 	FxvSite(const cocos2d::Vec2 &local) :location(local), head_ptr(nullptr), tail_ptr(nullptr) {};
 	FxvSite() :head_ptr(nullptr), tail_ptr(nullptr) {};
+
+	~FxvSite() {
+		FxvEdge *edge_ptr = head_ptr;
+		while (edge_ptr != nullptr) {
+			FxvEdge  *next_ptr = edge_ptr->next;
+			delete edge_ptr;
+			edge_ptr = next_ptr;
+		}
+	};
 };
+
+struct FxvMemoryAlloc
+{
+	FxvEdge  *_head;
+	int              _size;
+
+	FxvMemoryAlloc() :_head(nullptr), _size(0) {};
+	~FxvMemoryAlloc() {
+		while (_head != nullptr){
+			FxvEdge *next_edge = _head->next;
+			delete _head;
+			_head = next_edge;
+		}
+	}
+	//alloc
+	FxvEdge *alloc(const cocos2d::Vec2 &origin, const cocos2d::Vec2 &dest, FxvSite *site);
+	void           release(FxvEdge  *edge);
+};
+
 /*
   *求离散点集的凸壳
  */

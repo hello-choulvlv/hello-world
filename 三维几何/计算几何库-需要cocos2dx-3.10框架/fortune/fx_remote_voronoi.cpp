@@ -3,7 +3,7 @@
   *2020年6月25日
   *@author:xiaohuaxiong
   *@version 1.0:实现基本的功能
-  *@version 2.0:优化内存分配与释放
+  *@version 2.0:优化内存分配与释放 + 2020年6月27日
  */
 #include "fx_remote_voronoi.h"
 #include "matrix/matrix.h"
@@ -11,6 +11,32 @@
 #include <assert.h>
 using namespace cocos2d;
 NS_GT_BEGIN
+
+FxvEdge *FxvMemoryAlloc::alloc(const cocos2d::Vec2 &origin,const cocos2d::Vec2 &dest,FxvSite *site) {
+	FxvEdge *edge_ptr = nullptr;
+	if (_head != nullptr) {
+		edge_ptr = _head;
+		_head = _head->next;
+
+		edge_ptr->origin = origin;
+		edge_ptr->destination = dest;
+		edge_ptr->next = nullptr;
+		edge_ptr->prev = nullptr;
+		edge_ptr->twin = nullptr;
+		edge_ptr->site_ptr = site;
+		--_size;
+	}
+	else
+		edge_ptr = new FxvEdge(origin, dest, site);
+
+	return edge_ptr;
+}
+
+void FxvMemoryAlloc::release(FxvEdge  *edge) {
+	edge->next = _head;
+	_head = edge;
+	++_size;
+}
 
 bool fx_create_clipper(std::vector<cocos2d::Vec2> &discard_points, link_list<cocos2d::Vec2> &clipper_list) {
 	assert(discard_points.size() >= 3);
@@ -117,7 +143,7 @@ void fx_create_remote_voronoi(std::vector<cocos2d::Vec2> &discard_points, std::v
 	//从第4个点开始,逐个的遍历
 	const float length_fx = 10000.0f;
 	Vec2  intersect_point,intersect_point2;
-	FxvSite  *array_ptr = site_array.data(),*ptr2 = site_array.data()+1,*ptr3 = site_array.data() + 2;
+	FxvMemoryAlloc  mem_alloc;
 	for (int base_j = 3;base_j < clipper_list.size() ; ++base_j) {
 		//首先获取其前驱节点,由prev_site指向now_site的直线的正交射线与prev_site所对应的voronoi单元的交点
 		FxvSite &now_site = site_array[base_j];
@@ -129,19 +155,25 @@ void fx_create_remote_voronoi(std::vector<cocos2d::Vec2> &discard_points, std::v
 		const Vec2 destination = origin + ortho * length_fx;
 
 		FxvEdge  *edge_ptr = prev_site.head_ptr;
-		//遍历,查找第一个不相交的边,从edge_ptr到第一个相交的边形成的交点到新的边,这些序列构成了prev_site的新的Voronoi单元
+		//遍历,查找第一个相交的边,从edge_ptr到第一个相交的边形成的交点到新的边,这些序列构成了prev_site的新的Voronoi单元
 		while (edge_ptr != nullptr && !segment_segment_intersect_test(edge_ptr->origin, edge_ptr->destination, origin, destination, intersect_point)) {
 			edge_ptr = edge_ptr->next;
 		}
 		assert(edge_ptr != nullptr);
 		//先记录下后续的边,在稍后我们将会将他们一起释放掉
-		//FxvEdge  *secondary_edge = edge_ptr->next;
+		FxvEdge  *tail_ptr = prev_site.tail_ptr;
+		while (tail_ptr != edge_ptr) {
+			FxvEdge *prev_ptr = tail_ptr->prev;
+			mem_alloc.release(tail_ptr);
+			tail_ptr = prev_ptr;
+		}
+
 		edge_ptr->destination = intersect_point;
-		FxvEdge *suffix_edge = new FxvEdge(intersect_point,destination,&prev_site);
+		FxvEdge *suffix_edge = mem_alloc.alloc(intersect_point, destination, &prev_site);// new FxvEdge(intersect_point, destination, &prev_site);
 		edge_ptr->next = suffix_edge; suffix_edge->prev = edge_ptr;
 		prev_site.tail_ptr = suffix_edge;
 		//同时需要为当前的Voronoi单元生成新的边
-		FxvEdge *new_edge = new FxvEdge(destination,intersect_point,&now_site);
+		FxvEdge *new_edge = mem_alloc.alloc(destination, intersect_point, &now_site);// new FxvEdge(destination, intersect_point, &now_site);
 		now_site.head_ptr = new_edge;
 		//新的邻接关系接入
 		suffix_edge->twin = new_edge; new_edge->twin = suffix_edge;
@@ -157,14 +189,19 @@ void fx_create_remote_voronoi(std::vector<cocos2d::Vec2> &discard_points, std::v
 			const Vec2 ortho2(-normal2.y,normal2.x);
 			const Vec2 dest2 = intersect_point + ortho2 * length_fx;
 
+			float f2 = cross(intersect_point,(now_site.location + target_site->location) * 0.5f,intersect_point + ortho2);
+			assert(fabsf(f2) <= 0.01f);
+
 			FxvEdge  *prev_edge = other_edge->prev;
 			while (prev_edge != nullptr && !segment_segment_intersect_test(intersect_point, dest2, prev_edge->origin, prev_edge->destination, intersect_point2)) {
-				prev_edge = prev_edge->prev;
+				FxvEdge  *prev_ptr = prev_edge->prev;
+				mem_alloc.release(prev_edge);
+				prev_edge = prev_ptr;
 			}
 			assert(prev_edge != nullptr);
 			//新建一条边,以及相关的twin,联通原来的旧边
-			FxvEdge  *other_new_edge = new FxvEdge(intersect_point2,intersect_point,target_site);
-			FxvEdge  *new2_edge = new FxvEdge(intersect_point,intersect_point2,&now_site);
+			FxvEdge  *other_new_edge = mem_alloc.alloc(intersect_point2, intersect_point, target_site);// new FxvEdge(intersect_point2, intersect_point, target_site);
+			FxvEdge  *new2_edge = mem_alloc.alloc(intersect_point, intersect_point2, &now_site);// new FxvEdge(intersect_point, intersect_point2, &now_site);
 			other_new_edge->twin = new2_edge; new2_edge->twin = other_new_edge;
 
 			new_edge->next = new2_edge; new2_edge->prev = new_edge;
@@ -181,14 +218,26 @@ void fx_create_remote_voronoi(std::vector<cocos2d::Vec2> &discard_points, std::v
 		const Vec2 normal3 = normalize(now_site.location,ccw_site->location);
 		const Vec2 ortho3(-normal3.y,normal3.x);
 		const Vec2 origin3 = (now_site.location + ccw_site->location) * 0.5f;
-		const Vec2 dest3 = origin3 + ortho3 * length_fx;
+		const Vec2 dest3 = intersect_point + ortho3 * length_fx;
 
-		FxvEdge  *tail_edge = new FxvEdge(intersect_point,dest3,ccw_site);
-		FxvEdge  *ccw_edge = new FxvEdge(dest3,intersect_point,&now_site);
+		float f2 = cross(intersect_point,(now_site.location + ccw_site->location) * 0.5f,intersect_point + ortho3);
+		assert(fabsf(f2) <= 0.1f);
+
+		//新单元的最后一条边
+		FxvEdge  *tail_edge = mem_alloc.alloc(intersect_point, dest3, &now_site);// new FxvEdge(intersect_point, dest3, &now_site);
+		//旧单元的第一条边
+		FxvEdge  *ccw_edge = mem_alloc.alloc(dest3, intersect_point, ccw_site);// new FxvEdge(dest3, intersect_point, ccw_site);
 		tail_edge->twin = ccw_edge; ccw_edge->twin = tail_edge;
 
 		FxvEdge  *twin_edge = edge_ptr->twin;//ccw edge
 		twin_edge->origin = intersect_point;
+		
+		FxvEdge *head_ptr = ccw_site->head_ptr;
+		while (head_ptr != twin_edge) {
+			FxvEdge *next_ptr = head_ptr->next;
+			mem_alloc.release(head_ptr);
+			head_ptr = next_ptr;
+		}
 
 		ccw_edge->next = twin_edge; twin_edge->prev = ccw_edge;
 		tail_edge->prev = new_edge; new_edge->next = tail_edge;
@@ -197,5 +246,5 @@ void fx_create_remote_voronoi(std::vector<cocos2d::Vec2> &discard_points, std::v
 		ccw_site->head_ptr = ccw_edge;
 	}
 }
-
+ 
 NS_GT_END
