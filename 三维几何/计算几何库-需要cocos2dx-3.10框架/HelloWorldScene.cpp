@@ -129,7 +129,8 @@ bool HelloWorld::init()
 	//linearProgramTest();//1585913882/1586053580;// 
 	//frustumClippingTest();
 	//pointLocationTest();
-	fortuneAlgorithmTest();
+	//fortuneAlgorithmTest();
+	remoteVoronoiTest();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -360,5 +361,70 @@ void HelloWorld::fortuneAlgorithmTest() {
 		}
 	}
 
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::remoteVoronoiTest() {
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+	//随机生成离散点集
+	int64_t seed = 1592362715;// time(nullptr);
+	CCLOG("new seed -->%ld", seed);
+	std::default_random_engine  random_engine(seed);
+	std::uniform_real_distribution<float> distribution;
+
+	const int array_size = 16;
+	float fx_width = _director->getWinSize().width * 0.4f;
+	float fx_height = _director->getWinSize().height * 0.4f;
+
+	std::vector<Vec2>  discard_points(array_size);
+	for (int j = 0; j < array_size; ++j) {
+		discard_points[j] = Vec2((distribution(random_engine) * 2.0f - 1.0f) * fx_width, (distribution(random_engine) * 2.0f - 1.0f) * fx_height);
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(discard_points[j]);
+		root_node->addChild(sprite);
+	}
+	std::vector<gt::FxvSite>   site_array;
+#if 0
+	gt::link_list<Vec2>  hull_list;
+	gt::fx_create_clipper(discard_points, hull_list);
+	site_array.resize(hull_list.size());
+	int j = 0;
+	for (auto *it_ptr = hull_list.head(); it_ptr != nullptr; it_ptr = it_ptr->next,++j) {
+		site_array[j].location = it_ptr->tv_value;
+		draw_node->drawLine(it_ptr->tv_value, it_ptr->next ? it_ptr->next->tv_value:hull_list.head()->tv_value, Color4F::GREEN);
+	}
+	gt::fx_create_remote_voronoi3(hull_list, site_array);
+	for (j = 0; j < 3; ++j) {
+		gt::FxvSite &now_site = site_array[j];
+		//其次画出所有的边
+		Color4F	color(distribution(random_engine), distribution(random_engine), distribution(random_engine), 1.0f);
+		gt::FxvEdge  *edge_ptr = now_site.head_ptr;
+		while (edge_ptr != nullptr) {
+			draw_node->drawLine(edge_ptr->origin, edge_ptr->destination, color);
+			edge_ptr = edge_ptr->next;
+		}
+	}
+#endif
+
+#if 1
+	gt::fx_create_remote_voronoi(discard_points, site_array);
+	//首先画出凸壳
+	int array_size2 = site_array.size();
+	for (int j = 0; j < array_size2; ++j) {
+		gt::FxvSite &now_site = site_array[j];
+		draw_node->drawLine(site_array[j].location,site_array[j+1 < array_size2?j+1:0].location,Color4F::GREEN);
+		//其次画出所有的边
+		Color4F	color(distribution(random_engine), distribution(random_engine), distribution(random_engine),1.0f);
+		gt::FxvEdge  *edge_ptr = now_site.head_ptr;
+		while (edge_ptr != nullptr) {
+			draw_node->drawLine(edge_ptr->origin,edge_ptr->destination,color);
+			edge_ptr = edge_ptr->next;
+		}
+	}
+#endif
 	root_node->setCameraMask(s_CameraMask);
 }

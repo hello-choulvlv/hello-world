@@ -96,6 +96,10 @@ float randian_fromy(float x,float y);
 float radians(float angle);
 float angles(float r);
 /*
+  *求三点的外接圆心与半径
+ */
+float fx_center_point3(cocos2d::Vec2 &center, const cocos2d::Vec2 &a,const cocos2d::Vec2 &b,const cocos2d::Vec2 &c);
+/*
   *3x3矩阵变换
  */
 //加载单位矩阵

@@ -177,6 +177,8 @@ public:
 	void pointLocationTest();
 	//离散点集的Voronoi图算法之Fortune算法实现
 	void fortuneAlgorithmTest();
+	//最远点Voronoi图算法测试
+	void remoteVoronoiTest();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

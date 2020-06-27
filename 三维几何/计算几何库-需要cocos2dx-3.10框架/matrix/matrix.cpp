@@ -218,6 +218,38 @@ float angles(float r) {
 	return r * 180.0f /M_PI;
 }
 
+float fx_center_point3(cocos2d::Vec2 &center,const cocos2d::Vec2 &a, const cocos2d::Vec2 &b, const cocos2d::Vec2 &c) {
+	Vec2  pb = b - a;
+	Vec2  pc = c - a;
+	Vec2  bc = c - b;
+
+	float	length_ab = length(pb);
+	float   length_ac = length(pc);
+	float   length_bc = length(bc);
+
+	float  cos_v = pb.dot(pc) / (length_ab * length_ac);
+	float  sin_v = sqrtf(1.0f - cos_v * cos_v);
+	//Ô²ÐÄ
+	float ax_cx = a.x - c.x;
+	float bx_cx = b.x - c.x;
+	float by_cy = b.y - c.y;
+	float ay_cy = a.y - c.y;
+
+	float ax_a_cx = a.x + c.x;
+	float ay_a_cy = a.y + c.y;
+	float bx_a_cx = b.x + c.x;
+	float by_a_cy = b.y + c.y;
+
+	float   det_f = 2.0f * (ax_cx * by_cy - ay_cy * bx_cx);
+	float   x = (ax_cx * ax_a_cx + ay_cy * ay_a_cy) * by_cy - (bx_cx * bx_a_cx + by_cy * by_a_cy) * ay_cy;
+	float  y = ax_cx * (bx_cx * bx_a_cx + by_cy * by_a_cy) - bx_cx * (ax_cx * ax_a_cx + ay_cy * ay_a_cy);
+
+	center.x = x / det_f;
+	center.y = y / det_f;
+
+	return length_bc / (2.0f * sin_v);
+}
+
 float cross(const cocos2d::Vec2 &a, const cocos2d::Vec2 &b)
 {
 	return a.x * b.y - a.y * b.x;

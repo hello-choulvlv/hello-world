@@ -21,4 +21,6 @@
 
 #include "point_location/point_location.h"
 #include "fortune/fk_algorithm.h"
+#include "fortune/fx_remote_voronoi.h"
+
 #endif

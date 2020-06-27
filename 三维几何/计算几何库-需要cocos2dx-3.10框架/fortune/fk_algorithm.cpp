@@ -85,10 +85,6 @@ void FortuneAlgorithm::handleSiteEvent(FkEvent *event_ptr) {
 		return;
 	}
 	//查找目标弧
-	if (_beach_line.size() == 8) {
-		int xx = 0;
-		int yy = 0;
-	}
 	FxArc  *locate_arc = _beach_line.lookup(event_ptr->site_ptr->location, _compute_func);
 	assert(locate_arc != nullptr);
 
@@ -123,10 +119,6 @@ void FortuneAlgorithm::handleCircleEvent(FkEvent *event_ptr) {
 }
 
 FxArc  *FortuneAlgorithm::breakArc(FxArc *origin_arc,FkSite  *target_site) {
-	if (_beach_line.size() == 8) {
-		int xx = 0;
-		int yy = 0;
-	}
 	FxArc  *middle_arc = _beach_line.alloc(target_site);
 	FxArc  *left_arc = _beach_line.alloc(origin_arc->site_ptr);
 	FxArc  *right_arc = _beach_line.alloc(origin_arc->site_ptr);
@@ -134,10 +126,6 @@ FxArc  *FortuneAlgorithm::breakArc(FxArc *origin_arc,FkSite  *target_site) {
 	left_arc->left_edge = origin_arc->left_edge;
 	right_arc->right_edge = origin_arc->right_edge;
 
-	if (_beach_line.size() == 8) {
-		int xx = 0;
-		int yy = 0;
-	}
 	_beach_line.replace(origin_arc, middle_arc);
 	_beach_line.insert_before(middle_arc, left_arc);
 	_beach_line.insert_after(middle_arc, right_arc);
@@ -157,9 +145,9 @@ void FortuneAlgorithm::removeArc(FkEvent  *event_ptr) {
 	target_arc->left_edge->next = target_arc->right_edge;
 	target_arc->right_edge->prev = target_arc->left_edge;
 	//删除相关联的圆事件
-	assert(!target_arc->prev->event_ptr && !target_arc->next->event_ptr);
-	removeEvent(target_arc->prev);
-	removeEvent(target_arc->next);
+	//assert(!target_arc->prev->event_ptr && !target_arc->next->event_ptr);
+	//removeEvent(target_arc->prev);
+	//removeEvent(target_arc->next);
 
 	FxArc  *prev_arc = target_arc->prev, *next_arc = target_arc->next;
 	FxEdge  *prev_edge = prev_arc->right_edge;
