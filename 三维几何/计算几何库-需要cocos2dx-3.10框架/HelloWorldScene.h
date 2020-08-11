@@ -8,6 +8,14 @@ class HelloWorld : public cocos2d::Layer
 	cocos2d::Camera  *_flyCamera;
 	cocos2d::Vec2       _startPoint;
 	int                            _keyMask;
+	/*
+	  *touch_type:0 began/1 moved/2 end
+	 */
+	std::function<void(const cocos2d::Vec2 &touch_location,int touch_type)>  _touchCallback;
+	/*
+	  *operate_type:0:pressed /1:released
+	 */
+	std::function<void(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event *event,int operate_type)> _keyCallback;
 public:
     static cocos2d::Scene* createScene();
 
@@ -179,6 +187,9 @@ public:
 	void fortuneAlgorithmTest();
 	//最远点Voronoi图算法测试
 	void remoteVoronoiTest();
+	//可见性图算法测试
+	void visiblityMapTest();
+	//void registerTouchCallback(std::function<void(int)> &key_code);
 };
 
 #endif // __HELLOWORLD_SCENE_H__

@@ -23,4 +23,5 @@
 #include "fortune/fk_algorithm.h"
 #include "fortune/fx_remote_voronoi.h"
 
+#include "visibility_map/visibility_map.h"
 #endif

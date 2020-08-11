@@ -130,7 +130,8 @@ bool HelloWorld::init()
 	//frustumClippingTest();
 	//pointLocationTest();
 	//fortuneAlgorithmTest();
-	remoteVoronoiTest();
+	//remoteVoronoiTest();
+	visiblityMapTest();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -176,6 +177,8 @@ void  HelloWorld::updateCamera(float dt)
 bool HelloWorld::onTouchBegan(cocos2d::Touch *touch, cocos2d::Event *unused_event)
 {
 	_startPoint = touch->getLocation();
+	if (_touchCallback != nullptr)
+		_touchCallback(touch->getLocation(),0);
 	return true;
 }
 
@@ -190,10 +193,15 @@ void  HelloWorld::onTouchMoved(cocos2d::Touch *touch, cocos2d::Event *unused_eve
 	_flyCamera->setRotation3D(rotation);
 
 	_startPoint = touch_point;
+
+	if (_touchCallback != nullptr)
+		_touchCallback(touch->getLocation(),1);
 }
 
 void HelloWorld::onTouchEnded(cocos2d::Touch *touch, cocos2d::Event *unused_event)
 {
+	if (_touchCallback != nullptr)
+		_touchCallback(touch->getLocation(), 2);
 }
 
 void HelloWorld::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, Event *event)
@@ -210,6 +218,9 @@ void HelloWorld::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, Event *ev
 		_keyMask |= 0x10;
 	else if (keyCode == EventKeyboard::KeyCode::KEY_X)
 		_keyMask |= 0x20;
+
+	if (_keyCallback != nullptr)
+		_keyCallback(keyCode,event,0);
 }
 
 void  HelloWorld::onKeyReleased(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event)
@@ -226,6 +237,9 @@ void  HelloWorld::onKeyReleased(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d
 		_keyMask &= ~0x10;
 	else if (keyCode == EventKeyboard::KeyCode::KEY_X)
 		_keyMask &= ~0x20;
+
+	if (_keyCallback != nullptr)
+		_keyCallback(keyCode,event,1);
 }
 
 void HelloWorld::menuCloseCallback(Ref* pSender)
@@ -426,5 +440,99 @@ void HelloWorld::remoteVoronoiTest() {
 		}
 	}
 #endif
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::visiblityMapTest() {
+	//创建多个多边形,简单多边形即可,这里为了简化测试代码,统统使用了凸多边形
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+	//随机生成离散点集
+	int64_t seed = time(nullptr);
+	CCLOG("new seed -->%ld", seed);
+	std::default_random_engine  random_engine(seed);
+	std::uniform_real_distribution<float> distribution;
+
+	const int array_size = 4;
+	const int vertex_size = 6;
+
+	const int row_size = 2;
+	const int column_size = 2;
+
+	std::vector<Vec2>    polygons[array_size];
+
+	const Size &win_size = _director->getWinSize();
+	float  cell_w = win_size.width/ column_size;
+	float cell_h = win_size.height / row_size;
+
+	int total_vertex_size = 2;
+	for (int j = 0; j < array_size; ++j) {
+		std::vector<Vec2> polygon(vertex_size);
+
+		int  idx_row = j/column_size;
+		int idx_column = j%column_size;
+
+		Vec2 offset_v2 = Vec2(cell_w * idx_column - win_size.width * 0.5f,cell_h * idx_row - win_size.height * 0.5f);
+		for (int k = 0; k < vertex_size; ++k)
+			polygon[k] = Vec2(cell_w * distribution(random_engine),cell_h * distribution(random_engine)) + offset_v2;
+
+		gt::polygon_compute_convex_hull(polygon, polygons[j]);
+		total_vertex_size += polygons[j].size();
+	}
+	//随机选出两个点,这两个点不能包含在任何的一个多边形内
+	cocos2d::Vec2 source_point, target_point;
+	bool b2 = false;
+	do 
+	{
+		source_point.x = (distribution(random_engine) * 2.0f - 1.0f) * win_size.width * 0.5f;
+		source_point.y = (distribution(random_engine) * 2.0f - 1.0f) * win_size.height * 0.5f;
+
+		b2 = false;
+		for (int j = 0; j < array_size; ++j)
+			b2 |= gt::polygon_contains_point(polygons[j],source_point);
+	} while (b2);
+
+	b2 = false;
+	do
+	{
+		target_point.x = (distribution(random_engine) * 2.0f - 1.0f) * win_size.width * 0.5f;
+		target_point.y = (distribution(random_engine) * 2.0f - 1.0f) * win_size.height * 0.5f;
+
+		b2 = false;
+		for (int j = 0; j < array_size; ++j)
+			b2 |= gt::polygon_contains_point(polygons[j], target_point);
+	} while (b2);
+
+	//画出多边形
+	std::vector<Vec2>  vertex_array;
+	vertex_array.push_back(source_point);
+	vertex_array.push_back(target_point);
+
+	for (int j = 0; j < array_size; ++j) {
+		vertex_array.insert(vertex_array.end(), polygons[j].begin(), polygons[j].end());
+		draw_node->drawLines(polygons[j].data(), polygons[j].size(), true, Color4F(distribution(random_engine), distribution(random_engine), distribution(random_engine), 1.0f));
+	}
+
+	Sprite *s = Sprite::create("llk_yd.png");
+	s->setPosition(source_point);
+	root_node->addChild(s);
+
+	Sprite *s2 = Sprite::create("llk_yd.png");
+	s2->setPosition(target_point);
+	root_node->addChild(s2);
+
+	std::vector<gt::rtVertex*> *rt_vertex_array = gt::rt_compute_visibility_map(polygons,array_size,source_point,target_point);
+	
+	//for (int j = 0; j < total_vertex_size; ++j) {
+	int select_idx = 1;// j;
+		auto &vertex_adjs = rt_vertex_array[select_idx];
+		Color4F color(distribution(random_engine), distribution(random_engine), distribution(random_engine),1.0f);
+		for (int k = 0; k < vertex_adjs.size(); ++k)
+			draw_node->drawLine(vertex_array[select_idx],*vertex_adjs[k]->location_ptr,color);
+	//}
+
 	root_node->setCameraMask(s_CameraMask);
 }

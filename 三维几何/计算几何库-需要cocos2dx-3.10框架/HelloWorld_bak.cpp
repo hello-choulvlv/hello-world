@@ -1315,7 +1315,7 @@ void HelloWorld::doPolygonContainsPoint()
 	//随机生成离散点
 	const Vec2 point(length_l * 1.0f * gt::randomf10(), length_l * 1.0f * gt::randomf10());
 
-	bool b = gt::polygon_contains_point(polygon, point);
+	bool b = gt::polygon_contains_point(polygon.point_array, point);
 	const Color4F &color = b ? Color4F::RED : Color4F::GREEN;
 
 	draw_node->drawPoly(points_vec.data(), points_vec.size(), true, color);

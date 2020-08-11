@@ -95,23 +95,23 @@ bool polygon_ray_intersect_test(const Polygon &polygon, const Ray &ray)
 	return polygon_unkonwn_intersect_test(polygon,*(Vec2*)&ray.start_point,*(Vec2*)&ray.direction,0,FLT_MAX);
 }
 
-bool polygon_contains_point(const Polygon &polygon, const cocos2d::Vec2 &point)
+bool polygon_contains_point(const std::vector<cocos2d::Vec2> &polygon, const cocos2d::Vec2 &point)
 {
-	int l = 0, h = polygon.point_array.size();
-	const Vec2 &v0 = polygon.point_array[0];
+	int l = 0, h = polygon.size();
+	const Vec2 &v0 = polygon[0];
 	const Vec2 interpolation = point - v0;
 	do 
 	{
 		int m = (l+h) >> 1;
-		if (sign_area(polygon.point_array[m] - v0, interpolation) >= 0)//左侧
+		if (sign_area(polygon[m] - v0, interpolation) >= 0)//左侧
 			l = m;
 		else
 			h = m;
 	} while (l +1 < h);
 	//如果穷尽了左侧或者右侧
-	if (l == 0 || h == polygon.point_array.size())
+	if (l == 0 || h == polygon.size())
 		return 0;
-	return sign_area(polygon.point_array[h] - polygon.point_array[l],point - polygon.point_array[l]) >=0.0f;
+	return sign_area(polygon[h] - polygon[l],point - polygon[l]) >=0.0f;
 }
 
 bool triangle_contains_point(const cocos2d::Vec2 vertex[3], const cocos2d::Vec2 &point)
@@ -156,7 +156,7 @@ bool polygon_cycle_intersect_test(const Polygon &polygon, const Cycle &cycle)
 	}
 	//如果在各个半空间的交集之内,则执行标准的多边形/点包含测试
 	//不能直接返回true,有一种情况下,上面的代码无法排除掉,就是圆同时与两个相邻的平面相交,但是却没有与多边形相交
-	return polygon_contains_point(polygon, cycle.center);
+	return polygon_contains_point(polygon.point_array, cycle.center);
 }
 /*
 *遍历顺序表

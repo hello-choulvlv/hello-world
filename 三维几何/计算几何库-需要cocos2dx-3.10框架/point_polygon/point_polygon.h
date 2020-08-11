@@ -45,7 +45,7 @@ bool polygon_segment_intersect_test(const Polygon &polygon,const Segment &segmen
 //射线与多边形之间的相交测试
 bool polygon_ray_intersect_test(const Polygon &polygon,const Ray &ray);
 ///点与多边形的包含测试
-bool polygon_contains_point(const Polygon &polygon,const cocos2d::Vec2 &point);
+bool polygon_contains_point(const std::vector<cocos2d::Vec2> &polygon,const cocos2d::Vec2 &point);
 //三角平面是否包含某一个点
 bool triangle_contains_point(const cocos2d::Vec2 vertex[3],const cocos2d::Vec2 &point);
 //多边形与圆的相交测试
