@@ -86,3 +86,6 @@ https://github.com/AngelKitty/review_the_national_post-graduate_entrance_examina
 
 https://github.com/nvpro-samples
 http://download.nvidia.com/developer/SDK/Individual_Samples/samples.html
+
+//图形学/数据结构/三维几何书籍
+https://github.com/linghuam/boutique-books.git
