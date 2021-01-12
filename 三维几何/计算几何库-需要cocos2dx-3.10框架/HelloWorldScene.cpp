@@ -131,7 +131,10 @@ bool HelloWorld::init()
 	//pointLocationTest();
 	//fortuneAlgorithmTest();
 	//remoteVoronoiTest();
-	visiblityMapTest();
+	//visiblityMapTest();
+	//testGJKAlogorithm();
+	//testChungWangAlgorithm();
+	testEarTriangleAlgorithm();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -534,5 +537,156 @@ void HelloWorld::visiblityMapTest() {
 			draw_node->drawLine(vertex_array[select_idx],*vertex_adjs[k]->location_ptr,color);
 	//}
 
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::testGJKAlogorithm() {
+	Node  *root_node = Node::create();
+	this->addChild(root_node);
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+
+	const int point_size = 32;
+	std::vector<Vec2>   points1(point_size);
+	float offset_left = -300;
+	float length_l = 200;
+
+	for (int index_l = 0; index_l < point_size; ++index_l)
+	{
+		points1[index_l] = Vec2(length_l * gt::randomf10() + offset_left, length_l * gt::randomf10());
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(points1[index_l]);
+		root_node->addChild(sprite);
+	}
+
+	std::vector<Vec2> points2(point_size);
+	for (int index_l = 0; index_l < point_size; ++index_l)
+	{
+		points2[index_l] = Vec2(length_l * gt::randomf10() + 80, length_l * gt::randomf10());
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(points2[index_l]);
+		root_node->addChild(sprite);
+	}
+
+	std::vector<Vec2>  polygon_array1, polygon_array2;
+	gt::polygon_compute_convex_hull(points1, polygon_array1);
+	gt::polygon_compute_convex_hull(points2, polygon_array2);
+
+	Vec2 intersect_points[2];
+	bool intersect = gt::gjk_algorithm_optimal(polygon_array1, polygon_array2, intersect_points);
+
+	const Color4F &color = intersect ? Color4F::RED : Color4F::GREEN;
+	for (int index_l = 0; index_l < polygon_array1.size(); ++index_l)
+	{
+		draw_node->drawLine(polygon_array1[index_l], polygon_array1[index_l + 1 >= polygon_array1.size() ? 0 : index_l + 1], color);
+	}
+
+	for (int index_l = 0; index_l < polygon_array2.size(); ++index_l)
+	{
+		draw_node->drawLine(polygon_array2[index_l], polygon_array2[index_l + 1 >= polygon_array2.size() ? 0 : index_l + 1], color);
+	}
+
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::testChungWangAlgorithm() {
+	Node  *root_node = Node::create();
+	this->addChild(root_node);
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+
+	const int point_size = 32;
+	std::vector<Vec2>   points1(point_size);
+	float offset_left = -300;
+	float length_l = 200;
+
+	for (int index_l = 0; index_l < point_size; ++index_l)
+	{
+		points1[index_l] = Vec2(length_l * gt::randomf10() + offset_left, length_l * gt::randomf10());
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(points1[index_l]);
+		root_node->addChild(sprite);
+	}
+
+	std::vector<Vec2> points2(point_size);
+	for (int index_l = 0; index_l < point_size; ++index_l)
+	{
+		points2[index_l] = Vec2(length_l * gt::randomf10() + 80, length_l * gt::randomf10());
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(points2[index_l]);
+		root_node->addChild(sprite);
+	}
+
+	std::vector<Vec2>  polygon_array1, polygon_array2;
+	gt::polygon_compute_convex_hull(points1, polygon_array1);
+	gt::polygon_compute_convex_hull(points2, polygon_array2);
+
+	Vec2 intersect_points;
+	bool intersect = gt::chung_wang_seperate_algorithm(polygon_array1, polygon_array2, intersect_points);
+
+	const Color4F &color = intersect ? Color4F::RED : Color4F::GREEN;
+	for (int index_l = 0; index_l < polygon_array1.size(); ++index_l)
+	{
+		draw_node->drawLine(polygon_array1[index_l], polygon_array1[index_l + 1 >= polygon_array1.size() ? 0 : index_l + 1], color);
+	}
+
+	for (int index_l = 0; index_l < polygon_array2.size(); ++index_l)
+	{
+		draw_node->drawLine(polygon_array2[index_l], polygon_array2[index_l + 1 >= polygon_array2.size() ? 0 : index_l + 1], color);
+	}
+
+	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::testEarTriangleAlgorithm() {
+	Node *root_node = Node::create();
+	this->addChild(root_node);
+
+	DrawNode  *draw_node = DrawNode::create();
+	root_node->addChild(draw_node);
+
+	float  length_l = 600.0f;
+	float length_w = 600;
+	const int array_size = 12;
+	//三角形平面
+	std::vector<Vec2>  points(array_size);
+
+	for (int index_j = 0; index_j < array_size; ++index_j)
+	{
+		points[index_j] = Vec2(length_w * gt::randomf10(), length_l * gt::randomf10());
+
+		Sprite *sprite = Sprite::create("llk_yd.png");
+		sprite->setPosition(points[index_j]);
+		root_node->addChild(sprite);
+	}
+	//生成简单多边形
+	gt::polygon_simple_generate(points, points);
+	for (int j = 0; j < points.size(); ++j) {
+		draw_node->drawLine(points[j], points[j+1 >= points.size()?0:j+1], Color4F::GREEN);
+	}
+	//对生成的简单多边形进行三角分解
+	std::vector<short> triangle_list;
+	gt::simple_polygon_ear_triangulate(points, triangle_list);
+
+	int polygon_size = points.size();
+	for (int j = 0; j < triangle_list.size(); j+= 3) {
+		int prev_j = triangle_list[j];
+		int target_j = triangle_list[j+1];
+		int next_j = triangle_list[j+2];
+
+		Color4F  color(gt::random(),gt::random(),gt::random(),1.0f);
+		//对以上三边进行测试
+		int abs_i = std::abs(prev_j - target_j);
+		if (abs_i != 1 && abs_i != polygon_size)
+			draw_node->drawLine(points[prev_j],points[target_j], color);
+
+		abs_i = std::abs(target_j - next_j);
+		if (abs_i != 1 && abs_i != polygon_size)
+			draw_node->drawLine(points[target_j], points[next_j], color);
+
+		abs_i = std::abs(next_j - prev_j);
+		if (abs_i != 1 && abs_i != polygon_size)
+			draw_node->drawLine(points[next_j], points[prev_j], color);
+	}
 	root_node->setCameraMask(s_CameraMask);
 }

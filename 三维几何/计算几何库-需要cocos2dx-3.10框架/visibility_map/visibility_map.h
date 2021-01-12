@@ -1,5 +1,7 @@
 /*
   *最短路径+求可见性图算法实现
+  *该算法的思想并不复杂,复杂的地方在于相关的数据结构关联
+  *事实证明:设计出一个灵活的高效的,可以快速操作red_black_tree的数据结构是相当有挑战性的
   *2020年8月7日
   *@author:xiaohuaxiong
  */
@@ -43,7 +45,7 @@ std::vector<rtVertex*>* rt_compute_visibility_map(std::vector<cocos2d::Vec2> *po
   *有兴趣的读者可以自行实现,因为其是一个著名的/资料非常详尽的算法,因此在这里我们就不再赘述
   *计算几何算法库的所有工作到这里就要结束了
   *如果后续还有添加的话,则只会是零星的,而不再是有计划,系统的构建
-  *读者也要各自保重,作者的集合算法学习计划也终结了
+  *读者也要各自保重,作者的几何算法学习计划也终结了
   *2020/8/11/17:35
  */
 bool rt_dijkstra_algorithm(rtVertex *vertex_adj,int array_size,float *distance_array,int *path);

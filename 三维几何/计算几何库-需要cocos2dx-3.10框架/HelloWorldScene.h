@@ -190,6 +190,12 @@ public:
 	//可见性图算法测试
 	void visiblityMapTest();
 	//void registerTouchCallback(std::function<void(int)> &key_code);
+	//gjk
+	void testGJKAlogorithm();
+	//Chun-Wang
+	void testChungWangAlgorithm();
+	//割耳式三角剖分
+	void testEarTriangleAlgorithm();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

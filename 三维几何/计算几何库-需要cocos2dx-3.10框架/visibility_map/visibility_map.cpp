@@ -161,10 +161,6 @@ void rt_compute_visibility_vertex(red_black_tree<rtSegment*> &interleave_segment
 	//针对所有的顶点,逐个的筛查
 	for (int j = 0; j < array_size - 1; ++j) {
 		rtVertex *vertex_ptr = rt_vertex_memory[j];
-		if (j == 7) {
-			int xx = 0;
-			int yy = 0;
-		}
 		//重新设定射线的方向
 		normal_v2 = normalize(*target_vertex->location_ptr,*vertex_ptr->location_ptr);
 		//查找最左侧是否有遮挡物
@@ -218,10 +214,6 @@ std::vector<rtVertex*>* rt_compute_visibility_map(std::vector<cocos2d::Vec2> *po
 	red_black_tree<rtSegment*>  interleave_segments;
 
 	for (int j = 0; j < total_array_size; ++j) {
-		if (j == 2) {
-			int xx = 0;
-			int yyy = 0;
-		}
 		rt_compute_visibility_vertex(interleave_segments, rt_vertex_array + j, rt_vertex_array, rt_vertex_memory, total_array_size, segment_array, every_vertex_array[j]);
 		interleave_segments.clear();
 	}

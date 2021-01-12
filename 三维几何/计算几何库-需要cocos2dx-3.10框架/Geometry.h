@@ -24,4 +24,6 @@
 #include "fortune/fx_remote_voronoi.h"
 
 #include "visibility_map/visibility_map.h"
+
+#include "secondary/polygon_mix.h"
 #endif
