@@ -5,7 +5,27 @@
  */
 #include "polygon_mix.h"
 #include "matrix/matrix.h"
+//#include <mmintrin.h>   //mmx
+#include <xmmintrin.h>  //sse
+#include <emmintrin.h>  //sse2
+#include <pmmintrin.h>  //sse3
 
+
+//#include <mmintrin.h> //MMX
+//#include <xmmintrin.h> //SSE(include mmintrin.h)
+//#include <emmintrin.h> //SSE2(include xmmintrin.h)
+//#include <pmmintrin.h> //SSE3(include emmintrin.h)
+//#include <tmmintrin.h>//SSSE3(include pmmintrin.h)
+//#include <smmintrin.h>//SSE4.1(include tmmintrin.h)
+//#include <nmmintrin.h>//SSE4.2(include smmintrin.h)
+//#include <wmmintrin.h>//AES(include nmmintrin.h)
+//#include <immintrin.h>//AVX(include wmmintrin.h)
+//#include <intrin.h>//(include immintrin.h)
+
+//total
+//#include <intrin.h>
+#define _align_xmm _declspec(align(16))
+// -march=armv7-a -mfloat-abi=hard -mfpu=neon
 NS_GT_BEGIN
 /*
   *针对任一给定方向向量,求出极值点
@@ -239,4 +259,158 @@ void simple_polygon_ear_triangulate(const std::vector<cocos2d::Vec2> &polygon, s
 	triangle_list.push_back(target_j);
 	triangle_list.push_back(next_array[target_j]);
 }
+
+void sse_code_sample() {
+	float _align_xmm  matrix_array[16];
+
+	float *matrix_ptr = (float*)_aligned_malloc(sizeof(float) * 16, 16);
+
+
+	_aligned_free(matrix_ptr);
+	//_mm_malloc(16, 16);
+	//_MM_ALIGN16
+}
+
+void matrix_multiply(const float m1[16], const float m2[16], float dst[16]) {
+	float product[16];
+	float *result_ptr = dst != m1 && dst != m2?dst:product;
+
+	result_ptr[0] = m1[0] * m2[0] + m1[4] * m2[1] + m1[8] * m2[2] + m1[12] * m2[3];
+	result_ptr[1] = m1[1] * m2[0] + m1[5] * m2[1] + m1[9] * m2[2] + m1[13] * m2[3];
+	result_ptr[2] = m1[2] * m2[0] + m1[6] * m2[1] + m1[10] * m2[2] + m1[14] * m2[3];
+	result_ptr[3] = m1[3] * m2[0] + m1[7] * m2[1] + m1[11] * m2[2] + m1[15] * m2[3];
+
+	result_ptr[4] = m1[0] * m2[4] + m1[4] * m2[5] + m1[8] * m2[6] + m1[12] * m2[7];
+	result_ptr[5] = m1[1] * m2[4] + m1[5] * m2[5] + m1[9] * m2[6] + m1[13] * m2[7];
+	result_ptr[6] = m1[2] * m2[4] + m1[6] * m2[5] + m1[10] * m2[6] + m1[14] * m2[7];
+	result_ptr[7] = m1[3] * m2[4] + m1[7] * m2[5] + m1[11] * m2[6] + m1[15] * m2[7];
+
+	result_ptr[8] = m1[0] * m2[8] + m1[4] * m2[9] + m1[8] * m2[10] + m1[12] * m2[11];
+	result_ptr[9] = m1[1] * m2[8] + m1[5] * m2[9] + m1[9] * m2[10] + m1[13] * m2[11];
+	result_ptr[10] = m1[2] * m2[8] + m1[6] * m2[9] + m1[10] * m2[10] + m1[14] * m2[11];
+	result_ptr[11] = m1[3] * m2[8] + m1[7] * m2[9] + m1[11] * m2[10] + m1[15] * m2[11];
+
+	result_ptr[12] = m1[0] * m2[12] + m1[4] * m2[13] + m1[8] * m2[14] + m1[12] * m2[15];
+	result_ptr[13] = m1[1] * m2[12] + m1[5] * m2[13] + m1[9] * m2[14] + m1[13] * m2[15];
+	result_ptr[14] = m1[2] * m2[12] + m1[6] * m2[13] + m1[10] * m2[14] + m1[14] * m2[15];
+	result_ptr[15] = m1[3] * m2[12] + m1[7] * m2[13] + m1[11] * m2[14] + m1[15] * m2[15];
+
+	if(result_ptr != dst)
+	memcpy(dst, product, 16 * sizeof(float));
+}
+/*
+  *sse矩阵乘法,假设输入变量已经16字节对齐
+ */
+void sse_matrix_multiply(const float m2[16], const float m1[16], float *dst) {
+	_MM_ALIGN16  __m128 r0 = _mm_set_ps(m1[12], m1[8], m1[4], m1[0]);
+	_MM_ALIGN16  __m128 r1 = _mm_set_ps(m1[13], m1[9], m1[5], m1[1]);
+	_MM_ALIGN16  __m128 r2 = _mm_set_ps(m1[14], m1[10], m1[6], m1[2]);
+	_MM_ALIGN16  __m128 r3 = _mm_set_ps(m1[15], m1[11], m1[7], m1[3]);
+	//row
+	_MM_ALIGN16 __m128 r7 = _mm_load_ps(m2);
+	//row 0
+	_MM_ALIGN16 __m128 rk = _mm_dp_ps(r7, r0, 0xF1);
+	_mm_store_ss(dst, rk);//0
+						  //1
+	rk = _mm_dp_ps(r7, r1, 0xF1);
+	_mm_store_ss(dst + 1, rk);
+	//2
+	rk = _mm_dp_ps(r7, r2, 0xF1);
+	_mm_store_ss(dst + 2, rk);
+	//3
+	rk = _mm_dp_ps(r7, r3, 0xF1);
+	_mm_store_ss(dst + 3, rk);
+	//row 1
+	r7 = _mm_load_ps(m2 + 4);
+	//4
+	rk = _mm_dp_ps(r7, r0, 0xF1);
+	_mm_store_ss(dst + 4, rk);
+	//5
+	rk = _mm_dp_ps(r7, r1, 0xF1);
+	_mm_store_ss(dst + 5, rk);
+	//6
+	rk = _mm_dp_ps(r7, r2, 0xF1);
+	_mm_store_ss(dst + 6, rk);
+	//7
+	rk = _mm_dp_ps(r7, r3, 0xF1);
+	_mm_store_ss(dst + 7, rk);
+	//row 2
+	r7 = _mm_load_ps(m2 + 8);
+	//8
+	rk = _mm_dp_ps(r7, r0, 0xF1);
+	_mm_store_ss(dst + 8, rk);
+	//9
+	rk = _mm_dp_ps(r7, r1, 0xF1);
+	_mm_store_ss(dst + 9, rk);
+	//10
+	rk = _mm_dp_ps(r7, r2, 0xF1);
+	_mm_store_ss(dst + 10, rk);
+	//11
+	rk = _mm_dp_ps(r7, r3, 0xF1);
+	_mm_store_ss(dst + 11, rk);
+	//row 3
+	r7 = _mm_load_ps(m2 + 12);
+	//12
+	rk = _mm_dp_ps(r7, r0, 0xF1);
+	_mm_store_ss(dst + 12, rk);
+	//13
+	rk = _mm_dp_ps(r7, r1, 0xF1);
+	_mm_store_ss(dst + 13, rk);
+	//14
+	rk = _mm_dp_ps(r7, r2, 0xF1);
+	_mm_store_ss(dst + 14, rk);
+	//15
+	rk = _mm_dp_ps(r7, r3, 0xF1);
+	_mm_store_ss(dst + 15, rk);
+}
+
+void matrix_substruct(const float m[16], float *dst) {
+	_MM_ALIGN16 __m128 r0 = _mm_setzero_ps();
+	//row 0
+	_MM_ALIGN16 __m128 r1 = _mm_loadu_ps(m);
+	_MM_ALIGN16 __m128 rk = _mm_sub_ps(r0, r1);
+	_mm_storeu_ps(dst, rk);
+	//row 1
+	r1 = _mm_loadu_ps(m + 4);
+	rk = _mm_sub_ps(r0, r1);
+	_mm_storeu_ps(dst + 4, rk);
+	//row 2
+	r1 = _mm_loadu_ps(m + 8);
+	rk = _mm_sub_ps(r0, r1);
+	_mm_storeu_ps(dst + 8, rk);
+	//row 3
+	r1 = _mm_loadu_ps(m + 12);
+	rk = _mm_sub_ps(r0, r1);
+	_mm_storeu_ps(dst + 12, rk);
+}
+
+void matrix_add(const float m[16], float scalar,float *dst) {
+	_MM_ALIGN16 __m128 r0 = _mm_set_ps1(scalar);
+	_MM_ALIGN16 __m128 r1 = _mm_loadu_ps(m);
+	_MM_ALIGN16 __m128 rs = _mm_add_ps(r0, r1);
+	_mm_storeu_ps(dst, rs);
+	//row 1
+	r1 = _mm_loadu_ps(m + 4);
+	rs = _mm_add_ps(r0, r1);
+	_mm_store_ps(dst + 4, rs);
+	//row 2
+	r1 = _mm_loadu_ps(m + 8);
+	rs = _mm_add_ps(r0, r1);
+	_mm_store_ps(dst + 8, rs);
+	//row 3
+	r1 = _mm_loadu_ps(m + 12);
+	rs = _mm_add_ps(r0, r1);
+	_mm_store_ps(dst + 12, rs);
+}
+//SSE指令基本信息介绍
+//https://zhuanlan.zhihu.com/p/55327037
+//https://blog.csdn.net/jgj123321/article/details/95633431?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromBaidu-1.control&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromBaidu-1.control
+//intel 有关_mm_dp_ps向量内积指令的详细说明
+//https://zhou-yuxin.github.io/articles/2017/%E4%BD%BF%E7%94%A8Intel%20SSE-AVX%E6%8C%87%E4%BB%A4%E9%9B%86%EF%BC%88SIMD%EF%BC%89%E5%8A%A0%E9%80%9F%E5%90%91%E9%87%8F%E5%86%85%E7%A7%AF%E8%AE%A1%E7%AE%97/index.html
+//有关新版SSE指令的介绍
+//chrome-extension://ohfgljdgelakfkefopgklcohadegdpjf/https://sbel.wiscweb.wisc.edu/wp-content/uploads/sites/569/2018/10/lecture1106-1.pdf
+//SSE4.1+SSE4.2新版指令的说明
+//https://blog.csdn.net/fengbingchun/article/details/22101981
+//SSE汇编指令基本使用方法介绍
+//https://blog.csdn.net/tercel_zhang/article/details/80049244
 NS_GT_END

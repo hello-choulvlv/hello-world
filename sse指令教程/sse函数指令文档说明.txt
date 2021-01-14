@@ -1,0 +1,68 @@
+void _mm_store_ss (float* mem_addr, __m128 a)
+Synopsis
+void _mm_store_ss (float* mem_addr, __m128 a)
+#include <xmmintrin.h>
+Instruction: movss m32, xmm
+CPUID Flags: SSE
+Description
+Store the lower single-precision (32-bit) floating-point element from a into memory. mem_addr does not need to be aligned on any particular boundary.
+Operation
+MEM[mem_addr+31:mem_addr] := a[31:0]
+
+Performance
+Architecture	Latency	Throughput (CPI)
+Skylake	5	1
+Broadwell	1	1
+Haswell	1	1
+Ivy Bridge	1	1
+
+load系列，用于加载数据（从内存到暂存器），大部分需要16字节对齐
+
+__m128  _mm_load_ss(float *p) //将一个单精度浮点数加载到寄存器的第一个字节，其它三个字节清零（r0 := *p, r1 := r2 := r3 := 0.0）
+ 
+__m128  _mm_load_ps(float *p) //将四个单精度浮点数加载到寄存器（r0 := p[0], r1 := p[1], r2 := p[2], r3 := p[3]）
+ 
+__m128  _mm_load1_ps(float *p)//将p地址的值加载到暂存器的四个字节，需要多条指令完成。从性能考虑，在内层循环不要使用这类指令（r0 := r1 := r2 := r3 := *p）
+ 
+__m128  _mm_loadh_pi(__m128 a, __m64 *p)//
+__m128  _mm_loadl_pi(__m128 a, __m64 *p)//
+ 
+__m128  _mm_loadr_ps(float *p)//以_mm_load_ps反向的顺序加载，需要多条指令完成。（r0 := p[3], r1 := p[2], r2 := p[1], r3 := p[0]）
+ 
+__m128  _mm_loadu_ps(float *p)//_mm_load_ps一样的加载，但是不要求地址是16字节对齐
+
+set系列，用于加载数据，类似于load操作，但是大部分需要多条指令完成，可能不需要16字节对齐
+
+__m128 _mm_set_ss(float w)//对应于_mm_load_ss的功能，不需要字节对齐，需要多条指令（r0 = w, r1 = r2 = r3 = 0.0）
+ 
+__m128 _mm_set_ps(float z, float y, float x, float w)//对应于_mm_load_ps的功能，参数是四个单独的单精度浮点数，所以也不需要字节对齐，需要多条指令。（r0=w, r1 = x, r2 = y, r3 = z，注意顺序）
+ 
+__m128 _mm_set1_ps(float w)//对应于_mm_load1_ps的功能，不需要字节对齐，需要多条指令。（r0 = r1 = r2 = r3 = w）
+ 
+__m128 _mm_setr_ps(float z, float y, float x, float w)//对应于_mm_loadr_ps功能，不需要字节对齐，需要多条指令。（r0=z, r1 = y, r2 = x, r3 = w，注意顺序）
+ 
+__m128 _mm_setzero_ps()//清0操作，只需要一条指令。（r0 = r1 = r2 = r3 = 0.0）
+
+store系列，将计算结果等SSE暂存器的数据保存到内存中，与load系列函数的功能对应，基本上都是一个反向的过程。
+
+void _mm_store_ss(float *p, __m128 a)  //一条指令，*p = a0
+void _mm_store_ps(float *p, __m128 a)  //一条指令，p[i] = a[i]
+void _mm_store1_ps(float *p, __m128 a) //多条指令，p[i] = a0
+void _mm_storeh_pi(__m64 *p, __m128 a) //
+void _mm_storel_pi(__m64 *p, __m128 a) //
+void _mm_storer_ps(float *p, __m128 a) //反向，多条指令
+void _mm_storeu_ps(float *p, __m128 a) //一条指令，p[i] = a[i]，不要求16字节对齐
+void _mm_stream_ps(float *p, __m128 a) //直接写入内存，不改变cache的数据
+算数指令系列，SSE提供了大量的浮点运算指令，包括加法、减法、乘法、除法、开方、最大值、最小值等等
+
+ 
+__m128 _mm_add_ss (__m128 a, __m128 b)
+ 
+__m128 _mm_add_ps (__m128 a, __m128 b)
+
+数据类型转换系列
+
+__mm_cvtss_si32   //单精度浮点数转换为有符号32位整数
+__mm_cvttss_si32  //单精度浮点数转换为有符号32位整数（带截断操作）
+__mm_cvtpi16_ps   //16位有符号整数转换为单精度浮点数
+对第一个指令进行详细说明，如下图所示：

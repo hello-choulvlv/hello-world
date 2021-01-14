@@ -196,6 +196,8 @@ public:
 	void testChungWangAlgorithm();
 	//割耳式三角剖分
 	void testEarTriangleAlgorithm();
+	//sse指令测试
+	void testSSEInstruction();
 };
 
 #endif // __HELLOWORLD_SCENE_H__

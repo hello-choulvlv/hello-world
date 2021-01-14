@@ -5,6 +5,8 @@
 #include "data_struct/balance_tree.h"
 #include "data_struct/priority_queue.h"
 
+#include <ctime>
+
 USING_NS_CC;
 
 const short s_CameraMask = (short)CameraFlag::USER2;
@@ -134,7 +136,8 @@ bool HelloWorld::init()
 	//visiblityMapTest();
 	//testGJKAlogorithm();
 	//testChungWangAlgorithm();
-	testEarTriangleAlgorithm();
+	//testEarTriangleAlgorithm();
+	testSSEInstruction();
 
 	schedule(schedule_selector(HelloWorld::updateCamera));
     return true;
@@ -689,4 +692,20 @@ void HelloWorld::testEarTriangleAlgorithm() {
 			draw_node->drawLine(points[next_j], points[prev_j], color);
 	}
 	root_node->setCameraMask(s_CameraMask);
+}
+
+void HelloWorld::testSSEInstruction() {
+	_MM_ALIGN16 Mat4 mat1, mat2, mat_result;
+	int    loops_count = 10000000;
+
+	clock_t  t0 = std::clock();
+	for (int j = 0; j < loops_count; ++j) {
+		gt::matrix_multiply(mat1.m, mat2.m, mat_result.m);
+	}
+	clock_t t1 = std::clock();
+	for (int j = 0; j < loops_count; ++j) {
+		gt::sse_matrix_multiply(mat1.m, mat2.m, mat_result.m);
+	}
+	clock_t t2 = std::clock();
+	CCLOG("cost time normal-->%ld,sse time-->%ld",t1 - t0,t2 - t1);
 }

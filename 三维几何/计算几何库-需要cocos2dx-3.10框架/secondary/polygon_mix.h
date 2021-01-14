@@ -23,5 +23,13 @@ bool chung_wang_seperate_algorithm(const std::vector<cocos2d::Vec2> &polygon1, c
   *简单多边形的耳式三角剖分
  */
 void simple_polygon_ear_triangulate(const std::vector<cocos2d::Vec2> &polygon,std::vector<short> &triangle_list);
+/*
+  ************************sse指令Sample**********************************
+ */
+void sse_code_sample();
+//一般矩阵乘法
+void matrix_multiply(const float m1[16],const float m2[16],float dst[16]);
+//sse版矩阵乘法
+void sse_matrix_multiply(const float m1[16],const float m2[16],float dst[16]);
 NS_GT_END
 #endif
