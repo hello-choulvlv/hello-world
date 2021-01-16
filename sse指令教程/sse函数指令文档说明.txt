@@ -54,7 +54,7 @@ void _mm_storer_ps(float *p, __m128 a) //反向，多条指令
 void _mm_storeu_ps(float *p, __m128 a) //一条指令，p[i] = a[i]，不要求16字节对齐
 void _mm_stream_ps(float *p, __m128 a) //直接写入内存，不改变cache的数据
 算数指令系列，SSE提供了大量的浮点运算指令，包括加法、减法、乘法、除法、开方、最大值、最小值等等
-
+_mm_cmplt_ps函数返回的是__m128类型的数据，其中存储了逐分量比较的结果，如果条件成立则为-nan，否则为0：
  
 __m128 _mm_add_ss (__m128 a, __m128 b)
  
@@ -66,3 +66,642 @@ __mm_cvtss_si32   //单精度浮点数转换为有符号32位整数
 __mm_cvttss_si32  //单精度浮点数转换为有符号32位整数（带截断操作）
 __mm_cvtpi16_ps   //16位有符号整数转换为单精度浮点数
 对第一个指令进行详细说明，如下图所示：
+
+c.instructions的分类
+
+instructions按执行操作类别的不同主要分为以下几类：
+
+1).存取操作(load/store/set)
+
+load系列可以用来从内存中载入数据到SSE/AVX提供的类型中，如：
+
+void test() 
+{
+	__declspec(align(16)) float p[] = { 1.0f, 2.0f, 3.0f, 4.0f };
+	__m128 v = _mm_load_ps(p);
+}
+_mm_load_ps可以从16字节对齐的连续内存中加载4个32位单精度浮点数到__m128数据类型中（若不对齐则加载会出错）。
+
+_mm_loadu_ps同_mm_load_ps的作用相同，但不要求提供的内存地址对齐。
+
+_mm_load_ps1是从内存中载入一个32位浮点数，并重复存储到__m128中的4个浮点数中，即：m[0] = p[0], m[1] = p[0], m[2] = p[0], m[3] = p[0]。
+
+_mm_load_ss则是从内存中载入一个32位浮点数，并将其赋值给__m128中的最低位的浮点数，并将高位的3个浮点数设置为0，即：m[0] = p[0], m[1] = 0, m[2] = 0, m[3] = 0。
+
+_mm_loadr_ps位载入4个32位浮点数并将其反向赋值给__m128中的4个浮点数，即：m[0] = p[3], m[1] = p[2], m[2] = p[1], m[3] = p[0]。
+
+除此之外还有_mm_loadh_pd，_mm_loadl_pi等...
+
+store系列可以将SSE/AVX提供的类型中的数据存储到内存中，如：
+
+_mm_store_ps可以__m128中的数据存储到16字节对齐的内存。
+
+_mm_storeu_ps不要求存储的内存对齐。
+
+_mm_store_ps1则是把__m128中最低位的浮点数存储为4个相同的连续的浮点数，即：p[0] = m[0], p[1] = m[0], p[2] = m[0], p[3] = m[0]。
+
+_mm_store_ss是存储__m128中最低位的位浮点数到内存中。
+
+_mm_storer_ps是按相反顺序存储__m128中的4个浮点数。
+
+set系列可以直接设置SSE/AVX提供的类型中的数据，如：
+
+	__m128 v = _mm_set_ps(0.5f, 0.2f, 0.3f, 0.4f);
+_mm_set_ps可以将4个32位浮点数按相反顺序赋值给__m128中的4个浮点数，即：_mm_set_ps(a, b, c, d) : m[0] = d, m[1] = c, m[2] = b, m[3] = a。
+
+_mm_set_ps1则是将一个浮点数赋值给__m128中的四个浮点数。
+
+_mm_set_ss是将给定的浮点数设置到__m128中的最低位浮点数中，并将高三位的浮点数设置为0.
+
+_mm_setzero_ps是将__m128中的四个浮点数全部设置为0.
+
+2). 算术运算
+
+SSE/AVX提供的算术运算操作包括：
+
+_mm_add_ps，_mm_add_ss等加法系列
+_mm_sub_ps，_mm_sub_pd等减法系列
+_mm_mul_ps，_mm_mul_epi32等乘法系列
+_mm_div_ps，_mm_div_ss等除法系列
+_mm_sqrt_pd，_mm_rsqrt_ps等开平方系列
+_mm_rcp_ps，_mm_rcp_ss等求倒数系列
+_mm_dp_pd，_mm_dp_ps计算点乘
+此外还有向下取整，向上取整等运算，这里只列出了浮点数支持的算术运算类型，还有一些整形的算术运算类型未列出。
+3).比较运算
+
+SSE/AVX提供的比较运算操作包括：
+
+_mm_max_ps逐分量对比两个数据，并将较大的分量存储到返回类型的对应位置中。
+_mm_min_ps逐分量对比两个数据，并将较小的分量存储到返回类型的对应位置中。
+_mm_cmpeq_ps逐分量对比两个数据是否相等。
+_mm_cmpge_ps逐分量对比一个数据是否大于等于另一个是否相等。
+_mm_cmpgt_ps逐分量对比一个数据是否大于另一个是否相等。
+_mm_cmple_ps逐分量对比一个数据是否小于等于另一个是否相等。
+_mm_cmplt_ps逐分量对比一个数据是否小于另一个是否相等。
+_mm_cmpneq_ps逐分量对比一个数据是否不等于另一个是否相等。
+_mm_cmpnge_ps逐分量对比一个数据是否不大于等于另一个是否相等。
+_mm_cmpngt_ps逐分量对比一个数据是否不大于另一个是否相等。
+_mm_cmpnle_ps逐分量对比一个数据是否不小于等于另一个是否相等。
+_mm_cmpnlt_ps逐分量对比一个数据是否不小于另一个是否相等。
+此外还有一些执行单分量对比的比较运算
+4).逻辑运算
+
+SSE/AVX提供的逻辑运算操作包括：
+
+_mm_and_pd对两个数据逐分量and
+_mm_andnot_ps先对第一个数进行not，然后再对两个数据进行逐分量and
+_mm_or_pd对两个数据逐分量or
+_mm_xor_ps对两个数据逐分量xor
+
+
+5).Swizzle运算
+
+包含_mm_shuffle_ps，_mm_blend_ps, _mm_movelh_ps等。
+
+这里主要介绍以下_mm_shuffle_ps:
+
+void test() 
+{
+	__m128 a = _mm_set_ps(1, 2, 3, 4);
+	__m128 b = _mm_set_ps(5, 6, 7, 8);
+
+	__m128 v = _mm_shuffle_ps(a, b, _MM_SHUFFLE(1, 0, 3, 2)); // 2, 1, 8, 7
+}
+_mm_shuffle_ps读取两个__m128类型的数据a和b，并按照_MM_SHUFFLE提供的索引将返回的__m128类型数据的低两位设置为a中按索引值取得到的对应值，将高两位设置为按索引值从b中取得到的对应值。索引值在0到3之间，分别以相反的顺序对应__m128中的四个浮点数。
+
+SSE/AVX还提供了类型转换等操作，这里就不做介绍了。
+
+PS:补充一个操作指令：_mm_cvtss_f32，可以获取__m128中的最低位浮点数并返回。
+
+_mm_cmplt_ps函数返回的是__m128类型的数据，其中存储了逐分量比较的结果，如果条件成立则为-nan，否则为0：
+void test() 
+{
+	__m128 a = am_vector_set(5, 6, 7, 4);
+	__m128 b = am_vector_set(5, 6, 7, 8);
+
+	__m128 v = _mm_cmpeq_ps(a, b); // -nan, -nan, -nan, 0
+	AM_MASK mask = _mm_movemask_ps(v);	// 7
+	bool all = am_mask_all3(mask);	//true
+}
+
+可以使用_mm_movemask_ps将比较结果转化为int类型的值，此int值从低到高的4位分别对应两个__m128从低到高逐分量比较的结果，所以这个int类型的值的范围在0-15之间。可以通过检查这个int类型的值判断条件是否都成立，或其中一个是否成立。
+
+AM_INLINEF AMVector AM_CALLCONV am_vector_select(CRAMVector a, CRAMVector b, CRAMVector condition)
+{
+//.....
+#elif SIMD_LEVEL == 1
+	return _mm_or_ps(_mm_andnot_ps(condition, a), _mm_and_ps(b, condition));
+#else
+	return _mm_blendv_ps(a, b, condition);
+#endif // SIMD_LEVEL == 0
+}
+
+以定义一个select函数，根据比较结果，选择a或b中的对应分量作为返回值的对应分量(如果为true则选择b，否则选择a)，如果支持sse则select函数通过位操作实现，若支持sse4则可以通过_mm_blendv_ps指令实现。select函数的效果如下：
+
+void test() 
+{
+	__m128 a = am_vector_set(1, 9, 3, 10);
+	__m128 b = am_vector_set(5, 6, 7, 8);
+
+	__m128 v = _mm_cmplt_ps(a, b); //  -nan, 0, -nan, 0
+
+	__m128 result = am_vector_select(a, b, v);	// 5, 9, 7, 10
+}
+
+接下来是定义矩阵转置操作，转置操作用到了_mm_unpacklo_ps，_mm_unpackhi_ps，_mm_movelh_ps，_mm_movehl_ps等操作。这里简单介绍下_mm_unpacklo_ps和_mm_movelh_ps。
+
+void test() 
+{
+	__m128 a = am_vector_set(1, 2, 3, 4);
+	__m128 b = am_vector_set(5, 6, 7, 8);
+
+	__m128 v = _mm_unpacklo_ps(a, b); //  1, 5, 2, 6
+	//v[0] = a[0]
+	//v[1] = b[0]
+	//v[2] = a[1]
+	//v[3] = b[1]
+
+	v = _mm_movelh_ps(a, b); // 1, 2, 5, 6
+	//v[0] = a[0]
+	//v[1] = a[1]
+	//v[2] = b[0]
+	//v[3] = b[1]
+}
+
+/*Integer blend instructions - select data from 2 sources
+	using constant/variable mask*/
+	//v1=(v10, v11, ..., v17), v2=(v20, v21, ..., v27)
+	//mask:If the corresponding flag bit is 0, the value is selected from parameter v1.
+	//Otherwise the value is from parameter v2.
+	//则r0=(mask0 == 0) ? v10 : v20,...,r7= (mask7 == 0) ? v17 : v27
+	extern __m128i _mm_blend_epi16 (__m128i v1, __m128i v2, const int mask);
+	//v1=(v10, v11, ..., v115), v2=(v20, v21, ..., v215), mask=(mask1, ..., mask15)
+	//则r0=(mask0 & 0x80) ? v20 : v10, ..., r15=(mask15 & 0x80) ? v215 : v115
+	extern __m128i _mm_blendv_epi8 (__m128i v1, __m128i v2, __m128i mask);
+ 
+	/*Float single precision blend instructions - select data
+	from 2 sources using constant/variable mask */
+	//v1=(v10, v11, v12, v13), v2=(v20, v21, v22, v23)
+	//则r0=(mask0 == 0) ? v10 : v20,..., r3= (mask3 == 0) ? v13 : v23
+	extern __m128  _mm_blend_ps (__m128  v1, __m128  v2, const int mask);
+	//v1=(v10, v11, v12, v13), v2=(v20, v21, v22, v23)
+	//则r0= (v30 & 0x80000000) ? v20 : v10,...,r3= (v33 & 0x80000000) ? v23 : v13
+	extern __m128  _mm_blendv_ps(__m128  v1, __m128  v2, __m128 v3);
+ 
+	/*Float double precision blend instructions - select data
+	from 2 sources using constant/variable mask*/
+	//v1=(v10, v11), v2=(v20, v21)
+	//则r0 = (mask0 == 0) ? v10 : v20, r1 = (mask1 == 0) ? v11 : v21
+	extern __m128d _mm_blend_pd (__m128d v1, __m128d v2, const int mask);
+	//v1=(v10, v11), v2=(v20, v21)
+	//则r0 = (v30 & 0x8000000000000000) ? v20 : v10,
+	//r1 = (v31 & 0x8000000000000000) ? v21 : v11
+	extern __m128d _mm_blendv_pd(__m128d v1, __m128d v2, __m128d v3);
+ 
+	/*Dot product instructions with mask-defined summing and zeroing
+	of result's parts*/
+	//val1=(val10, ..., val13), val2=(val20,...,val23)
+	/*则tmp0 := (mask4 == 1) ? (val10 * val20) : +0.0
+		tmp1 := (mask5 == 1) ? (val11 * val21) : +0.0
+		tmp2 := (mask6 == 1) ? (val12 * val22) : +0.0
+		tmp3 := (mask7 == 1) ? (val13 * val23) : +0.0
+		tmp4 := tmp0 + tmp1 + tmp2 + tmp3
+		r0 := (mask0 == 1) ? tmp4 : +0.0
+		r1 := (mask1 == 1) ? tmp4 : +0.0
+		r2 := (mask2 == 1) ? tmp4 : +0.0
+		r3 := (mask3 == 1) ? tmp4 : +0.0 */
+	extern __m128  _mm_dp_ps(__m128  val1, __m128  val2, const int mask);
+	//val1=(val10, val11), val2=(val20, val21)
+	/*则tmp0 := (mask4 == 1) ? (val10 * val20) : +0.0
+		tmp1 := (mask5 == 1) ? (val11 * val21) : +0.0
+		tmp2 := tmp0 + tmp1
+		r0 := (mask0 == 1) ? tmp2 : +0.0
+		r1 := (mask1 == 1) ? tmp2 : +0.0 */
+	extern __m128d _mm_dp_pd(__m128d val1, __m128d val2, const int mask);
+ 
+	/*Packed integer 64-bit comparison, zeroing or filling with ones
+	corresponding parts of result */
+	//val1=(val10, val11), val2=(val20, val21)
+	//则r0 = (val10 == val20) ? 0xffffffffffffffff : 0,
+	//r1 = (val11 == val21) ? 0xffffffffffffffff : 0
+	extern __m128i _mm_cmpeq_epi64(__m128i val1, __m128i val2);
+ 
+	/* Min/max packed integer instructions*/
+	//val1=(val10,...,val115), val2=(val20,...,val215)
+	//则r0 = (val10 < val20) ? val10 : val20, ...,
+	//r15 = (val115 < val215) ? val115 : val215
+	extern __m128i _mm_min_epi8 (__m128i val1, __m128i val2);
+	//val1=(val10,...,val115), val2=(val20,...,val215)
+	//则r0 = (val10 > val20) ? val10 : val20, ...,
+	//r15 = (val115 > val215) ? val115 : val215
+	extern __m128i _mm_max_epi8 (__m128i val1, __m128i val2);
+	//val1=(val10,...,val17), val2=(val20,...,val27), eight 16-bit unsigned integers
+	//则r0 = (val10 < val20) ? val10 : val20, ...,
+	//r7 = (val17 < val27) ? val17 : val27
+	extern __m128i _mm_min_epu16(__m128i val1, __m128i val2);
+	//val1=(val10,...,val17), val2=(val20,...,val27),eight 16-bit unsigned integers
+	//则r0 = (val10 > val20) ? val10 : val20, ...,
+	//r7 = (val17 > val27) ? val17 : val27
+	extern __m128i _mm_max_epu16(__m128i val1, __m128i val2);
+	//val1=(val10,...,val13), val2=(val20,...,val23)
+	//则r0 = (val10 < val20) ? val10 : val20, ...,
+	//r3 = (val13 < val23) ? val13 : val23
+	extern __m128i _mm_min_epi32(__m128i val1, __m128i val2);
+	//val1=(val10,...,val13), val2=(val20,...,val23)
+	//则r0 = (val10 > val20) ? val10 : val20, ...,
+	//r3 = (val13 > val23) ? val13 : val23
+	extern __m128i _mm_max_epi32(__m128i val1, __m128i val2);
+	//val1=(val10,...,val13), val2=(val20,...,val23), four 32-bit unsigned integers
+	//则r0 = (val10 < val20) ? val10 : val20, ...,
+	//r3 = (val13 < val23) ? val13 : val23
+	extern __m128i _mm_min_epu32(__m128i val1, __m128i val2);
+	//val1=(val10,...,val13), val2=(val20,...,val23), four 32-bit unsigned integers
+	//则r0 = (val10 > val20) ? val10 : val20, ...,
+	//r3 = (val13 > val23) ? val13 : val23
+	extern __m128i _mm_max_epu32(__m128i val1, __m128i val2);
+ 
+	/*Packed integer 32-bit multiplication with truncation
+	of upper halves of results*/
+	//a=(a0,...,a3), b=(b0,...,b3), 则r0=a0 * b0, ..., r3=a3 * b3
+	//Only the lower 32-bits of each product are saved
+	extern __m128i _mm_mullo_epi32(__m128i a, __m128i b);
+ 
+	/*Packed integer 32-bit multiplication of 2 pairs of operands
+	producing two 64-bit results */
+	//a=(a0,a1,a2,a3), b=(b0,b1,b2,b3)
+	//r0=low_half(a0*b0), r1=high_half(a0*b0),r2=low_half(a2*b2), r3=high_half(a2*b2)
+	//The upper 32-bits of each quadword of the input parameters are not used
+	extern __m128i _mm_mul_epi32(__m128i a, __m128i b);
+ 
+	/*Packed integer 128-bit bitwise comparison.
+	return 1 if (val 'and' mask) == 0*/
+	//则r = (mask & val) == 0, Generates a return value of 0 or 1
+	extern int _mm_testz_si128(__m128i mask, __m128i val);
+ 
+	/*Packed integer 128-bit bitwise comparison.
+	return 1 if (val 'and_not' mask) == 0 */
+	//则r=1 if all the bits set in val are set in mask; otherwise 0
+	//Generates a return value of 0 or 1
+	extern int _mm_testc_si128(__m128i mask, __m128i val);
+ 
+	/*Packed integer 128-bit bitwise comparison
+	ZF = ((val 'and' mask) == 0)  CF = ((val 'and_not' mask) == 0)
+	return 1 if both ZF and CF are 0 */
+	//则 ZF := (mask & s2) == 0，CF := (~mask & s2) == 0, r = ~ZF & ~CF
+	//Generates a return value of 0 or 1
+	extern int _mm_testnzc_si128(__m128i mask, __m128i s2);
+ 
+	/*Insert single precision float into packed single precision
+	array element selected by index.
+	The bits [7-6] of the 3d parameter define src index,
+	the bits [5-4] define dst index, and bits [3-0] define zeroing
+	mask for dst */
+	/*	sx := ndx6-7
+		sval := (sx == 0) ? src0 : ((sx == 1) ? src1 : ((sx == 2) ? src2 : src3))
+		dx := ndx4-5
+		r0 := (dx == 0) ? sval : dst0
+		r1 := (dx == 1) ? sval : dst1
+		r2 := (dx == 2) ? sval : dst2
+		r3 := (dx == 3) ? sval : dst3
+		zmask := ndx0-3
+		r0 := (zmask0 == 1) ? +0.0 : r0
+		r1 := (zmask1 == 1) ? +0.0 : r1
+		r2 := (zmask2 == 1) ? +0.0 : r2
+		r3 := (zmask3 == 1) ? +0.0 : r3 */
+	extern __m128 _mm_insert_ps(__m128 dst, __m128 src, const int ndx);
+ 
+	/*Extract binary representation of single precision float from
+	packed single precision array element selected by index */
+	//src=(src0, src1, src2, src3)
+	//则r = (ndx == 0) ? src0 : ((ndx == 1) ? src1 : ((ndx == 2) ? src2 : src3))
+	//Only the least significant two bits of ndx are used
+	extern int _mm_extract_ps(__m128 src, const int ndx);
+ 
+	/*Insert integer into packed integer array element
+	selected by index */
+	//则r0=(ndx == 0) ? s : dst0, ..., r15=(ndx == 15) ? s : dst15
+	//Only the lowest 8 bits of s are used, 
+	//Only the least significant 4 bits of ndx are used
+	extern __m128i _mm_insert_epi8 (__m128i dst, int s, const int ndx);
+	//则r0=(ndx == 0) ? s : dst0, ..., r3=(ndx == 3) ? s : dst3
+	//Only the least significant 2 bits of ndx are interpreted
+	extern __m128i _mm_insert_epi32(__m128i dst, int s, const int ndx);
+	//则r0=(ndx == 0) ? s : dst0, r1=(ndx == 1) ? s : dst1
+	//Only the least significant bit of ndx is interpreted
+	extern __m128i _mm_insert_epi64(__m128i dst, __int64 s, const int ndx);
+ 
+	/*Extract integer from packed integer array element
+	selected by index */
+	//则r=(ndx == 0) ? src0 : ((ndx == 1) ? src1 : ...((ndx == 14) ? src14 : src15))
+	//Only the least significant four bits of ndx are used
+	//注意：The result is the unsigned equivalent of the appropriate 8-bits in parameter src
+	extern int _mm_extract_epi8 (__m128i src, const int ndx);
+	//则r=(ndx == 0) ? src0 : ((ndx == 1) ? src1 : ((ndx == 2) ? src2 : src3))
+	//Only the least significant two bits of ndx are used.
+	extern int _mm_extract_epi32(__m128i src, const int ndx);
+	//则r = (ndx == 0) ? src0 : src1
+	//Only the least significant bit of parameter ndx is used
+	extern __int64 _mm_extract_epi64(__m128i src, const int ndx);
+ 
+	/*Horizontal packed word minimum and its index in
+	result[15:0] and result[18:16] respectively */
+	//The lowest order 16 bits are the minimum value found in parameter shortValues.
+	//The second-lowest order 16 bits are the index of the minimum value 
+	//found in parameter shortValues.
+	extern __m128i _mm_minpos_epu16(__m128i shortValues);
+ 
+	/* Packed/single float double precision rounding */
+	//则r0=RND(val0), r1=RND(val1),详见参考文献1
+	extern __m128d _mm_round_pd(__m128d val, int iRoundMode);
+	//则r0=RND(val0), r1=dst1, 详见参考文献1
+	// The lowest 64 bits are the result of the rounding function on val.
+	//The higher order 64 bits are copied directly from input parameter dst
+	extern __m128d _mm_round_sd(__m128d dst, __m128d val, int iRoundMode);
+ 
+	/*Packed/single float single precision rounding */
+	//则r0=RND(val0), r1=RND(val1), r2=RND(val2), r3=RND(val3),详见参考文献1
+	extern __m128  _mm_round_ps(__m128  val, int iRoundMode);
+	//则r0=RND(val0), r1=dst1, r2=dst2, r3=dst3, 	
+	//The lowest 32 bits are the result of the rounding function on val.
+	//The higher order 96 bits are copied directly from input parameter dst
+	extern __m128  _mm_round_ss(__m128 dst, __m128  val, int iRoundMode);
+ 
+	/*Packed integer sign-extension */
+	//byteValues: A 128-bit parameter that contains four signed 8-bit integers
+	//in the lower 32 bits, byteValues=(a0, a1, ..., a15)
+	/*则r0 := a0
+		r1 := (a0 < 0) ? 0xff : 0
+		r2 := (a0 < 0) ? 0xff : 0
+		r3 := (a0 < 0) ? 0xff : 0
+		r4 := a1
+		r5 := (a1 < 0) ? 0xff : 0
+		r6 := (a1 < 0) ? 0xff : 0
+		r7 := (a1 < 0) ? 0xff : 0
+		r8 := a2
+		r9 := (a2 < 0) ? 0xff : 0
+		r10 := (a2 < 0) ? 0xff : 0
+		r11 := (a2 < 0) ? 0xff : 0
+		r12 := a3
+		r13 := (a3 < 0) ? 0xff : 0
+		r14 := (a3 < 0) ? 0xff : 0
+		r15 := (a3 < 0) ? 0xff : 0 */
+	extern __m128i _mm_cvtepi8_epi32 (__m128i byteValues);
+	//shortValues: A 128-bit parameter that contains four signed 16-bit integers
+	//in the lower 64 bits, shortValues=(a0, a1, ..., a7)
+	/*则r0 := a0
+		r1 := (a0 < 0) ? 0xffff : 0
+		r2 := a1
+		r3 := (a1 < 0) ? 0xffff : 0
+		r4 := a2
+		r5 := (a2 < 0) ? 0xffff : 0
+		r6 := a3
+		r7 := (a3 < 0) ? 0xffff : 0 */
+	extern __m128i _mm_cvtepi16_epi32(__m128i shortValues);
+	//byteValues: A 128-bit parameter that contains two signed 8-bit integers
+	//in the lower 16 bits, byteValues=(a0, a1, ... , a15)
+	/*则r0 := a0
+		r1 := (a0 < 0) ? 0xff : 0
+		r2 := (a0 < 0) ? 0xff : 0
+		r3 := (a0 < 0) ? 0xff : 0
+		r4 := (a0 < 0) ? 0xff : 0
+		r5 := (a0 < 0) ? 0xff : 0
+		r6 := (a0 < 0) ? 0xff : 0
+		r7 := (a0 < 0) ? 0xff : 0
+		r8 := a1
+		r9 := (a1 < 0) ? 0xff : 0
+		r10 := (a1 < 0) ? 0xff : 0
+		r11 := (a1 < 0) ? 0xff : 0
+		r12 := (a1 < 0) ? 0xff : 0
+		r13 := (a1 < 0) ? 0xff : 0
+		r14 := (a1 < 0) ? 0xff : 0
+		r15 := (a1 < 0) ? 0xff : 0 */
+	extern __m128i _mm_cvtepi8_epi64 (__m128i byteValues); 
+	//intValues: A 128-bit parameter that contains two signed 32-bit 
+	//integers in the lower 64 bits, intValues=(a0, a1, a2, a3)
+	/*则r0 := a0
+		r1 := (a0 < 0) ? 0xffffffff : 0
+		r2 := a1
+		r3 := (a1 < 0) ? 0xffffffff : 0*/
+	extern __m128i _mm_cvtepi32_epi64(__m128i intValues);
+	//shortValues:A 128-bit parameter that contains two signed 16-bit integers
+	//in the lower 32 bits, shortValues=(a0, a1, ..., a7)
+	/*则r0 := a0
+		r1 := (a0 < 0) ? 0xffff : 0
+		r2 := (a0 < 0) ? 0xffff : 0
+		r3 := (a0 < 0) ? 0xffff : 0
+		r4 := a1
+		r5 := (a1 < 0) ? 0xffff : 0
+		r6 := (a1 < 0) ? 0xffff : 0
+		r7 := (a1 < 0) ? 0xffff : 0*/
+	extern __m128i _mm_cvtepi16_epi64(__m128i shortValues);
+	//byteValues:A 128-bit parameter that contains eight signed 8-bit integers 
+	//in the lower 64 bits, byteValues=(a0, a1, ..., a15)
+	/*则r0 := a0
+		r1 := (a0 < 0) ? 0xff : 0
+		r2 := a1
+		r3 := (a1 < 0) ? 0xff : 0
+		...
+		r14 := a7
+		r15 := (a7 < 0) ? 0xff : 0*/
+	extern __m128i _mm_cvtepi8_epi16 (__m128i byteValues);
+ 
+	/*Packed integer zero-extension*/
+	//byteValues:A 128-bit parameter that contains four unsigned 8-bit integers
+	//in the lower 32 bits, byteValues=(a0, a1, ... , a15)
+	/*则r0 := a0
+		r1 := 0
+		r2 := 0
+		r3 := 0
+		r4 := a1
+		r5 := 0
+		r6 := 0
+		r7 := 0
+		r8 := a2
+		r9 := 0
+		r10 := 0
+		r11 := 0
+		r12 := a3
+		r13 := 0
+		r14 := 0
+		r15 := 0*/
+	extern __m128i _mm_cvtepu8_epi32 (__m128i byteValues);
+	//shortValues:A 128-bit parameter that contains four unsigned 16-bit integers
+	//in the lower 64 bits, shortValues=(a0, a1, ... , a7)
+	/*则r0 := a0
+		r1 := 0
+		r2 := a1
+		r3 := 0
+		r4 := a2
+		r5 := 0
+		r6 := a3
+		r7 := 0*/
+	extern __m128i _mm_cvtepu16_epi32(__m128i shortValues);
+	//shortValues:A 128-bit parameter that contains two unsigned 8-bit integers
+	//in the lower 16 bits, shortValues=(a0, a1, ..., a15)
+	/*则r0 := a0
+		r1 := 0
+		r2 := 0
+		r3 := 0
+		r4 := 0
+		r5 := 0
+		r6 := 0
+		r7 := 0
+		r8 := a1
+		r9 := 0
+		r10 := 0
+		r11 := 0
+		r12 := 0
+		r13 := 0
+		r14 := 0
+		r15 := 0*/
+	extern __m128i _mm_cvtepu8_epi64 (__m128i shortValues);
+	//intValues:A 128-bit parameter that contains two unsigned 32-bit integers
+	//in the lower 64 bits, intValues=(a0, a1, a2, a3)
+	/*则r0 = a0
+		r1 = 0
+		r2 = a1
+		r3 = 0*/
+	extern __m128i _mm_cvtepu32_epi64(__m128i intValues);
+	//shortValues:A 128-bit parameter that contains two unsigned 16-bit integers
+	//in the lower 32 bits, shortValues=(a0, a1, ... , a7)
+	/*则r0 := a0
+		r1 := 0
+		r2 := 0
+		r3 := 0
+		r4 := a1
+		r5 := 0
+		r6 := 0
+		r7 := 0*/
+	extern __m128i _mm_cvtepu16_epi64(__m128i shortValues);
+	//byteValues:A 128-bit parameter that contains eight unsigned 8-bit integers 
+	//in the lower 64 bits, byteValues=(a0, a1, ... , a15)
+	/*则r0 := a0
+		r1 := 0
+		r2 := a1
+		r3 := 0
+		...
+		r14 := a7
+		r15 := 0*/
+	extern __m128i _mm_cvtepu8_epi16 (__m128i byteValues);
+ 
+	/*Pack 8 double words from 2 operands into 8 words of result
+	with unsigned saturation */
+	//val1=(val10,...,vall3), val2=(val20, ..., val23)
+	/*则r0 := (val10 < 0) ? 0 : ((val10 > 0xffff) ? 0xffff : val10)
+		r1 := (val11 < 0) ? 0 : ((val11 > 0xffff) ? 0xffff : val11)
+		r2 := (val12 < 0) ? 0 : ((val12 > 0xffff) ? 0xffff : val12)
+		r3 := (val13 < 0) ? 0 : ((val13 > 0xffff) ? 0xffff : val13)
+		r4 := (val20 < 0) ? 0 : ((val20 > 0xffff) ? 0xffff : val20)
+		r5 := (val21 < 0) ? 0 : ((val21 > 0xffff) ? 0xffff : val21)
+		r6 := (val22 < 0) ? 0 : ((val22 > 0xffff) ? 0xffff : val22)
+		r7 := (val23 < 0) ? 0 : ((val23 > 0xffff) ? 0xffff : val23)*/
+	extern __m128i _mm_packus_epi32(__m128i val1, __m128i val2);
+ 
+	/*Sum absolute 8-bit integer difference of adjacent groups of 4 byte
+	integers in operands. Starting offsets within operands are
+	determined by mask */
+	//s1, s2: sixteen 8-bit unsigned integers
+	// msk0, msk1, and msk2 are the three least significant bits of parameter msk
+	/*则i = msk2 * 4
+		j = msk0-1 * 4
+		for (k = 0; k < 8; k = k + 1) {
+		t0 = abs(s1[i + k + 0] - s2[j + 0])
+		t1 = abs(s1[i + k + 1] - s2[j + 1])
+		t2 = abs(s1[i + k + 2] - s2[j + 2])
+		t3 = abs(s1[i + k + 3] - s2[j + 3])
+		r[k] = t0 + t1 + t2 + t3
+		}*/
+	extern __m128i _mm_mpsadbw_epu8(__m128i s1, __m128i s2, const int msk);
+ 
+	/*
+	* Load double quadword using non-temporal aligned hint
+	*/
+	//This instruction loads data from a specified address.The memory source must be 
+	//16-byte aligned because the return value consists of sixteen bytes.则r=*v1
+	extern __m128i _mm_stream_load_si128(__m128i* v1);
+
+nmmintrin.h为SSE4.2头文件，其文件中各函数的介绍：
+
+	/*
+	* Intrinsics for text/string processing.
+	*/
+	//Either the computed mask of MaxSize bits or its expansion to a 128-bit parameter.
+	//If the return value is expanded, each bit of the result mask is expanded to a 
+	//byte or a word.详见参考文献2
+	extern __m128i _mm_cmpistrm (__m128i a, __m128i b, const int mode);
+	//An integer between 0 and Maxsize. MaxSize when the computed mask equals 0.
+	//Otherwise, the index of the leftmost or rightmost bit set to 1 in this mask.
+	//详见参考文献2
+	extern int     _mm_cmpistri (__m128i a, __m128i b, const int mode);
+	//Either the computed mask of MaxSize bits or its expansion to a 128-bit parameter.
+	//If the return value is expanded, each bit of the result mask is expanded to 
+	//a byte or a word.详见参考文献3
+	extern __m128i _mm_cmpestrm (__m128i a, int la, __m128i b, int lb, const int mode);
+	//An integer that ranges between 0 and MaxSize. Maxsize is returned when the 
+	//resulting bitmask is equal to 0. Otherwise, the index of either the leftmost
+	//or rightmost bit set to 1 in this mask.详见参考文献3
+	extern int     _mm_cmpestri (__m128i a, int la, __m128i b, int lb, const int mode);
+ 
+	/*
+	* Intrinsics for text/string processing and reading values of EFlags.
+	*/
+	//Returns one if the null character occurs in b. Otherwise, zero. When one is 
+	//returned, it means that b contains the ending fragment of the string that is 
+	//being compared.详见参考文献2
+	extern int     _mm_cmpistrz (__m128i a, __m128i b, const int mode);
+	//Zero if the resulting mask is equal to zero. Otherwise, one.
+	//详见参考文献2
+	extern int     _mm_cmpistrc (__m128i a, __m128i b, const int mode);
+	//One if the null character occurs in a. Otherwise, zero. When one is returned,
+	//it means that a contains the ending fragment of the string that is being compared.
+	//详见参考文献2
+	extern int     _mm_cmpistrs (__m128i a, __m128i b, const int mode);
+	//bit0 of the resulting bitmask.详见参考文献2
+	extern int     _mm_cmpistro (__m128i a, __m128i b, const int mode);
+	//One if b is does not contain the null character and the resulting mask is 
+	//equal to zero. Otherwise, zero. 详见参考文献2
+	extern int     _mm_cmpistra (__m128i a, __m128i b, const int mode);
+	//One if the absolute value of lb is less than MaxSize. Otherwise, zero.详见参考文献3
+	extern int     _mm_cmpestrz (__m128i a, int la, __m128i b, int lb, const int mode);
+	//Zero if the resulting mask is equal to zero. Otherwise, one.详见参考文献3
+	extern int     _mm_cmpestrc (__m128i a, int la, __m128i b, int lb, const int mode);
+	//One if the absolute value of la is less than MaxSize. Otherwise, zero.详见参考文献3
+	extern int     _mm_cmpestrs (__m128i a, int la, __m128i b, int lb, const int mode);
+	//bit0 of the resulting bitmask. 详见参考文献3
+	extern int     _mm_cmpestro (__m128i a, int la, __m128i b, int lb, const int mode);
+	//One if the absolute value of lb is larger than or equal to MaxSize and the 
+	//resulting mask is equal to zero. Otherwise, zero.详见参考文献3
+	extern int     _mm_cmpestra (__m128i a, int la, __m128i b, int lb, const int mode);
+ 
+	/*
+	* Packed integer 64-bit comparison, zeroing or filling with ones
+	* corresponding parts of result
+	*/
+	//val1=(val10, val11), val2=(val20, val21)
+	//则,r0 = (val10 > val20) ? 0xffffffffffffffff : 0x0
+	//	 r1 = (val11 > val21) ? 0xffffffffffffffff : 0x0
+	extern __m128i _mm_cmpgt_epi64(__m128i val1, __m128i val2);
+ 
+	/*
+	* Calculate a number of bits set to 1
+	*/
+	//The number of bits set to one in v
+	extern int _mm_popcnt_u32(unsigned int v);
+	//The number of bits set to one in v
+	extern __int64 _mm_popcnt_u64(unsigned __int64 v);
+ 
+	/*
+	* Accumulate CRC32 (polynomial 0x11EDC6F41) value
+	*/
+	//crc：循环冗余校验码，CRC32-C algorithm is based on polynomial 0x1EDC6F41,
+	//r = crc + CRC-32C(v)
+	extern unsigned int _mm_crc32_u8 (unsigned int crc, unsigned char v);
+	//crc：循环冗余校验码，CRC32-C algorithm is based on polynomial 0x1EDC6F41,
+	//r = crc + CRC-32C(v)
+	extern unsigned int _mm_crc32_u16(unsigned int crc, unsigned short v);
+	//crc：循环冗余校验码，CRC32-C algorithm is based on polynomial 0x1EDC6F41,
+	//r = crc + CRC-32C(v)
+	extern unsigned int _mm_crc32_u32(unsigned int crc, unsigned int v);
+	//crc：循环冗余校验码，CRC32-C algorithm is based on polynomial 0x1EDC6F41,
+	//r = crc + CRC-32C(v)
+	extern unsigned __int64 _mm_crc32_u64(unsigned __int64 crc, unsigned __int64 v);
