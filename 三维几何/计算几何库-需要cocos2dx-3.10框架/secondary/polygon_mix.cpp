@@ -22,10 +22,28 @@
 //#include <immintrin.h>//AVX(include wmmintrin.h)
 //#include <intrin.h>//(include immintrin.h)
 
+#if defined(__MACH__) && !TARGET_OS_IPHONE
+#include <x86intrin.h>
+#include <xmmintrin.h>
+#define __mac_x86_sse__
+#endif
+
+#ifdef _WIN32
+#include <intrin.h>
+#endif
+
+#if defined(__mac_x86_sse__) || defined(_WIN32)
+#define __x86_sse_enabled
+#endif
+
 //total
 //#include <intrin.h>
 #define _align_xmm _declspec(align(16))
-// -march=armv7-a -mfloat-abi=hard -mfpu=neon
+// -march=armv7-a -mfloat-abi=hard -mfpu=neon -ftree-vectorize
+#if CC_TARGET_PLATFORM == CC_PLATFORM_IOS
+#include <arm_acle.h>
+#include <arm_neon.h>
+#endif
 NS_GT_BEGIN
 /*
   *针对任一给定方向向量,求出极值点
@@ -261,7 +279,7 @@ void simple_polygon_ear_triangulate(const std::vector<cocos2d::Vec2> &polygon, s
 }
 
 void sse_code_sample() {
-	float _align_xmm  matrix_array[16];
+	_align_xmm float matrix_array[16];
 
 	float *matrix_ptr = (float*)_aligned_malloc(sizeof(float) * 16, 16);
 
@@ -364,6 +382,21 @@ void sse_matrix_multiply(const float m2[16], const float m1[16], float *dst) {
 	_mm_store_ss(dst + 15, rk);
 }
 
+void sse_matrix_multiply_optimal(const float m1[16], const float m2[16], float dst[16]) {
+	_MM_ALIGN16 __m128 r0 = _mm_loadu_ps(m2);
+	_MM_ALIGN16 __m128 r1 = _mm_loadu_ps(m2+4);
+	_MM_ALIGN16 __m128 r2 = _mm_loadu_ps(m2+8);
+	_MM_ALIGN16 __m128 r3 = _mm_loadu_ps(m2 + 12);
+
+	_MM_ALIGN16 __m128 s0 = _mm_loadu_ps(m1);
+	_MM_ALIGN16 __m128 s1 = _mm_loadu_ps(m1 + 4);
+	_MM_ALIGN16 __m128 s2 = _mm_loadu_ps(m1 + 8);
+	_MM_ALIGN16 __m128 s3 = _mm_loadu_ps(m1 + 12);
+
+	//_mm_mul_
+
+}
+
 void matrix_substruct(const float m[16], float *dst) {
 	_MM_ALIGN16 __m128 r0 = _mm_setzero_ps();
 	//row 0
@@ -413,4 +446,8 @@ void matrix_add(const float m[16], float scalar,float *dst) {
 //https://blog.csdn.net/fengbingchun/article/details/22101981
 //SSE汇编指令基本使用方法介绍
 //https://blog.csdn.net/tercel_zhang/article/details/80049244
+//arm neon 汇编指令
+//https://developer.arm.com/architectures/instruction-sets/simd-isas/neon/intrinsics?page=1
+//arm neon汇编指令教程intrinsics
+//https://zhuanlan.zhihu.com/p/61356656
 NS_GT_END

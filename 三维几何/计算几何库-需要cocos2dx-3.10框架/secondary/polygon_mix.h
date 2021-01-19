@@ -31,5 +31,7 @@ void sse_code_sample();
 void matrix_multiply(const float m1[16],const float m2[16],float dst[16]);
 //sse°æ¾ØÕó³Ë·¨
 void sse_matrix_multiply(const float m1[16],const float m2[16],float dst[16]);
+//sseÓÅ»¯°æ¾ØÕó³Ë·¨
+void sse_matrix_multiply_optimal(const float m1[16], const float m2[16], float dst[16]);
 NS_GT_END
 #endif
