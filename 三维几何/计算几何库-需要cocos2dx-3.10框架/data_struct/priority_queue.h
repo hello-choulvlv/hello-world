@@ -9,8 +9,8 @@
 #ifndef __Priority_queue_h__
 #define __Priority_queue_h__
 #include "gt_common/geometry_types.h"
-#include<string.h>
-#include<assert.h>
+#include <string.h>
+#include <assert.h>
 #include <functional>
 NS_GT_BEGIN
 template<typename KP>
